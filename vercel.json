@@ -1,19 +1,14 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "buildCommand": "next build",
-  "devCommand": "next dev",
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
   "installCommand": "npm install",
   "outputDirectory": ".next",
   "env": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://xtsdewhvjvxkxnidioiz.supabase.co",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0c2Rld2h2anZ4a3huaWRpb2l6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NTM3MzMsImV4cCI6MjEwMDAyOTczM30.eEvdO_U9wKZicLURfT1Fi8OVyj-yezohspJAOWFaMck",
     "NEXTAUTH_SECRET": "cLiAcQ04Bxn3BfuUErSsHcyDW4HIsqql6la+xIOyLhM=",
-    "NEXTAUTH_URL": "https://oog-terminal.vercel.app"
+    "NEXTAUTH_URL": "https://oog-terminal.vercel.app",
+    "NEXT_DISABLE_SWC": "1"
   }
 }
