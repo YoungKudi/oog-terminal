@@ -35,6 +35,7 @@ import ScannerModal from '@/components/modals/ScannerModal'
 import { StatsGrid } from '@/components/common/StatsGrid'
 import { DailyTally } from '@/components/common/DailyTally'
 import { FloatingButtons } from '@/components/common/FloatingButtons'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 
 export default function DashboardPage() {
   const { data: session, status } = useSession()
@@ -495,3 +496,15 @@ export default function DashboardPage() {
     </div>
   )
 }
+// Add this import at the top
+import { NotificationBell } from '@/components/notifications/NotificationBell'
+
+// Then in the header section, add the notification bell
+// Replace the header-actions div with:
+/*
+<div className="header-actions">
+  <NotificationBell />
+  <span style={{fontSize:'0.75rem',opacity:0.8}}>👤 {session.user?.userId}</span>
+  <button className="btn" onClick={toggleDarkMode} style={{background:'rgba(255,255,255,0.2)',padding:'2px 10px'}}>{isDarkMode ? '☀️' : '🌙'}</button>
+</div>
+*/
