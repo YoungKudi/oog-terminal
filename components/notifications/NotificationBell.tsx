@@ -1,23 +1,32 @@
 "use client"
 import React, { useState, useEffect } from 'react'
+import { useNotifications } from '@/hooks/useNotifications'
 import { useRealtime } from '@/hooks/useRealtime'
-
-interface Notification {
-  id: string
-  type: 'container' | 'devanning' | 'loadout' | 'evacuation' | 'system'
-  title: string
-  message: string
-  timestamp: Date
-  read: boolean
-  data?: any
-}
+import { getColor } from '@/lib/utils'
 
 export function NotificationBell() {
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [isOpen, setIsOpen] = useState(false)
-  const [unreadCount, setUnreadCount] = useState(0)
+  const {
+    notifications,
+    unreadCount,
+    permission,
+    isPushEnabled,
+    requestPermission,
+    addNotification,
+    markAsRead,
+    markAllAsRead,
+    clearAll,
+    setNotifications,
+  } = useNotifications()
 
-  // Listen to realtime events
+  const [isOpen, setIsOpen] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  useEffect(() => {
+    const dark = localStorage.getItem('oog_dark_mode') === 'true'
+    setIsDarkMode(dark)
+  }, [])
+
+  // Listen to realtime events for all tables
   useRealtime('Container', (event) => {
     if (event.action === 'INSERT') {
       addNotification({
@@ -61,6 +70,17 @@ export function NotificationBell() {
     }
   })
 
+  useRealtime('UnstuffedContainer', (event) => {
+    if (event.action === 'INSERT') {
+      addNotification({
+        type: 'unstuffed',
+        title: '✅ Container Unstuffed',
+        message: `Container ${event.new.containerNumber} has been unstuffed`,
+        data: event.new,
+      })
+    }
+  })
+
   useRealtime('LoadoutRecord', (event) => {
     if (event.action === 'INSERT') {
       addNotification({
@@ -83,33 +103,10 @@ export function NotificationBell() {
     }
   })
 
-  const addNotification = (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
-    const newNotification: Notification = {
-      ...notification,
-      id: Date.now().toString(),
-      timestamp: new Date(),
-      read: false,
-    }
-    setNotifications(prev => [newNotification, ...prev])
-    setUnreadCount(prev => prev + 1)
-  }
-
-  const markAsRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    )
-    setUnreadCount(prev => Math.max(0, prev - 1))
-  }
-
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-    setUnreadCount(0)
-  }
-
-  const clearAll = () => {
-    setNotifications([])
-    setUnreadCount(0)
-  }
+  const bgColor = getColor(isDarkMode, 'white', '#1e293b')
+  const textColor = getColor(isDarkMode, '#1e293b', '#e2e8f0')
+  const borderColor = getColor(isDarkMode, '#e2e8f0', '#334155')
+  const hoverBg = getColor(isDarkMode, '#f1f5f9', '#2d3a5e')
 
   return (
     <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -152,6 +149,43 @@ export function NotificationBell() {
         )}
       </button>
 
+      {/* Push Notification Permission Banner */}
+      {permission !== 'granted' && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '45px',
+            right: '0',
+            width: '280px',
+            background: getColor(isDarkMode, '#fef3c7', '#1e293b'),
+            borderRadius: '8px',
+            padding: '8px 12px',
+            fontSize: '0.65rem',
+            border: `1px solid ${getColor(isDarkMode, '#f59e0b', '#8b5cf6')}`,
+            zIndex: 1001,
+          }}
+        >
+          <div style={{ color: getColor(isDarkMode, '#78350f', '#fbbf24') }}>
+            🔔 Enable notifications for real-time updates
+          </div>
+          <button
+            onClick={() => requestPermission()}
+            style={{
+              background: '#1e6f3f',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '4px 12px',
+              fontSize: '0.6rem',
+              cursor: 'pointer',
+              marginTop: '4px'
+            }}
+          >
+            Enable Notifications
+          </button>
+        </div>
+      )}
+
       {isOpen && (
         <div
           style={{
@@ -160,26 +194,34 @@ export function NotificationBell() {
             right: '0',
             width: '380px',
             maxHeight: '400px',
-            background: 'white',
+            background: bgColor,
             borderRadius: '12px',
             boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
             zIndex: 1000,
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
+            border: `1px solid ${borderColor}`,
           }}
         >
           <div
             style={{
               padding: '12px 16px',
-              borderBottom: '1px solid #e2e8f0',
+              borderBottom: `1px solid ${borderColor}`,
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              background: '#f8fafc'
+              background: getColor(isDarkMode, '#f8fafc', '#0f172a')
             }}
           >
-            <span style={{ fontWeight: '600', fontSize: '0.9rem' }}>📢 Notifications</span>
+            <span style={{ fontWeight: '600', fontSize: '0.9rem', color: textColor }}>
+              📢 Notifications
+              {isPushEnabled && (
+                <span style={{ fontSize: '0.55rem', color: '#10b981', marginLeft: '8px' }}>
+                  ● Live
+                </span>
+              )}
+            </span>
             <div style={{ display: 'flex', gap: '8px' }}>
               {notifications.length > 0 && (
                 <>
@@ -189,7 +231,7 @@ export function NotificationBell() {
                       background: 'none',
                       border: 'none',
                       fontSize: '0.65rem',
-                      color: '#64748b',
+                      color: getColor(isDarkMode, '#64748b', '#94a3b8'),
                       cursor: 'pointer'
                     }}
                   >
@@ -218,7 +260,7 @@ export function NotificationBell() {
                 style={{
                   padding: '40px 20px',
                   textAlign: 'center',
-                  color: '#94a3b8',
+                  color: getColor(isDarkMode, '#94a3b8', '#64748b'),
                   fontSize: '0.85rem'
                 }}
               >
@@ -231,22 +273,23 @@ export function NotificationBell() {
                   onClick={() => markAsRead(notification.id)}
                   style={{
                     padding: '10px 14px',
-                    borderBottom: '1px solid #e2e8f0',
+                    borderBottom: `1px solid ${borderColor}`,
                     cursor: 'pointer',
-                    background: notification.read ? 'transparent' : '#f0fdf4',
+                    background: notification.read ? 'transparent' : getColor(isDarkMode, '#f0fdf4', '#0f172a'),
                     transition: 'background 0.2s',
+                    color: textColor,
                     ':hover': {
-                      background: '#f1f5f9',
+                      background: hoverBg,
                     },
                   }}
                 >
                   <div style={{ fontSize: '0.8rem', fontWeight: '600' }}>
                     {notification.title}
                   </div>
-                  <div style={{ fontSize: '0.7rem', color: '#475569' }}>
+                  <div style={{ fontSize: '0.7rem', color: getColor(isDarkMode, '#475569', '#94a3b8') }}>
                     {notification.message}
                   </div>
-                  <div style={{ fontSize: '0.55rem', color: '#94a3b8', marginTop: '4px' }}>
+                  <div style={{ fontSize: '0.55rem', color: getColor(isDarkMode, '#94a3b8', '#64748b'), marginTop: '4px' }}>
                     {notification.timestamp.toLocaleTimeString()}
                   </div>
                 </div>
