@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/db'
-import { useToast } from './useToast'
 
 type RealtimeEvent = {
   table: string
@@ -14,10 +13,19 @@ export function useRealtime(
   onEvent: (event: RealtimeEvent) => void
 ) {
   const [isConnected, setIsConnected] = useState(false)
+  const onEventRef = useRef(onEvent)
+
+  // Update ref when onEvent changes
+  useEffect(() => {
+    onEventRef.current = onEvent
+  }, [onEvent])
 
   useEffect(() => {
+    // Only subscribe if table is provided
+    if (!table) return
+
     const channel = supabase
-      .channel(`table-changes-${table}`)
+      .channel(`table-changes-${table}-${Date.now()}`)
       .on(
         'postgres_changes',
         {
@@ -26,8 +34,8 @@ export function useRealtime(
           table: table,
         },
         (payload) => {
-          console.log('📡 Realtime event:', payload)
-          onEvent({
+          console.log(`📡 Realtime event on ${table}:`, payload.eventType, payload)
+          onEventRef.current({
             table: payload.table,
             action: payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE',
             new: payload.new,
@@ -36,14 +44,16 @@ export function useRealtime(
         }
       )
       .subscribe((status) => {
-        setIsConnected(status === 'SUBSCRIBED')
+        const connected = status === 'SUBSCRIBED'
+        setIsConnected(connected)
         console.log(`📡 Realtime ${table} status:`, status)
       })
 
     return () => {
+      console.log(`📡 Unsubscribing from ${table}`)
       supabase.removeChannel(channel)
     }
-  }, [table, onEvent])
+  }, [table])
 
   return { isConnected }
 }

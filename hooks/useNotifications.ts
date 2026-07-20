@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { pushService } from '@/lib/notifications/push'
-import { supabase } from '@/lib/db'
 
-interface Notification {
+export interface Notification {
   id: string
   type: 'container' | 'devanning' | 'loadout' | 'evacuation' | 'unstuffed' | 'system'
   title: string
@@ -17,6 +16,33 @@ export function useNotifications() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [permission, setPermission] = useState<NotificationPermission>('default')
   const [isPushEnabled, setIsPushEnabled] = useState(false)
+
+  // Load notifications from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('oog_notifications')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        setNotifications(parsed.map((n: any) => ({
+          ...n,
+          timestamp: new Date(n.timestamp)
+        })))
+        const unread = parsed.filter((n: any) => !n.read).length
+        setUnreadCount(unread)
+      }
+    } catch (e) {
+      console.error('Error loading notifications:', e)
+    }
+  }, [])
+
+  // Save notifications to localStorage when they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('oog_notifications', JSON.stringify(notifications))
+    } catch (e) {
+      console.error('Error saving notifications:', e)
+    }
+  }, [notifications])
 
   // Check notification permission
   useEffect(() => {
@@ -40,7 +66,7 @@ export function useNotifications() {
   ) => {
     const newNotification: Notification = {
       ...notification,
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       timestamp: new Date(),
       read: false,
     }
@@ -49,26 +75,39 @@ export function useNotifications() {
     setUnreadCount(prev => prev + 1)
 
     // Send push notification if enabled
-    if (sendPush && isPushEnabled) {
-      pushService.sendNotification(
-        notification.title,
-        notification.message
-      )
+    if (sendPush && isPushEnabled && 'Notification' in window) {
+      try {
+        // Send notification
+        if (Notification.permission === 'granted') {
+          new Notification(notification.title, {
+            body: notification.message,
+            icon: '/logo.png',
+            vibrate: [200, 100, 200],
+          })
+        }
+      } catch (error) {
+        console.error('Push notification error:', error)
+      }
     }
 
     return newNotification
   }, [isPushEnabled])
 
   const markAsRead = useCallback((id: string) => {
-    setNotifications(prev =>
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    )
-    setUnreadCount(prev => Math.max(0, prev - 1))
+    setNotifications(prev => {
+      const updated = prev.map(n => n.id === id ? { ...n, read: true } : n)
+      const unread = updated.filter(n => !n.read).length
+      setUnreadCount(unread)
+      return updated
+    })
   }, [])
 
   const markAllAsRead = useCallback(() => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-    setUnreadCount(0)
+    setNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, read: true }))
+      setUnreadCount(0)
+      return updated
+    })
   }, [])
 
   const clearAll = useCallback(() => {

@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useRealtime } from '@/hooks/useRealtime'
 import { getColor } from '@/lib/utils'
@@ -15,15 +15,33 @@ export function NotificationBell() {
     markAsRead,
     markAllAsRead,
     clearAll,
-    setNotifications,
   } = useNotifications()
 
   const [isOpen, setIsOpen] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     const dark = localStorage.getItem('oog_dark_mode') === 'true'
     setIsDarkMode(dark)
+  }, [])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current && 
+        !dropdownRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   // Listen to realtime events for all tables
@@ -61,12 +79,15 @@ export function NotificationBell() {
         data: event.new,
       })
     } else if (event.action === 'UPDATE') {
-      addNotification({
-        type: 'devanning',
-        title: '🔄 Devanning Updated',
-        message: `Container ${event.new.containerNumber}: ${event.new.devanningStatus}`,
-        data: event.new,
-      })
+      // Only notify on status changes
+      if (event.old?.devanningStatus !== event.new?.devanningStatus) {
+        addNotification({
+          type: 'devanning',
+          title: '🔄 Devanning Status Updated',
+          message: `Container ${event.new.containerNumber}: ${event.new.devanningStatus}`,
+          data: event.new,
+        })
+      }
     }
   })
 
@@ -103,6 +124,22 @@ export function NotificationBell() {
     }
   })
 
+  // Also listen for devanning status updates specifically
+  useRealtime('DevanningQueue', (event) => {
+    if (event.action === 'UPDATE' && event.new?.devanningStatus === 'ready_to_drop') {
+      addNotification({
+        type: 'devanning',
+        title: '📦 Ready to Drop',
+        message: `Container ${event.new.containerNumber} is ready for unstuffing`,
+        data: event.new,
+      })
+    }
+  })
+
+  const toggleDropdown = () => {
+    setIsOpen(!isOpen)
+  }
+
   const bgColor = getColor(isDarkMode, 'white', '#1e293b')
   const textColor = getColor(isDarkMode, '#1e293b', '#e2e8f0')
   const borderColor = getColor(isDarkMode, '#e2e8f0', '#334155')
@@ -111,7 +148,8 @@ export function NotificationBell() {
   return (
     <div style={{ position: 'relative', display: 'inline-block' }}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={buttonRef}
+        onClick={toggleDropdown}
         style={{
           background: 'rgba(255,255,255,0.15)',
           border: 'none',
@@ -150,7 +188,7 @@ export function NotificationBell() {
       </button>
 
       {/* Push Notification Permission Banner */}
-      {permission !== 'granted' && (
+      {permission !== 'granted' && isOpen && (
         <div
           style={{
             position: 'absolute',
@@ -186,8 +224,10 @@ export function NotificationBell() {
         </div>
       )}
 
+      {/* Dropdown */}
       {isOpen && (
         <div
+          ref={dropdownRef}
           style={{
             position: 'absolute',
             top: '45px',
@@ -278,9 +318,12 @@ export function NotificationBell() {
                     background: notification.read ? 'transparent' : getColor(isDarkMode, '#f0fdf4', '#0f172a'),
                     transition: 'background 0.2s',
                     color: textColor,
-                    ':hover': {
-                      background: hoverBg,
-                    },
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = hoverBg
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = notification.read ? 'transparent' : getColor(isDarkMode, '#f0fdf4', '#0f172a')
                   }}
                 >
                   <div style={{ fontSize: '0.8rem', fontWeight: '600' }}>
