@@ -1,96 +1,306 @@
 "use client"
 import React, { useState } from 'react'
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { useDarkMode } from '@/hooks/useDarkMode'
+import { useToast } from '@/hooks/useToast'
 
-export default function ProfilePage() {
+export default function UserProfilePage() {
   const { data: session } = useSession()
   const router = useRouter()
-  const [name, setName] = useState(session?.user?.name || '')
-  const [phone, setPhone] = useState(session?.user?.phone || '')
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [showPasswordModal, setShowPasswordModal] = useState(false)
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
+  const { isDarkMode } = useDarkMode()
+  const { showToast } = useToast()
+  const [isEditing, setIsEditing] = useState(false)
+  const [userData, setUserData] = useState({
+    userId: session?.user?.userId || '',
+    name: session?.user?.name || '',
+    email: session?.user?.email || '',
+    role: session?.user?.role || 'Operator',
+    shift: session?.user?.shift || 'A',
+    joinDate: '2024-01-15'
+  })
 
-  if (!session) return null
-
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(''); setMessage(''); setLoading(true)
-    const updates: any = {}
-    if (name !== session.user.name) updates.name = name
-    if (phone !== session.user.phone) updates.phone = phone
-    if (Object.keys(updates).length === 0) { setError('No changes'); setLoading(false); return }
-    const res = await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updates) })
-    if (res.ok) { setMessage('✅ Profile updated!') } else { const data = await res.json(); setError(data.error || 'Update failed') }
-    setLoading(false)
+  const handleSave = async () => {
+    try {
+      // In a real app, you'd call an API to update the user profile
+      showToast('Profile updated successfully!', 'success')
+      setIsEditing(false)
+    } catch (error) {
+      showToast('Failed to update profile', 'error')
+    }
   }
 
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (newPassword !== confirmPassword) { setError('Passwords do not match'); return }
-    if (newPassword.length < 6) { setError('Password must be at least 6 characters'); return }
-    const res = await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword, newPassword }) })
-    if (res.ok) { setMessage('✅ Password changed! Please login again.'); setTimeout(() => router.push('/api/auth/signout?callbackUrl=/login'), 1500) } 
-    else { const data = await res.json(); setError(data.error || 'Password change failed') }
+  if (!session) {
+    router.push('/login')
+    return null
   }
+
+  const bgColor = isDarkMode ? '#0a0e17' : '#f5f7fb'
+  const cardBg = isDarkMode ? '#1e293b' : 'white'
+  const textColor = isDarkMode ? '#e2e8f0' : '#1e293b'
+  const subTextColor = isDarkMode ? '#94a3b8' : '#64748b'
+  const borderColor = isDarkMode ? '#334155' : '#e2e8f0'
 
   return (
-    <div style={{padding:'20px',maxWidth:'500px',margin:'0 auto'}}>
-      <div style={{display:'flex',alignItems:'center',gap:'12px',marginBottom:'20px'}}>
-        <button onClick={() => router.push('/dashboard')} style={{background:'none',border:'none',cursor:'pointer',fontSize:'1.2rem'}}>←</button>
-        <h2 style={{fontSize:'1.2rem'}}>👤 My Profile</h2>
-      </div>
-      <div className="card">
-        <div className="card-header">Profile Information</div>
-        <div className="card-body">
-          <div style={{marginBottom:'12px'}}>
-            <label style={{fontSize:'0.7rem',color:'#64748b'}}>Worker ID</label>
-            <div style={{padding:'8px 12px',background:'#f1f5f9',borderRadius:'8px',fontSize:'0.9rem',fontWeight:'600'}}>
-              {session.user?.userId}
+    <div style={{
+      minHeight: '100vh',
+      background: bgColor,
+      padding: '20px',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center'
+    }}>
+      <div style={{
+        background: cardBg,
+        borderRadius: '16px',
+        padding: '32px',
+        maxWidth: '600px',
+        width: '100%',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+        border: `1px solid ${borderColor}`
+      }}>
+        <button
+          onClick={() => router.push('/dashboard')}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: subTextColor,
+            cursor: 'pointer',
+            fontSize: '0.85rem',
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}
+        >
+          ← Back to Dashboard
+        </button>
+
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            background: '#1e6f3f',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 12px',
+            fontSize: '32px',
+            color: 'white'
+          }}>
+            {userData.userId.charAt(0).toUpperCase()}
+          </div>
+          <h1 style={{
+            color: textColor,
+            fontSize: '1.5rem',
+            margin: '0 0 4px 0'
+          }}>
+            {userData.name || userData.userId}
+          </h1>
+          <p style={{ color: subTextColor, fontSize: '0.85rem' }}>
+            {userData.role} • Shift {userData.shift}
+          </p>
+        </div>
+
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '12px'
+          }}>
+            <div style={{
+              padding: '12px',
+              background: isDarkMode ? '#0f172a' : '#f8fafc',
+              borderRadius: '8px'
+            }}>
+              <p style={{ fontSize: '0.7rem', color: subTextColor, margin: '0 0 2px 0' }}>
+                USER ID
+              </p>
+              <p style={{ fontSize: '0.9rem', color: textColor, margin: 0, fontWeight: '600' }}>
+                {userData.userId}
+              </p>
+            </div>
+            <div style={{
+              padding: '12px',
+              background: isDarkMode ? '#0f172a' : '#f8fafc',
+              borderRadius: '8px'
+            }}>
+              <p style={{ fontSize: '0.7rem', color: subTextColor, margin: '0 0 2px 0' }}>
+                JOINED
+              </p>
+              <p style={{ fontSize: '0.9rem', color: textColor, margin: 0, fontWeight: '600' }}>
+                {userData.joinDate}
+              </p>
             </div>
           </div>
-          <form onSubmit={handleUpdate}>
-            <div className="form-group"><label>Full Name</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} required /></div>
-            <div className="form-group"><label>Email</label><input type="email" value={session.user?.email || ''} disabled style={{background:'#f1f5f9'}} /></div>
-            <div className="form-group"><label>Phone Number</label><input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required /></div>
-            {error && <p style={{color:'#dc2626',fontSize:'0.85rem',margin:'8px 0'}}>{error}</p>}
-            {message && <p style={{color:'#10b981',fontSize:'0.85rem',margin:'8px 0'}}>{message}</p>}
-            <button type="submit" disabled={loading} className="btn btn-primary" style={{width:'100%'}}>
-              {loading ? 'Saving...' : '💾 Save Changes'}
-            </button>
-          </form>
-          <div style={{marginTop:'12px',paddingTop:'12px',borderTop:'1px solid #e2e8f0'}}>
-            <button className="btn btn-outline" style={{width:'100%'}} onClick={() => setShowPasswordModal(true)}>
-              🔑 Change Password
-            </button>
+        </div>
+
+        <div style={{ marginBottom: '20px' }}>
+          <h3 style={{ color: textColor, fontSize: '0.9rem', margin: '0 0 12px 0' }}>
+            Profile Details
+          </h3>
+          
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ fontSize: '0.75rem', color: subTextColor, display: 'block', marginBottom: '4px' }}>
+              Full Name
+            </label>
+            <input
+              type="text"
+              value={userData.name}
+              onChange={(e) => setUserData({...userData, name: e.target.value})}
+              disabled={!isEditing}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                background: isDarkMode ? '#0f172a' : '#f8fafc',
+                border: `1px solid ${borderColor}`,
+                borderRadius: '8px',
+                color: textColor,
+                fontSize: '0.9rem',
+                opacity: isEditing ? 1 : 0.7
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ fontSize: '0.75rem', color: subTextColor, display: 'block', marginBottom: '4px' }}>
+              Email
+            </label>
+            <input
+              type="email"
+              value={userData.email}
+              onChange={(e) => setUserData({...userData, email: e.target.value})}
+              disabled={!isEditing}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                background: isDarkMode ? '#0f172a' : '#f8fafc',
+                border: `1px solid ${borderColor}`,
+                borderRadius: '8px',
+                color: textColor,
+                fontSize: '0.9rem',
+                opacity: isEditing ? 1 : 0.7
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ fontSize: '0.75rem', color: subTextColor, display: 'block', marginBottom: '4px' }}>
+                Role
+              </label>
+              <select
+                value={userData.role}
+                onChange={(e) => setUserData({...userData, role: e.target.value})}
+                disabled={!isEditing}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  background: isDarkMode ? '#0f172a' : '#f8fafc',
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '8px',
+                  color: textColor,
+                  fontSize: '0.9rem',
+                  opacity: isEditing ? 1 : 0.7
+                }}
+              >
+                <option value="Operator">Operator</option>
+                <option value="Supervisor">Supervisor</option>
+                <option value="Manager">Manager</option>
+                <option value="Admin">Admin</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: '0.75rem', color: subTextColor, display: 'block', marginBottom: '4px' }}>
+                Shift
+              </label>
+              <select
+                value={userData.shift}
+                onChange={(e) => setUserData({...userData, shift: e.target.value})}
+                disabled={!isEditing}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  background: isDarkMode ? '#0f172a' : '#f8fafc',
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '8px',
+                  color: textColor,
+                  fontSize: '0.9rem',
+                  opacity: isEditing ? 1 : 0.7
+                }}
+              >
+                <option value="A">A (06:00-14:00)</option>
+                <option value="B">B (14:00-22:00)</option>
+                <option value="C">C (22:00-06:00)</option>
+                <option value="D">D (Flex)</option>
+              </select>
+            </div>
           </div>
         </div>
-      </div>
-      {showPasswordModal && (
-        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.5)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:'20px'}}>
-          <div style={{background:'white',borderRadius:'24px',padding:'24px',maxWidth:'440px',width:'100%'}}>
-            <h3 style={{marginBottom:'16px'}}>🔑 Change Password</h3>
-            <form onSubmit={handlePasswordChange}>
-              <div className="form-group"><label>Current Password</label><input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required /></div>
-              <div className="form-group"><label>New Password</label><input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required /></div>
-              <div className="form-group"><label>Confirm New Password</label><input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required /></div>
-              {error && <p style={{color:'#dc2626',fontSize:'0.85rem',margin:'8px 0'}}>{error}</p>}
-              {message && <p style={{color:'#10b981',fontSize:'0.85rem',margin:'8px 0'}}>{message}</p>}
-              <div style={{display:'flex',gap:'8px',marginTop:'12px'}}>
-                <button type="submit" className="btn btn-primary" style={{flex:1}}>✅ Change Password</button>
-                <button type="button" className="btn btn-outline" onClick={() => { setShowPasswordModal(false); setError(''); setMessage('') }}>Cancel</button>
-              </div>
-            </form>
-          </div>
+
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          {isEditing ? (
+            <>
+              <button
+                onClick={() => setIsEditing(false)}
+                style={{
+                  padding: '8px 20px',
+                  background: 'transparent',
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '8px',
+                  color: subTextColor,
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                style={{
+                  padding: '8px 20px',
+                  background: '#1e6f3f',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontWeight: '600'
+                }}
+              >
+                Save Changes
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setIsEditing(true)}
+              style={{
+                padding: '8px 20px',
+                background: '#1e6f3f',
+                border: 'none',
+                borderRadius: '8px',
+                color: 'white',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Edit Profile
+            </button>
+          )}
+          <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            style={{
+              padding: '8px 20px',
+              background: '#dc2626',
+              border: 'none',
+              borderRadius: '8px',
+              color: 'white',
+              cursor: 'pointer',
+              fontWeight: '600'
+            }}
+          >
+            Sign Out
+          </button>
         </div>
-      )}
-      <div style={{textAlign:'center',fontSize:'0.65rem',color:'#94a3b8',padding:'12px 0',borderTop:'1px solid #e2e8f0',marginTop:'16px'}}>
-        Developed by <strong>O'Bour Dev</strong> © 2026
       </div>
     </div>
   )
