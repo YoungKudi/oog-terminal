@@ -73,7 +73,7 @@ export default function DashboardPage() {
 
   // Modal states
   const [showReceivalModal, setShowReceivalModal] = useState(false)
-  const [showDevanningModal, setShowDevanningModal] useState(false)
+  const [showDevanningModal, setShowDevanningModal] = useState(false)
   const [showLoadoutModal, setShowLoadoutModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showRepositionModal, setShowRepositionModal] = useState(false)
