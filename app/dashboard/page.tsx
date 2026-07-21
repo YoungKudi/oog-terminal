@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation'
 import { useData } from '@/hooks/useData'
 import { useToast } from '@/hooks/useToast'
 import { useDarkMode } from '@/hooks/useDarkMode'
+import { useTabCounts } from '@/hooks/useTabCounts'
 import { DEFAULT_LOCATIONS, DEFAULT_SHIFT } from '@/lib/constants'
 import { getColor } from '@/lib/utils'
 import { Icons } from '@/components/icons/Icons'
+import { TabWithCount } from '@/components/common/TabWithCount'
 
 // Import all tab components
 import QueueTab from './components/QueueTab'
@@ -42,6 +44,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const { showToast } = useToast()
   const { isDarkMode, toggleDarkMode } = useDarkMode()
+  const tabCounts = useTabCounts()
   const dropdownRef = useRef<HTMLDivElement>(null)
   
   const {
@@ -79,7 +82,6 @@ export default function DashboardPage() {
   const [showScannerModal, setShowScannerModal] = useState(false)
   const [selectedContainer, setSelectedContainer] = useState(null)
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -141,12 +143,13 @@ export default function DashboardPage() {
   const dayName = days[now.getDay()]
   const dateStr = `${day}/${month}/${year} ${dayName}`
 
+  // Define tabs with icons and labels
   const tabs = [
-    { id: 'queue', icon: Icons.Queue, label: 'Queue' },
-    { id: 'receivals', icon: Icons.Receivals, label: 'Receivals' },
-    { id: 'tallies', icon: Icons.Tallies, label: 'Tallies' },
-    { id: 'devanning', icon: Icons.Devanning, label: 'Devanning' },
-    { id: 'unstuffed', icon: Icons.Unstuffed, label: 'Unstuffed' }
+    { id: 'queue', icon: '📥', label: 'Queue', count: tabCounts.queue },
+    { id: 'receivals', icon: '📦', label: 'Receivals', count: tabCounts.receivals },
+    { id: 'tallies', icon: '📋', label: 'Tallies', count: tabCounts.tallies },
+    { id: 'devanning', icon: '🔧', label: 'Devanning', count: tabCounts.devanning },
+    { id: 'unstuffed', icon: '✅', label: 'Unstuffed', count: tabCounts.unstuffed }
   ]
 
   return (
@@ -163,74 +166,60 @@ export default function DashboardPage() {
         </div>
         <div className="header-actions">
           <NotificationBell />
-          <span style={{fontSize:"0.75rem",opacity:0.8}}>👤 {session.user?.userId}</span>
-          <button className="btn" onClick={toggleDarkMode} style={{background:"rgba(255,255,255,0.2)",padding:"2px 10px"}}>{isDarkMode ? "☀️" : "🌙"}</button>
+          <span style={{fontSize:'0.75rem',opacity:0.8}}>👤 {session.user?.userId}</span>
+          <button className="btn" onClick={toggleDarkMode} style={{background:'rgba(255,255,255,0.2)',padding:'2px 10px'}}>{isDarkMode ? '☀️' : '🌙'}</button>
         </div>
       </div>
 
-      {/* TAB BAR */}
+      {/* TAB BAR WITH COUNTS */}
       <div className="tab-bar">
-        {tabs.map(t => {
-          const IconComponent = t.icon
-          return (
-            <button key={t.id} className={`tab-button ${activeTab === t.id ? 'active' : ''}`} data-tab={t.id} onClick={() => handleTabClick(t.id)}>
-              <span style={{ display: 'inline-flex' }}>
-                <IconComponent size={20} color={activeTab === t.id ? '#1e6f3f' : '#5b6e8c'} />
-              </span>
-              <span>{t.label}</span>
-            </button>
-          )
-        })}
+        {tabs.map(t => (
+          <TabWithCount
+            key={t.id}
+            icon={t.icon}
+            label={t.label}
+            count={t.count}
+            isActive={activeTab === t.id}
+            onClick={() => handleTabClick(t.id)}
+            isDarkMode={isDarkMode}
+          />
+        ))}
         <div className="dropdown-container" ref={dropdownRef}>
           <button className="dropdown-btn" onClick={toggleDropdown}>
-            <span style={{ display: 'inline-flex' }}>
-              <Icons.More size={20} color="#5b6e8c" />
-            </span>
+            <span style={{ display: 'inline-flex' }}>⚙️</span>
             <span>More</span>
           </button>
           <div className={`dropdown-menu ${dropdownOpen ? 'show' : ''}`}>
             <a onClick={() => { setDropdownOpen(false); handleTabClick('evacuation') }}>
-              <span style={{ display: 'inline-flex', marginRight: '8px' }}>
-                <Icons.Evacuation size={18} color="#1e293b" />
-              </span>
-              Evacuation & Boxes
+              <span style={{ display: 'inline-flex', marginRight: '8px' }}>🚚</span>
+              Evacuation & Boxes ({tabCounts.evacuation})
             </a>
             <a onClick={() => { setDropdownOpen(false); handleTabClick('locations') }}>
-              <span style={{ display: 'inline-flex', marginRight: '8px' }}>
-                <Icons.Location size={18} color="#1e293b" />
-              </span>
+              <span style={{ display: 'inline-flex', marginRight: '8px' }}>📍</span>
               Locations
             </a>
             <a onClick={() => { setDropdownOpen(false); handleTabClick('contacts') }}>
-              <span style={{ display: 'inline-flex', marginRight: '8px' }}>
-                <Icons.Contacts size={18} color="#1e293b" />
-              </span>
+              <span style={{ display: 'inline-flex', marginRight: '8px' }}>👤</span>
               Equipment Contacts
             </a>
             <a onClick={() => { setDropdownOpen(false); handleTabClick('backup') }}>
-              <span style={{ display: 'inline-flex', marginRight: '8px' }}>
-                <Icons.Backup size={18} color="#1e293b" />
-              </span>
+              <span style={{ display: 'inline-flex', marginRight: '8px' }}>💾</span>
               Backup & Activity
             </a>
             <a onClick={() => { setDropdownOpen(false); handleTabClick('reports') }}>
-              <span style={{ display: 'inline-flex', marginRight: '8px' }}>
-                <Icons.Reports size={18} color="#1e293b" />
-              </span>
+              <span style={{ display: 'inline-flex', marginRight: '8px' }}>📄</span>
               Reports
             </a>
             <div className="dropdown-divider"></div>
             <a onClick={() => signOut({ callbackUrl: '/login' })} style={{color:'#dc2626'}}>
-              <span style={{ display: 'inline-flex', marginRight: '8px' }}>
-                <Icons.Logout size={18} color="#dc2626" />
-              </span>
+              <span style={{ display: 'inline-flex', marginRight: '8px' }}>🚪</span>
               Sign Out
             </a>
           </div>
         </div>
       </div>
 
-      {/* TABS - Same as before but with SVG icons in tabs */}
+      {/* TABS CONTENT - Same as before */}
       <div className="tab-content active" id="queue-tab">
         <DailyTally 
           locations={locations} 
@@ -372,7 +361,7 @@ export default function DashboardPage() {
         activeTab={activeTab}
       />
 
-      {/* WIZARD MODAL */}
+      {/* MODALS - Same as before */}
       {showWizard && wizardContainer && (
         <div className="modal" style={{display:'flex', position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)', justifyContent:'center', alignItems:'center', zIndex:1000}}>
           <DevanningWizard 
@@ -384,7 +373,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* MODALS */}
       {showReceivalModal && (
         <ReceivalModal 
           onClose={() => setShowReceivalModal(false)}
@@ -497,14 +485,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-// Add this import at the top
-
-// Then in the header section, add the notification bell
-// Replace the header-actions div with:
-/*
-        <div className="header-actions">
-          <NotificationBell />
-          <span style={{fontSize:"0.75rem",opacity:0.8}}>👤 {session.user?.userId}</span>
-          <button className="btn" onClick={toggleDarkMode} style={{background:"rgba(255,255,255,0.2)",padding:"2px 10px"}}>{isDarkMode ? "☀️" : "🌙"}</button>
-        </div>
-*/

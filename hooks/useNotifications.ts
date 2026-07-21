@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react'
-import { pushService } from '@/lib/notifications/push'
 
 export interface Notification {
   id: string
@@ -16,11 +15,12 @@ export function useNotifications() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [permission, setPermission] = useState<NotificationPermission>('default')
   const [isPushEnabled, setIsPushEnabled] = useState(false)
-  const [hasAsked, setHasAsked] = useState(false)
+  const [hasBeenAsked, setHasBeenAsked] = useState(false)
 
-  // Load notifications from localStorage on mount
+  // Load from localStorage on mount
   useEffect(() => {
     try {
+      // Load notifications
       const saved = localStorage.getItem('oog_notifications')
       if (saved) {
         const parsed = JSON.parse(saved)
@@ -31,49 +31,68 @@ export function useNotifications() {
         const unread = parsed.filter((n: any) => !n.read).length
         setUnreadCount(unread)
       }
-      
-      // Check if we've asked before
+
+      // Load notification preference
       const asked = localStorage.getItem('oog_notification_asked')
-      setHasAsked(asked === 'true')
-      
-      // Check permission
-      if ('Notification' in window) {
-        setPermission(Notification.permission)
-        setIsPushEnabled(Notification.permission === 'granted')
+      if (asked === 'true') {
+        setHasBeenAsked(true)
+      }
+
+      const enabled = localStorage.getItem('oog_notification_enabled')
+      if (enabled === 'true') {
+        setIsPushEnabled(true)
+        setPermission('granted')
       }
     } catch (e) {
       console.error('Error loading notifications:', e)
     }
   }, [])
 
-  // Save notifications to localStorage when they change
-  useEffect(() => {
-    try {
-      localStorage.setItem('oog_notifications', JSON.stringify(notifications))
-    } catch (e) {
-      console.error('Error saving notifications:', e)
-    }
-  }, [notifications])
-
-  // Request permission (only if not asked before)
+  // Request permission (only once)
   const requestPermission = useCallback(async () => {
-    if (hasAsked) {
-      // If already asked, just return current permission
-      return Notification.permission === 'granted'
+    if (hasBeenAsked) {
+      // Return stored preference
+      return isPushEnabled
     }
-    
-    const granted = await pushService.requestPermission()
-    setPermission(granted ? 'granted' : 'denied')
-    setIsPushEnabled(granted)
-    
-    // Mark as asked
-    setHasAsked(true)
-    localStorage.setItem('oog_notification_asked', 'true')
-    
-    return granted
-  }, [hasAsked])
 
-  // ... rest of the hook
+    if (!('Notification' in window)) {
+      setHasBeenAsked(true)
+      localStorage.setItem('oog_notification_asked', 'true')
+      return false
+    }
+
+    try {
+      const result = await Notification.requestPermission()
+      const granted = result === 'granted'
+      
+      setPermission(granted ? 'granted' : 'denied')
+      setIsPushEnabled(granted)
+      setHasBeenAsked(true)
+      
+      localStorage.setItem('oog_notification_asked', 'true')
+      localStorage.setItem('oog_notification_enabled', String(granted))
+      
+      return granted
+    } catch (error) {
+      console.error('Notification permission error:', error)
+      setHasBeenAsked(true)
+      localStorage.setItem('oog_notification_asked', 'true')
+      return false
+    }
+  }, [hasBeenAsked, isPushEnabled])
+
+  // Toggle notifications on/off
+  const toggleNotifications = useCallback(() => {
+    const newState = !isPushEnabled
+    setIsPushEnabled(newState)
+    localStorage.setItem('oog_notification_enabled', String(newState))
+    if (newState && Notification.permission !== 'granted') {
+      requestPermission()
+    }
+    return newState
+  }, [isPushEnabled, requestPermission])
+
+  // Add notification with push
   const addNotification = useCallback((
     notification: Omit<Notification, 'id' | 'timestamp' | 'read'>,
     sendPush: boolean = true
@@ -88,15 +107,14 @@ export function useNotifications() {
     setNotifications(prev => [newNotification, ...prev])
     setUnreadCount(prev => prev + 1)
 
-    if (sendPush && isPushEnabled && 'Notification' in window) {
+    // Send push notification if enabled
+    if (sendPush && isPushEnabled && Notification.permission === 'granted') {
       try {
-        if (Notification.permission === 'granted') {
-          new Notification(notification.title, {
-            body: notification.message,
-            icon: '/logo.png',
-            vibrate: [200, 100, 200],
-          })
-        }
+        new Notification(notification.title, {
+          body: notification.message,
+          icon: '/logo.png',
+          vibrate: [200, 100, 200],
+        })
       } catch (error) {
         console.error('Push notification error:', error)
       }
@@ -105,14 +123,36 @@ export function useNotifications() {
     return newNotification
   }, [isPushEnabled])
 
-  // ... rest of the hook
+  const markAsRead = useCallback((id: string) => {
+    setNotifications(prev => {
+      const updated = prev.map(n => n.id === id ? { ...n, read: true } : n)
+      const unread = updated.filter(n => !n.read).length
+      setUnreadCount(unread)
+      return updated
+    })
+  }, [])
+
+  const markAllAsRead = useCallback(() => {
+    setNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, read: true }))
+      setUnreadCount(0)
+      return updated
+    })
+  }, [])
+
+  const clearAll = useCallback(() => {
+    setNotifications([])
+    setUnreadCount(0)
+  }, [])
+
   return {
     notifications,
     unreadCount,
     permission,
     isPushEnabled,
-    hasAsked,
+    hasBeenAsked,
     requestPermission,
+    toggleNotifications,
     addNotification,
     markAsRead,
     markAllAsRead,

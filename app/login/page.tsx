@@ -51,6 +51,9 @@ export default function LoginPage() {
         </form>
         <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '0.85rem' }}>
           <Link href="/signup" style={{ color: '#1e6f3f', textDecoration: 'underline' }}>Don't have an account? Sign up</Link>
+        <div style={{ marginTop: "8px", textAlign: "center", fontSize: "0.8rem" }}>
+          <Link href="/auth/reset-password" style={{ color: "#64748b", textDecoration: "underline" }}>Forgot Password?</Link>
+        </div>
         </div>
         <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.65rem', color: '#94a3b8', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
           Developed by <strong>O'Bour Dev</strong> © 2026
