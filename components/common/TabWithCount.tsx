@@ -53,27 +53,29 @@ export function TabWithCount({ icon, label, count, isActive, onClick, isDarkMode
           marginTop: '0px',
           display: window.innerWidth < 480 ? 'none' : 'inline'
         }}>{label}</span>
+        {/* Red dot badge - shows when count > 0 */}
         {count > 0 && (
           <span
             style={{
-              background: isActive ? (isDarkMode ? '#8b5cf6' : '#1e6f3f') : (isDarkMode ? '#475569' : '#94a3b8'),
-              color: 'white',
-              borderRadius: '12px',
-              padding: '1px 4px',
-              fontSize: window.innerWidth < 480 ? '0.4rem' : '0.5rem',
-              fontWeight: '700',
-              minWidth: '14px',
-              textAlign: 'center',
-              lineHeight: '1.4',
-              marginLeft: '1px',
-              transition: 'all 0.2s ease',
-              boxShadow: isActive ? '0 2px 8px rgba(30,111,63,0.3)' : 'none',
+              position: 'absolute',
+              top: '-2px',
+              right: '-4px',
+              width: '10px',
+              height: '10px',
+              background: '#ef4444',
+              borderRadius: '50%',
+              boxShadow: '0 0 0 2px ' + (isDarkMode ? '#111827' : 'white'),
+              animation: 'pulse-dot 1.5s ease-in-out infinite',
             }}
-          >
-            {count > 99 ? '99+' : count}
-          </span>
+          />
         )}
       </div>
+      <style>{`
+        @keyframes pulse-dot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.7; transform: scale(0.9); }
+        }
+      `}</style>
     </button>
   )
 }

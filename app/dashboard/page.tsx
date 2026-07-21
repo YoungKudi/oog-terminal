@@ -128,10 +128,15 @@ export default function DashboardPage() {
 
   const handleTabClick = (tab: string) => {
     setActiveTab(tab)
+    // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
-    document.getElementById(tab + '-tab')?.classList.add('active')
+    // Show selected tab content
+    const tabContent = document.getElementById(tab + '-tab')
+    if (tabContent) tabContent.classList.add('active')
+    // Update tab buttons
     document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
-    document.querySelector(`.tab-button[data-tab="${tab}"]`)?.classList.add('active')
+    const tabButton = document.querySelector(`.tab-button[data-tab="${tab}"]`)
+    if (tabButton) tabButton.classList.add('active')
     setDropdownOpen(false)
   }
 
@@ -235,73 +240,138 @@ export default function DashboardPage() {
               marginTop: '4px'
             }}
           >
-            <a onClick={() => { setDropdownOpen(false); handleTabClick('evacuation') }} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 16px',
-              textDecoration: 'none',
-              color: isDarkMode ? '#e2e8f0' : '#1e293b',
-              fontSize: '0.75rem',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}>
+            <a 
+              onClick={() => { 
+                setDropdownOpen(false); 
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
+                document.getElementById('evacuation-tab')?.classList.add('active')
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
+                setActiveTab('evacuation')
+              }} 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                textDecoration: 'none',
+                color: isDarkMode ? '#e2e8f0' : '#1e293b',
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
               <span style={{ fontSize: '1rem' }}>🚚</span>
               Evacuation & Boxes ({tabCounts.evacuation})
             </a>
-            <a onClick={() => { setDropdownOpen(false); handleTabClick('locations') }} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 16px',
-              textDecoration: 'none',
-              color: isDarkMode ? '#e2e8f0' : '#1e293b',
-              fontSize: '0.75rem',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}>
+            <a 
+              onClick={() => { 
+                setDropdownOpen(false); 
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
+                document.getElementById('locations-tab')?.classList.add('active')
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
+                setActiveTab('locations')
+              }} 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                textDecoration: 'none',
+                color: isDarkMode ? '#e2e8f0' : '#1e293b',
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
               <span style={{ fontSize: '1rem' }}>📍</span>
               Locations
             </a>
-            <a onClick={() => { setDropdownOpen(false); handleTabClick('contacts') }} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 16px',
-              textDecoration: 'none',
-              color: isDarkMode ? '#e2e8f0' : '#1e293b',
-              fontSize: '0.75rem',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}>
+            <a 
+              onClick={() => { 
+                setDropdownOpen(false); 
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
+                document.getElementById('contacts-tab')?.classList.add('active')
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
+                setActiveTab('contacts')
+              }} 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                textDecoration: 'none',
+                color: isDarkMode ? '#e2e8f0' : '#1e293b',
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
               <span style={{ fontSize: '1rem' }}>👤</span>
               Equipment Contacts
             </a>
-            <a onClick={() => { setDropdownOpen(false); handleTabClick('backup') }} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 16px',
-              textDecoration: 'none',
-              color: isDarkMode ? '#e2e8f0' : '#1e293b',
-              fontSize: '0.75rem',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}>
+            <a 
+              onClick={() => { 
+                setDropdownOpen(false); 
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
+                document.getElementById('backup-tab')?.classList.add('active')
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
+                setActiveTab('backup')
+              }} 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                textDecoration: 'none',
+                color: isDarkMode ? '#e2e8f0' : '#1e293b',
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
               <span style={{ fontSize: '1rem' }}>💾</span>
               Backup & Activity
             </a>
-            <a onClick={() => { setDropdownOpen(false); handleTabClick('reports') }} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 16px',
-              textDecoration: 'none',
-              color: isDarkMode ? '#e2e8f0' : '#1e293b',
-              fontSize: '0.75rem',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}>
+            <a 
+              onClick={() => { 
+                setDropdownOpen(false); 
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
+                document.getElementById('reports-tab')?.classList.add('active')
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
+                setActiveTab('reports')
+              }} 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                textDecoration: 'none',
+                color: isDarkMode ? '#e2e8f0' : '#1e293b',
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
               <span style={{ fontSize: '1rem' }}>📄</span>
               Reports
             </a>
@@ -309,17 +379,24 @@ export default function DashboardPage() {
               borderTop: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
               margin: '4px 0'
             }}></div>
-            <a onClick={() => { signOut({ callbackUrl: '/login' }) }} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 16px',
-              textDecoration: 'none',
-              fontSize: '0.75rem',
-              fontWeight: '500',
-              cursor: 'pointer',
-              color: '#dc2626'
-            }}>
+            <a 
+              onClick={() => { signOut({ callbackUrl: '/login' }) }} 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                textDecoration: 'none',
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                color: '#dc2626',
+                borderRadius: '4px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
               <span style={{ fontSize: '1rem' }}>🚪</span>
               Sign Out
             </a>
@@ -327,7 +404,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* TABS CONTENT - Same as before */}
+      {/* TABS CONTENT */}
       <div className="tab-content active" id="queue-tab">
         <DailyTally 
           locations={locations} 
