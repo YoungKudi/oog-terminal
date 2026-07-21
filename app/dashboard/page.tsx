@@ -126,18 +126,23 @@ export default function DashboardPage() {
 
   if (!session) return null
 
-  const handleTabClick = (tab: string) => {
-    setActiveTab(tab)
+  // Function to switch tabs
+  const switchToTab = (tabId: string) => {
+    setActiveTab(tabId)
     // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
     // Show selected tab content
-    const tabContent = document.getElementById(tab + '-tab')
+    const tabContent = document.getElementById(tabId + '-tab')
     if (tabContent) tabContent.classList.add('active')
     // Update tab buttons
     document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
-    const tabButton = document.querySelector(`.tab-button[data-tab="${tab}"]`)
+    const tabButton = document.querySelector(`.tab-button[data-tab="${tabId}"]`)
     if (tabButton) tabButton.classList.add('active')
     setDropdownOpen(false)
+  }
+
+  const handleTabClick = (tab: string) => {
+    switchToTab(tab)
   }
 
   const toggleDropdown = (e: React.MouseEvent) => {
@@ -241,13 +246,7 @@ export default function DashboardPage() {
             }}
           >
             <a 
-              onClick={() => { 
-                setDropdownOpen(false); 
-                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
-                document.getElementById('evacuation-tab')?.classList.add('active')
-                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
-                setActiveTab('evacuation')
-              }} 
+              onClick={() => switchToTab('evacuation')} 
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -268,13 +267,7 @@ export default function DashboardPage() {
               Evacuation & Boxes ({tabCounts.evacuation})
             </a>
             <a 
-              onClick={() => { 
-                setDropdownOpen(false); 
-                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
-                document.getElementById('locations-tab')?.classList.add('active')
-                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
-                setActiveTab('locations')
-              }} 
+              onClick={() => switchToTab('locations')} 
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -295,13 +288,7 @@ export default function DashboardPage() {
               Locations
             </a>
             <a 
-              onClick={() => { 
-                setDropdownOpen(false); 
-                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
-                document.getElementById('contacts-tab')?.classList.add('active')
-                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
-                setActiveTab('contacts')
-              }} 
+              onClick={() => switchToTab('contacts')} 
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -322,13 +309,7 @@ export default function DashboardPage() {
               Equipment Contacts
             </a>
             <a 
-              onClick={() => { 
-                setDropdownOpen(false); 
-                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
-                document.getElementById('backup-tab')?.classList.add('active')
-                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
-                setActiveTab('backup')
-              }} 
+              onClick={() => switchToTab('backup')} 
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -349,13 +330,7 @@ export default function DashboardPage() {
               Backup & Activity
             </a>
             <a 
-              onClick={() => { 
-                setDropdownOpen(false); 
-                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
-                document.getElementById('reports-tab')?.classList.add('active')
-                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
-                setActiveTab('reports')
-              }} 
+              onClick={() => switchToTab('reports')} 
               style={{
                 display: 'flex',
                 alignItems: 'center',
