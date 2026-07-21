@@ -63,6 +63,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Failed to create container' }, { status: 500 })
   }
   
+  // Log activity with userId
   await supabase
     .from('ActivityLog')
     .insert({

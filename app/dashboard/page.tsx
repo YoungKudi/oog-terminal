@@ -46,6 +46,7 @@ export default function DashboardPage() {
   const { isDarkMode, toggleDarkMode } = useDarkMode()
   const tabCounts = useTabCounts()
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const dropdownButtonRef = useRef<HTMLButtonElement>(null)
   
   const {
     containers,
@@ -72,7 +73,7 @@ export default function DashboardPage() {
 
   // Modal states
   const [showReceivalModal, setShowReceivalModal] = useState(false)
-  const [showDevanningModal, setShowDevanningModal] = useState(false)
+  const [showDevanningModal, setShowDevanningModal] useState(false)
   const [showLoadoutModal, setShowLoadoutModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showRepositionModal, setShowRepositionModal] = useState(false)
@@ -82,9 +83,15 @@ export default function DashboardPage() {
   const [showScannerModal, setShowScannerModal] = useState(false)
   const [selectedContainer, setSelectedContainer] = useState(null)
 
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current && 
+        !dropdownRef.current.contains(event.target as Node) &&
+        dropdownButtonRef.current &&
+        !dropdownButtonRef.current.contains(event.target as Node)
+      ) {
         setDropdownOpen(false)
       }
     }
@@ -143,7 +150,6 @@ export default function DashboardPage() {
   const dayName = days[now.getDay()]
   const dateStr = `${day}/${month}/${year} ${dayName}`
 
-  // Define tabs with icons and labels
   const tabs = [
     { id: 'queue', icon: '📥', label: 'Queue', count: tabCounts.queue },
     { id: 'receivals', icon: '📦', label: 'Receivals', count: tabCounts.receivals },
@@ -171,7 +177,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* TAB BAR WITH COUNTS */}
+      {/* TAB BAR */}
       <div className="tab-bar">
         {tabs.map(t => (
           <TabWithCount
@@ -185,34 +191,136 @@ export default function DashboardPage() {
           />
         ))}
         <div className="dropdown-container" ref={dropdownRef}>
-          <button className="dropdown-btn" onClick={toggleDropdown}>
-            <span style={{ display: 'inline-flex' }}>⚙️</span>
+          <button 
+            ref={dropdownButtonRef}
+            className="dropdown-btn" 
+            onClick={toggleDropdown}
+            style={{
+              background: dropdownOpen ? 'rgba(0,0,0,0.05)' : 'transparent',
+              borderRadius: '8px',
+              padding: '6px 10px',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontWeight: '600',
+              fontSize: '0.65rem',
+              color: isDarkMode ? '#94a3b8' : '#5b6e8c',
+              transition: 'all 0.2s'
+            }}
+          >
+            <span style={{ fontSize: '1.1rem' }}>⚙️</span>
             <span>More</span>
+            <span style={{ 
+              fontSize: '0.7rem', 
+              transform: dropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s'
+            }}>▼</span>
           </button>
-          <div className={`dropdown-menu ${dropdownOpen ? 'show' : ''}`}>
-            <a onClick={() => { setDropdownOpen(false); handleTabClick('evacuation') }}>
-              <span style={{ display: 'inline-flex', marginRight: '8px' }}>🚚</span>
+          <div 
+            className={`dropdown-menu ${dropdownOpen ? 'show' : ''}`}
+            style={{
+              display: dropdownOpen ? 'block' : 'none',
+              position: 'absolute',
+              top: '100%',
+              right: '0',
+              background: isDarkMode ? '#1e293b' : 'white',
+              border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+              borderRadius: '12px',
+              minWidth: '190px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+              zIndex: 9999,
+              padding: '4px 0',
+              marginTop: '4px'
+            }}
+          >
+            <a onClick={() => { setDropdownOpen(false); handleTabClick('evacuation') }} style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              textDecoration: 'none',
+              color: isDarkMode ? '#e2e8f0' : '#1e293b',
+              fontSize: '0.75rem',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}>
+              <span style={{ fontSize: '1rem' }}>🚚</span>
               Evacuation & Boxes ({tabCounts.evacuation})
             </a>
-            <a onClick={() => { setDropdownOpen(false); handleTabClick('locations') }}>
-              <span style={{ display: 'inline-flex', marginRight: '8px' }}>📍</span>
+            <a onClick={() => { setDropdownOpen(false); handleTabClick('locations') }} style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              textDecoration: 'none',
+              color: isDarkMode ? '#e2e8f0' : '#1e293b',
+              fontSize: '0.75rem',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}>
+              <span style={{ fontSize: '1rem' }}>📍</span>
               Locations
             </a>
-            <a onClick={() => { setDropdownOpen(false); handleTabClick('contacts') }}>
-              <span style={{ display: 'inline-flex', marginRight: '8px' }}>👤</span>
+            <a onClick={() => { setDropdownOpen(false); handleTabClick('contacts') }} style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              textDecoration: 'none',
+              color: isDarkMode ? '#e2e8f0' : '#1e293b',
+              fontSize: '0.75rem',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}>
+              <span style={{ fontSize: '1rem' }}>👤</span>
               Equipment Contacts
             </a>
-            <a onClick={() => { setDropdownOpen(false); handleTabClick('backup') }}>
-              <span style={{ display: 'inline-flex', marginRight: '8px' }}>💾</span>
+            <a onClick={() => { setDropdownOpen(false); handleTabClick('backup') }} style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              textDecoration: 'none',
+              color: isDarkMode ? '#e2e8f0' : '#1e293b',
+              fontSize: '0.75rem',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}>
+              <span style={{ fontSize: '1rem' }}>💾</span>
               Backup & Activity
             </a>
-            <a onClick={() => { setDropdownOpen(false); handleTabClick('reports') }}>
-              <span style={{ display: 'inline-flex', marginRight: '8px' }}>📄</span>
+            <a onClick={() => { setDropdownOpen(false); handleTabClick('reports') }} style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              textDecoration: 'none',
+              color: isDarkMode ? '#e2e8f0' : '#1e293b',
+              fontSize: '0.75rem',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}>
+              <span style={{ fontSize: '1rem' }}>📄</span>
               Reports
             </a>
-            <div className="dropdown-divider"></div>
-            <a onClick={() => signOut({ callbackUrl: '/login' })} style={{color:'#dc2626'}}>
-              <span style={{ display: 'inline-flex', marginRight: '8px' }}>🚪</span>
+            <div className="dropdown-divider" style={{
+              borderTop: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+              margin: '4px 0'
+            }}></div>
+            <a onClick={() => { signOut({ callbackUrl: '/login' }) }} style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              textDecoration: 'none',
+              fontSize: '0.75rem',
+              fontWeight: '500',
+              cursor: 'pointer',
+              color: '#dc2626'
+            }}>
+              <span style={{ fontSize: '1rem' }}>🚪</span>
               Sign Out
             </a>
           </div>
@@ -361,7 +469,7 @@ export default function DashboardPage() {
         activeTab={activeTab}
       />
 
-      {/* MODALS - Same as before */}
+      {/* MODALS */}
       {showWizard && wizardContainer && (
         <div className="modal" style={{display:'flex', position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)', justifyContent:'center', alignItems:'center', zIndex:1000}}>
           <DevanningWizard 

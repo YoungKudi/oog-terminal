@@ -45,31 +45,23 @@ export function NotificationBell() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Auto-request permission once
-  useEffect(() => {
-    if (!hasBeenAsked && 'Notification' in window) {
-      const timer = setTimeout(() => {
-        requestPermission()
-      }, 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [hasBeenAsked, requestPermission])
-
-  // Realtime listeners
+  // Realtime listeners with user info
   useRealtime('Container', (event) => {
     if (event.action === 'INSERT') {
       addNotification({
         type: 'container',
         title: '📦 New Container Added',
-        message: `Container ${event.new.containerNumber} added at ${event.new.position}`,
+        message: `${event.new.containerNumber} added at ${event.new.position}`,
         data: event.new,
+        user: event.user,
       })
     } else if (event.action === 'DELETE') {
       addNotification({
         type: 'container',
         title: '🗑️ Container Removed',
-        message: `Container ${event.old.containerNumber} was removed`,
+        message: `${event.old.containerNumber} was removed from stack`,
         data: event.old,
+        user: event.user,
       })
     }
   })
@@ -78,16 +70,18 @@ export function NotificationBell() {
     if (event.action === 'INSERT') {
       addNotification({
         type: 'devanning',
-        title: '🏗️ Container in Devanning',
-        message: `Container ${event.new.containerNumber} moved to devanning`,
+        title: '🏗️ In Devanning',
+        message: `${event.new.containerNumber} moved to devanning`,
         data: event.new,
+        user: event.user,
       })
     } else if (event.action === 'UPDATE' && event.old?.devanningStatus !== event.new?.devanningStatus) {
       addNotification({
         type: 'devanning',
-        title: '🔄 Devanning Status Updated',
-        message: `Container ${event.new.containerNumber}: ${event.new.devanningStatus}`,
+        title: '🔄 Status Updated',
+        message: `${event.new.containerNumber}: ${event.new.devanningStatus}`,
         data: event.new,
+        user: event.user,
       })
     }
   })
@@ -97,8 +91,9 @@ export function NotificationBell() {
       addNotification({
         type: 'unstuffed',
         title: '✅ Container Unstuffed',
-        message: `Container ${event.new.containerNumber} has been unstuffed`,
+        message: `${event.new.containerNumber} has been unstuffed`,
         data: event.new,
+        user: event.user,
       })
     }
   })
@@ -108,8 +103,9 @@ export function NotificationBell() {
       addNotification({
         type: 'loadout',
         title: '✅ Container Cleared',
-        message: `Container ${event.new.containerNumber} cleared with truck ${event.new.truckPlate}`,
+        message: `${event.new.containerNumber} cleared with truck ${event.new.truckPlate}`,
         data: event.new,
+        user: event.user,
       })
     }
   })
@@ -119,8 +115,9 @@ export function NotificationBell() {
       addNotification({
         type: 'evacuation',
         title: '🚚 Container Evacuated',
-        message: `Container ${event.new.containerNumber} evacuated`,
+        message: `${event.new.containerNumber} evacuated`,
         data: event.new,
+        user: event.user,
       })
     }
   })
@@ -296,8 +293,23 @@ export function NotificationBell() {
                     e.currentTarget.style.background = notification.read ? 'transparent' : getColor(isDarkMode, '#f0fdf4', '#0f172a')
                   }}
                 >
-                  <div style={{ fontSize: '0.8rem', fontWeight: '600' }}>
-                    {notification.title}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: '600' }}>
+                      {notification.title}
+                    </div>
+                    {notification.user && (
+                      <span style={{ 
+                        fontSize: '0.55rem', 
+                        color: getColor(isDarkMode, '#64748b', '#94a3b8'),
+                        background: getColor(isDarkMode, '#f1f5f9', '#1e293b'),
+                        padding: '1px 8px',
+                        borderRadius: '12px',
+                        marginLeft: '4px',
+                        flexShrink: 0
+                      }}>
+                        👤 {notification.user.name || notification.user.userId}
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: '0.7rem', color: getColor(isDarkMode, '#475569', '#94a3b8') }}>
                     {notification.message}
