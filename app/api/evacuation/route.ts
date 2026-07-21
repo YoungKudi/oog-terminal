@@ -25,23 +25,59 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   
-  const { containerNumber } = await req.json()
+  const { containerNumber, source } = await req.json() // source: 'stack' or 'unstuffed'
   const userId = await getUserIdFromSession(session)
   if (!userId) {
     return NextResponse.json({ error: 'User not found' }, { status: 400 })
   }
   
-  // Get container from Unstuffed
-  const { data: container, error: fetchError } = await supabase
-    .from('UnstuffedContainer')
-    .select('*')
+  let container = null
+  let sourceTable = ''
+  
+  // Check in Container (stack) first
+  if (source === 'stack' || !source) {
+    const { data, error } = await supabase
+      .from('Container')
+      .select('*')
+      .eq('containerNumber', containerNumber)
+      .single()
+    
+    if (!error && data) {
+      container = data
+      sourceTable = 'Container'
+    }
+  }
+  
+  // If not in stack, check UnstuffedContainer
+  if (!container) {
+    const { data, error } = await supabase
+      .from('UnstuffedContainer')
+      .select('*')
+      .eq('containerNumber', containerNumber)
+      .single()
+    
+    if (!error && data) {
+      container = data
+      sourceTable = 'UnstuffedContainer'
+    }
+  }
+  
+  if (!container) {
+    return NextResponse.json({ error: 'Container not found in stack or unstuffed' }, { status: 404 })
+  }
+  
+  // Check if already evacuated
+  const { data: existing } = await supabase
+    .from('EvacuationRecord')
+    .select('id')
     .eq('containerNumber', containerNumber)
     .single()
   
-  if (fetchError || !container) {
-    return NextResponse.json({ error: 'Container not found in unstuffed' }, { status: 404 })
+  if (existing) {
+    return NextResponse.json({ error: 'Container already evacuated' }, { status: 400 })
   }
   
+  // Move to EvacuationRecord
   const { data, error } = await supabase
     .from('EvacuationRecord')
     .insert({
@@ -54,6 +90,7 @@ export async function POST(req: Request) {
       arrivalDate: container.arrivalDate || '',
       auxCargo: container.auxCargo || '',
       devanningType: container.devanningType || '',
+      source: sourceTable, // Track where it came from
       userId: userId
     })
     .select()
@@ -64,9 +101,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Failed to evacuate' }, { status: 500 })
   }
   
-  // Delete from UnstuffedContainer
+  // Delete from source table
   await supabase
-    .from('UnstuffedContainer')
+    .from(sourceTable)
     .delete()
     .eq('containerNumber', containerNumber)
   
@@ -75,7 +112,7 @@ export async function POST(req: Request) {
     .insert({
       action: 'EVACUATED',
       containerNumber: containerNumber,
-      details: 'Container evacuated',
+      details: `Container evacuated from ${sourceTable}`,
       userId: userId
     })
   
@@ -108,9 +145,11 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: 'Not found in evacuation' }, { status: 404 })
   }
   
-  // Return to UnstuffedContainer
+  // Return to original source or Container
+  const targetTable = evac.source === 'UnstuffedContainer' ? 'UnstuffedContainer' : 'Container'
+  
   const { error: insertError } = await supabase
-    .from('UnstuffedContainer')
+    .from(targetTable)
     .insert({
       containerNumber: evac.containerNumber,
       size: evac.size,
@@ -141,7 +180,7 @@ export async function DELETE(req: Request) {
     .insert({
       action: 'EVACUATION_RETURNED',
       containerNumber: containerNumber,
-      details: 'Returned from evacuation',
+      details: `Returned from evacuation to ${targetTable}`,
       userId: userId
     })
   
