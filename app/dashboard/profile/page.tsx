@@ -1,24 +1,46 @@
 "use client"
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useDarkMode } from '@/hooks/useDarkMode'
 import { useToast } from '@/hooks/useToast'
 
 export default function UserProfilePage() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const router = useRouter()
   const { isDarkMode } = useDarkMode()
   const { showToast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
   const [userData, setUserData] = useState({
-    userId: session?.user?.userId || '',
-    name: session?.user?.name || '',
-    email: session?.user?.email || '',
-    role: session?.user?.role || 'Operator',
-    shift: session?.user?.shift || 'A',
+    userId: '',
+    name: '',
+    email: '',
+    role: 'Operator',
+    shift: 'A',
     joinDate: '2024-01-15'
   })
+
+  useEffect(() => {
+    setIsMounted(true)
+    if (session?.user) {
+      setUserData({
+        userId: session.user.userId || '',
+        name: session.user.name || '',
+        email: session.user.email || '',
+        role: session.user.role || 'Operator',
+        shift: session.user.shift || 'A',
+        joinDate: '2024-01-15'
+      })
+    }
+  }, [session])
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login')
+    }
+  }, [status, router])
 
   const handleSave = async () => {
     try {
@@ -30,8 +52,30 @@ export default function UserProfilePage() {
     }
   }
 
+  // Don't render until mounted to avoid hydration mismatch
+  if (!isMounted || status === 'loading') {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: isDarkMode ? '#0a0e17' : '#f5f7fb'
+      }}>
+        <div style={{
+          width: '48px',
+          height: '48px',
+          border: '4px solid #e2e8f0',
+          borderTop: '4px solid #1e6f3f',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      </div>
+    )
+  }
+
   if (!session) {
-    router.push('/login')
     return null
   }
 
