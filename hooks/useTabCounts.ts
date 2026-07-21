@@ -10,10 +10,10 @@ export function useTabCounts() {
     unstuffed: 0,
     evacuation: 0,
   })
+  const [previousCounts, setPreviousCounts] = useState(counts)
 
   const fetchCounts = async () => {
     try {
-      // Get counts from each table
       const [
         { count: queueCount },
         { count: receivalsCount },
@@ -30,6 +30,7 @@ export function useTabCounts() {
         supabase.from('EvacuationRecord').select('*', { count: 'exact', head: true }),
       ])
 
+      setPreviousCounts(counts)
       setCounts({
         queue: queueCount || 0,
         receivals: receivalsCount || 0,
@@ -46,7 +47,6 @@ export function useTabCounts() {
   useEffect(() => {
     fetchCounts()
 
-    // Set up real-time subscriptions for count updates
     const channels = [
       supabase.channel('queue-count').on('postgres_changes', 
         { event: '*', schema: 'public', table: 'ImportQueue' },
