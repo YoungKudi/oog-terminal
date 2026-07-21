@@ -126,15 +126,11 @@ export default function DashboardPage() {
 
   if (!session) return null
 
-  // Function to switch tabs
   const switchToTab = (tabId: string) => {
     setActiveTab(tabId)
-    // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
-    // Show selected tab content
     const tabContent = document.getElementById(tabId + '-tab')
     if (tabContent) tabContent.classList.add('active')
-    // Update tab buttons
     document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
     const tabButton = document.querySelector(`.tab-button[data-tab="${tabId}"]`)
     if (tabButton) tabButton.classList.add('active')
@@ -188,7 +184,7 @@ export default function DashboardPage() {
       </div>
 
       {/* TAB BAR */}
-      <div className="tab-bar">
+      <div className="tab-bar" style={{ overflow: 'visible', position: 'relative', zIndex: 10 }}>
         {tabs.map(t => (
           <TabWithCount
             key={t.id}
@@ -200,7 +196,7 @@ export default function DashboardPage() {
             isDarkMode={isDarkMode}
           />
         ))}
-        <div className="dropdown-container" ref={dropdownRef}>
+        <div className="dropdown-container" ref={dropdownRef} style={{ position: 'relative', zIndex: 100 }}>
           <button 
             ref={dropdownButtonRef}
             className="dropdown-btn" 
@@ -238,11 +234,13 @@ export default function DashboardPage() {
               background: isDarkMode ? '#1e293b' : 'white',
               border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
               borderRadius: '12px',
-              minWidth: '190px',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+              minWidth: '200px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
               zIndex: 9999,
               padding: '4px 0',
-              marginTop: '4px'
+              marginTop: '4px',
+              maxHeight: '400px',
+              overflowY: 'auto'
             }}
           >
             <a 
@@ -379,7 +377,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* TABS CONTENT */}
+      {/* TABS CONTENT - Same as before */}
       <div className="tab-content active" id="queue-tab">
         <DailyTally 
           locations={locations} 

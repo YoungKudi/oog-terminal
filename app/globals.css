@@ -1070,3 +1070,41 @@ body.dark-mode .evacuation-item {
     font-size: 1.6rem;
   }
 }
+
+/* Fix dropdown visibility */
+.tab-bar {
+  overflow: visible !important;
+  position: relative;
+  z-index: 10;
+}
+
+.dropdown-container {
+  position: relative;
+  z-index: 100 !important;
+}
+
+.dropdown-menu {
+  z-index: 9999 !important;
+  position: absolute !important;
+  top: 100% !important;
+  right: 0 !important;
+  margin-top: 4px !important;
+}
+
+/* Ensure dropdown appears above everything */
+.dropdown-menu.show {
+  display: block !important;
+  z-index: 9999 !important;
+}
+
+/* Fix for mobile */
+@media (max-width: 700px) {
+  .dropdown-menu {
+    position: fixed !important;
+    top: 60px !important;
+    right: 10px !important;
+    left: auto !important;
+    min-width: 200px !important;
+    max-width: calc(100vw - 20px) !important;
+  }
+}
