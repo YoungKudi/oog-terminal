@@ -128,12 +128,9 @@ export default function DashboardPage() {
 
   const handleTabClick = (tab: string) => {
     setActiveTab(tab)
-    // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
-    // Show selected tab content
     const tabContent = document.getElementById(tab + '-tab')
     if (tabContent) tabContent.classList.add('active')
-    // Update tab buttons
     document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
     const tabButton = document.querySelector(`.tab-button[data-tab="${tab}"]`)
     if (tabButton) tabButton.classList.add('active')
@@ -183,27 +180,40 @@ export default function DashboardPage() {
         <div className="header-actions">
           <NotificationBell />
           <button 
-            onClick={() => window.location.href = "/dashboard/profile"}
+            onClick={goToProfile}
             style={{
-              background: "rgba(255,255,255,0.15)",
-              border: "1px solid rgba(255,255,255,0.2)",
-              borderRadius: "20px",
-              padding: "4px 12px",
-              color: "white",
-              fontSize: "0.75rem",
-              cursor: "pointer",
-              transition: "all 0.2s",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px"
+              background: 'rgba(255,255,255,0.15)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '20px',
+              padding: '4px 12px',
+              color: 'white',
+              fontSize: '0.75rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.25)"}
-            onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
             title="View Profile"
           >
             👤 {session.user?.userId}
           </button>
-          <button className="btn" onClick={toggleDarkMode} style={{background:"rgba(255,255,255,0.2)",padding:"2px 10px",border:"none",borderRadius:"8px",color:"white",cursor:"pointer"}}>{isDarkMode ? "☀️" : "🌙"}</button>
+          <button 
+            className="btn" 
+            onClick={toggleDarkMode} 
+            style={{
+              background:'rgba(255,255,255,0.2)',
+              padding:'2px 10px',
+              borderRadius:'8px',
+              border:'none',
+              color:'white',
+              cursor:'pointer'
+            }}
+          >
+            {isDarkMode ? '☀️' : '🌙'}
+          </button>
         </div>
       </div>
 
@@ -454,7 +464,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* TABS CONTENT - Same as before */}
+      {/* TABS CONTENT */}
       <div className="tab-content active" id="queue-tab">
         <DailyTally 
           locations={locations} 
@@ -596,7 +606,7 @@ export default function DashboardPage() {
         activeTab={activeTab}
       />
 
-      {/* MODALS - Same as before */}
+      {/* MODALS */}
       {showWizard && wizardContainer && (
         <div className="modal" style={{display:'flex', position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)', justifyContent:'center', alignItems:'center', zIndex:1000}}>
           <DevanningWizard 
