@@ -1,23 +1,52 @@
-// Color helper for dark mode
+// ============================================
+// COLOR HELPERS
+// ============================================
+
 export function getColor(isDark: boolean, lightColor: string, darkColor: string): string {
   return isDark ? darkColor : lightColor
 }
 
-// Parse cargo number from container number
+// ============================================
+// CONTAINER NUMBER HELPERS
+// ============================================
+
 export function parseCargoNumber(containerNumber: string): string {
   if (!containerNumber) return ''
   const matches = containerNumber.match(/\d+/)
   return matches ? matches[0] : ''
 }
 
-// Validate container number format
 export function validateContainerNumber(containerNumber: string): boolean {
   if (!containerNumber) return false
   const pattern = /^[A-Z]{4}\d{7}$/
   return pattern.test(containerNumber.toUpperCase())
 }
 
-// Format date for display
+// ============================================
+// TAB COUNTS - THIS WAS MISSING!
+// ============================================
+
+export function getTabCounts(
+  containers: any[] = [],
+  importQueue: any[] = [],
+  devanningQueue: any[] = [],
+  unstuffedContainers: any[] = [],
+  evacuationRecords: any[] = []
+) {
+  return {
+    queue: importQueue?.length || 0,
+    receivals: containers?.filter((c: any) => c.status === 'receivals' || !c.status).length || 0,
+    tallies: containers?.filter((c: any) => c.status === 'tallies' || c.position).length || 0,
+    devanning: devanningQueue?.length || 0,
+    unstuffed: unstuffedContainers?.length || 0,
+    evacuation: evacuationRecords?.length || 0,
+  }
+}
+
+// ============================================
+// DATE & TIME HELPERS
+// ============================================
+
 export function formatDate(date: string | Date): string {
   if (!date) return ''
   const d = new Date(date)
@@ -28,7 +57,6 @@ export function formatDate(date: string | Date): string {
   })
 }
 
-// Format time for display
 export function formatTime(date: string | Date): string {
   if (!date) return ''
   const d = new Date(date)
@@ -38,7 +66,23 @@ export function formatTime(date: string | Date): string {
   })
 }
 
-// Get status color
+export function timeAgo(date: string | Date): string {
+  if (!date) return ''
+  const diff = Date.now() - new Date(date).getTime()
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+  
+  if (minutes < 1) return 'Just now'
+  if (minutes < 60) return `${minutes}m ago`
+  if (hours < 24) return `${hours}h ago`
+  return `${days}d ago`
+}
+
+// ============================================
+// STATUS COLORS
+// ============================================
+
 export function getStatusColor(status: string, isDark: boolean = false): string {
   const colors: Record<string, string> = {
     'pending': isDark ? '#f59e0b' : '#d97706',
@@ -58,29 +102,46 @@ export function getStatusColor(status: string, isDark: boolean = false): string 
   return colors[status?.toLowerCase()] || (isDark ? '#94a3b8' : '#6b7280')
 }
 
-// Truncate text
+// ============================================
+// TEXT HELPERS
+// ============================================
+
 export function truncateText(text: string, maxLength: number = 50): string {
   if (!text) return ''
   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
 }
 
-// Generate random ID
+export function getInitials(name: string): string {
+  if (!name) return ''
+  return name
+    .split(' ')
+    .map(word => word[0])
+    .join('')
+    .toUpperCase()
+    .substring(0, 2)
+}
+
+// ============================================
+// OBJECT HELPERS
+// ============================================
+
 export function generateId(): string {
   return Math.random().toString(36).substring(2, 9)
 }
 
-// Check if object is empty
 export function isEmpty(obj: any): boolean {
   if (!obj) return true
   return Object.keys(obj).length === 0
 }
 
-// Deep clone object
 export function deepClone<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj))
 }
 
-// Debounce function
+// ============================================
+// PERFORMANCE HELPERS
+// ============================================
+
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
@@ -92,7 +153,6 @@ export function debounce<T extends (...args: any[]) => any>(
   }
 }
 
-// Throttle function
 export function throttle<T extends (...args: any[]) => any>(
   func: T,
   limit: number
@@ -107,40 +167,13 @@ export function throttle<T extends (...args: any[]) => any>(
   }
 }
 
-// Format currency
+// ============================================
+// FORMAT HELPERS
+// ============================================
+
 export function formatCurrency(amount: number, currency: string = 'USD'): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency
   }).format(amount)
-}
-
-// Get initials from name
-export function getInitials(name: string): string {
-  if (!name) return ''
-  return name
-    .split(' ')
-    .map(word => word[0])
-    .join('')
-    .toUpperCase()
-    .substring(0, 2)
-}
-
-// Get tab counts
-export function getTabCounts(containers: any[], importQueue: any[], devanningQueue: any[], unstuffedContainers: any[], evacuationRecords: any[]): {
-  queue: number
-  receivals: number
-  tallies: number
-  devanning: number
-  unstuffed: number
-  evacuation: number
-} {
-  return {
-    queue: importQueue?.length || 0,
-    receivals: containers?.filter(c => c.status === 'receivals').length || 0,
-    tallies: containers?.filter(c => c.status === 'tallies').length || 0,
-    devanning: devanningQueue?.length || 0,
-    unstuffed: unstuffedContainers?.length || 0,
-    evacuation: evacuationRecords?.length || 0,
-  }
 }
