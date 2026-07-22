@@ -8,13 +8,7 @@ interface EvacuationTabProps {
   fetchAllData: () => void
 }
 
-export default function EvacuationTab({ 
-  evacuationRecords, 
-  isDarkMode, 
-  showToast, 
-  fetchAllData 
-}: EvacuationTabProps) {
-  // Simple rendering for now
+export default function EvacuationTab({ evacuationRecords, isDarkMode }: EvacuationTabProps) {
   return (
     <div style={{ padding: '16px' }}>
       <h2 style={{ color: isDarkMode ? '#e2e8f0' : '#1e293b' }}>Evacuation Records</h2>

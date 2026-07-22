@@ -16,17 +16,7 @@ interface BackupTabProps {
   fetchAllData: () => void
 }
 
-export default function BackupTab({ 
-  containers, 
-  importQueue,
-  devanningQueue,
-  unstuffedContainers,
-  evacuationRecords,
-  loadingRecords,
-  isDarkMode,
-  showToast,
-  fetchAllData
-}: BackupTabProps) {
+export default function BackupTab({ containers, importQueue, devanningQueue, unstuffedContainers, evacuationRecords, loadingRecords, isDarkMode }: BackupTabProps) {
   const totalItems = (containers?.length || 0) + (importQueue?.length || 0) + 
                     (devanningQueue?.length || 0) + (unstuffedContainers?.length || 0) +
                     (evacuationRecords?.length || 0) + (loadingRecords?.length || 0)

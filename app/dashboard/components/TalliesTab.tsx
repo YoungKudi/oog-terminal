@@ -14,12 +14,7 @@ interface TalliesTabProps {
   setShowRepositionModal: (show: boolean) => void
 }
 
-export default function TalliesTab({ 
-  containers, 
-  isDarkMode, 
-  showToast,
-  fetchAllData
-}: TalliesTabProps) {
+export default function TalliesTab({ containers, isDarkMode }: TalliesTabProps) {
   return (
     <div style={{ padding: '16px' }}>
       <h2 style={{ color: isDarkMode ? '#e2e8f0' : '#1e293b' }}>Tallies</h2>

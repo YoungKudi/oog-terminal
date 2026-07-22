@@ -9,12 +9,7 @@ interface ContactsTabProps {
   showToast: (msg: string, type: string) => void
 }
 
-export default function ContactsTab({ 
-  shiftData,
-  isDarkMode,
-  session,
-  showToast
-}: ContactsTabProps) {
+export default function ContactsTab({ shiftData, isDarkMode }: ContactsTabProps) {
   return (
     <div style={{ padding: '16px' }}>
       <h2 style={{ color: isDarkMode ? '#e2e8f0' : '#1e293b' }}>Equipment Contacts</h2>

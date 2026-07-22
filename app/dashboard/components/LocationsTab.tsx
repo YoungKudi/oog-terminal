@@ -10,14 +10,7 @@ interface LocationsTabProps {
   setShowAddLocationModal: (show: boolean) => void
 }
 
-export default function LocationsTab({ 
-  locations,
-  containers,
-  isDarkMode,
-  showToast,
-  setLocations,
-  setShowAddLocationModal
-}: LocationsTabProps) {
+export default function LocationsTab({ locations, isDarkMode }: LocationsTabProps) {
   return (
     <div style={{ padding: '16px' }}>
       <h2 style={{ color: isDarkMode ? '#e2e8f0' : '#1e293b' }}>Locations</h2>

@@ -7,11 +7,7 @@ interface ReportsTabProps {
   showToast: (msg: string, type: string) => void
 }
 
-export default function ReportsTab({ 
-  loadingRecords,
-  isDarkMode,
-  showToast
-}: ReportsTabProps) {
+export default function ReportsTab({ loadingRecords, isDarkMode }: ReportsTabProps) {
   return (
     <div style={{ padding: '16px' }}>
       <h2 style={{ color: isDarkMode ? '#e2e8f0' : '#1e293b' }}>Reports</h2>
