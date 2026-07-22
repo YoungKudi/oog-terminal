@@ -6,12 +6,14 @@ import { useData } from '@/hooks/useData'
 import { useToast } from '@/hooks/useToast'
 import { useDarkMode } from '@/hooks/useDarkMode'
 import { useTabCounts } from '@/hooks/useTabCounts'
-import { DEFAULT_LOCATIONS, DEFAULT_SHIFT } from '@/lib/constants'
 import { getColor } from '@/lib/utils'
-import { Icons } from '@/components/icons/Icons'
 import { TabWithCount } from '@/components/common/TabWithCount'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
+import { StatsGrid } from '@/components/common/StatsGrid'
+import { DailyTally } from '@/components/common/DailyTally'
+import { FloatingButtons } from '@/components/common/FloatingButtons'
 
-// Import all tab components
+// Import tab components
 import QueueTab from './components/QueueTab'
 import ReceivalsTab from './components/ReceivalsTab'
 import TalliesTab from './components/TalliesTab'
@@ -22,140 +24,22 @@ import LocationsTab from './components/LocationsTab'
 import ContactsTab from './components/ContactsTab'
 import BackupTab from './components/BackupTab'
 import ReportsTab from './components/ReportsTab'
-import DevanningWizard from './components/DevanningWizard'
-
-// Import modals
-import ReceivalModal from '@/components/modals/ReceivalModal'
-import DevanningModal from '@/components/modals/DevanningModal'
-import LoadoutModal from '@/components/modals/LoadoutModal'
-import EditModal from '@/components/modals/EditModal'
-import RepositionModal from '@/components/modals/RepositionModal'
-import SearchModal from '@/components/modals/SearchModal'
-import ContainerDetailModal from '@/components/modals/ContainerDetailModal'
-import AddLocationModal from '@/components/modals/AddLocationModal'
-import ScannerModal from '@/components/modals/ScannerModal'
-import { StatsGrid } from '@/components/common/StatsGrid'
-import { DailyTally } from '@/components/common/DailyTally'
-import { FloatingButtons } from '@/components/common/FloatingButtons'
-import { NotificationBell } from '@/components/notifications/NotificationBell'
 
 export default function DashboardPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const { showToast } = useToast()
   const { isDarkMode, toggleDarkMode } = useDarkMode()
   const tabCounts = useTabCounts()
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const dropdownButtonRef = useRef<HTMLButtonElement>(null)
-  
-  const {
-    containers,
-    importQueue,
-    devanningQueue,
-    unstuffedContainers,
-    evacuationRecords,
-    loadingRecords,
-    activityLog,
-    loading,
-    fetchAllData
-  } = useData()
-
   const [activeTab, setActiveTab] = useState('queue')
-  const [dropdownOpen, setDropdownOpen] = useState(false)
-  const [locations, setLocations] = useState(DEFAULT_LOCATIONS)
-  const [allPositions, setAllPositions] = useState([])
-  const [shiftData, setShiftData] = useState({A: {...DEFAULT_SHIFT}, B: {...DEFAULT_SHIFT}, C: {...DEFAULT_SHIFT}, D: {...DEFAULT_SHIFT}})
-  const [scannedDocuments, setScannedDocuments] = useState({})
-  const [selectedEvacContainer, setSelectedEvacContainer] = useState(null)
-  const [evacuationSelectionMode, setEvacuationSelectionMode] = useState(false)
-  const [showWizard, setShowWizard] = useState(false)
-  const [wizardContainer, setWizardContainer] = useState(null)
 
-  // Modal states
-  const [showReceivalModal, setShowReceivalModal] = useState(false)
-  const [showDevanningModal, setShowDevanningModal] = useState(false)
-  const [showLoadoutModal, setShowLoadoutModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [showRepositionModal, setShowRepositionModal] = useState(false)
-  const [showSearchModal, setShowSearchModal] = useState(false)
-  const [showContainerDetailModal, setShowContainerDetailModal] = useState(false)
-  const [showAddLocationModal, setShowAddLocationModal] = useState(false)
-  const [showScannerModal, setShowScannerModal] = useState(false)
-  const [selectedContainer, setSelectedContainer] = useState(null)
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current && 
-        !dropdownRef.current.contains(event.target as Node) &&
-        dropdownButtonRef.current &&
-        !dropdownButtonRef.current.contains(event.target as Node)
-      ) {
-        setDropdownOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  useEffect(() => {
-    const allPos = []
-    for (const loc of locations) {
-      if (loc.positions) allPos.push(...loc.positions)
-    }
-    setAllPositions(allPos.sort())
-  }, [locations])
-
-  useEffect(() => {
-    const scans = localStorage.getItem('oog_scans')
-    if (scans) setScannedDocuments(JSON.parse(scans))
-    const savedShifts = localStorage.getItem('oog_shifts')
-    if (savedShifts) setShiftData(JSON.parse(savedShifts))
-  }, [])
-
-  if (loading || status === 'loading') {
-    return (
-      <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',flexDirection:'column',gap:'16px',background:isDarkMode?'#0a0e17':'#f5f7fb'}}>
-        <div style={{width:'48px',height:'48px',border:'4px solid #e2e8f0',borderTop:'4px solid #1e6f3f',borderRadius:'50%',animation:'spin 1s linear infinite'}} />
-        <p style={{color:isDarkMode?'#94a3b8':'#64748b',fontSize:'0.9rem'}}>Loading OOG Terminal...</p>
-        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-      </div>
-    )
+  if (status === 'loading') {
+    return <div>Loading...</div>
   }
 
-  if (!session) return null
-
-  const handleTabClick = (tab: string) => {
-    setActiveTab(tab)
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
-    const tabContent = document.getElementById(tab + '-tab')
-    if (tabContent) tabContent.classList.add('active')
-    document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
-    const tabButton = document.querySelector(`.tab-button[data-tab="${tab}"]`)
-    if (tabButton) tabButton.classList.add('active')
-    setDropdownOpen(false)
+  if (!session) {
+    router.push('/login')
+    return null
   }
-
-  const toggleDropdown = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    setDropdownOpen(!dropdownOpen)
-  }
-
-  // Navigate to profile page
-  const goToProfile = () => {
-    router.push('/dashboard/profile')
-  }
-
-  const now = new Date()
-  const hour = now.getHours()
-  const greeting = hour >= 17 ? 'Good Evening' : hour >= 12 ? 'Good Afternoon' : 'Good Morning'
-  const day = String(now.getDate()).padStart(2,'0')
-  const month = String(now.getMonth()+1).padStart(2,'0')
-  const year = now.getFullYear()
-  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
-  const dayName = days[now.getDay()]
-  const dateStr = `${day}/${month}/${year} ${dayName}`
 
   const tabs = [
     { id: 'queue', icon: '📥', label: 'Queue', count: tabCounts.queue },
@@ -166,59 +50,18 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="app-container">
-      {/* HEADER */}
-      <div className="app-header">
-        <div className="logo-area">
-          <h1>
-            <span style={{ display: 'inline-flex', marginRight: '8px' }}>
-              <Icons.Dashboard size={20} color="white" />
-            </span>
-            OOG Terminal
-          </h1>
-        </div>
-        <div className="header-actions">
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: '#1e293b', color: 'white' }}>
+        <h1>🚢 OOG Terminal</h1>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <NotificationBell />
-          <button 
-            onClick={goToProfile}
-            style={{
-              background: 'rgba(255,255,255,0.15)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '20px',
-              padding: '4px 12px',
-              color: 'white',
-              fontSize: '0.75rem',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
-            title="View Profile"
-          >
-            👤 {session.user?.userId}
-          </button>
-          <button 
-            className="btn" 
-            onClick={toggleDarkMode} 
-            style={{
-              background:'rgba(255,255,255,0.2)',
-              padding:'2px 10px',
-              borderRadius:'8px',
-              border:'none',
-              color:'white',
-              cursor:'pointer'
-            }}
-          >
-            {isDarkMode ? '☀️' : '🌙'}
-          </button>
+          <span>{session.user?.userId}</span>
+          <button onClick={toggleDarkMode}>{isDarkMode ? '☀️' : '🌙'}</button>
+          <button onClick={() => signOut()}>Logout</button>
         </div>
       </div>
-
-      {/* TAB BAR */}
-      <div className="tab-bar">
+      
+      <div style={{ display: 'flex', gap: '4px', padding: '8px', background: '#f1f5f9', overflowX: 'auto' }}>
         {tabs.map(t => (
           <TabWithCount
             key={t.id}
@@ -226,506 +69,23 @@ export default function DashboardPage() {
             label={t.label}
             count={t.count}
             isActive={activeTab === t.id}
-            onClick={() => handleTabClick(t.id)}
+            onClick={() => setActiveTab(t.id)}
             isDarkMode={isDarkMode}
           />
         ))}
-        <div className="dropdown-container" ref={dropdownRef}>
-          <button 
-            ref={dropdownButtonRef}
-            className="dropdown-btn" 
-            onClick={toggleDropdown}
-            style={{
-              background: dropdownOpen ? 'rgba(0,0,0,0.05)' : 'transparent',
-              borderRadius: '8px',
-              padding: '6px 10px',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontWeight: '600',
-              fontSize: '0.65rem',
-              color: isDarkMode ? '#94a3b8' : '#5b6e8c',
-              transition: 'all 0.2s'
-            }}
-          >
-            <span style={{ fontSize: '1.1rem' }}>⚙️</span>
-            <span>More</span>
-            <span style={{ 
-              fontSize: '0.7rem', 
-              transform: dropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s'
-            }}>▼</span>
-          </button>
-          <div 
-            className={`dropdown-menu ${dropdownOpen ? 'show' : ''}`}
-            style={{
-              display: dropdownOpen ? 'block' : 'none',
-              position: 'absolute',
-              top: '100%',
-              right: '0',
-              background: isDarkMode ? '#1e293b' : 'white',
-              border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
-              borderRadius: '12px',
-              minWidth: '190px',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-              zIndex: 9999,
-              padding: '4px 0',
-              marginTop: '4px'
-            }}
-          >
-            <a 
-              onClick={() => { 
-                setDropdownOpen(false); 
-                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
-                document.getElementById('evacuation-tab')?.classList.add('active')
-                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
-                setActiveTab('evacuation')
-              }} 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                color: isDarkMode ? '#e2e8f0' : '#1e293b',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ fontSize: '1rem' }}>🚚</span>
-              Evacuation & Boxes ({tabCounts.evacuation})
-            </a>
-            <a 
-              onClick={() => { 
-                setDropdownOpen(false); 
-                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
-                document.getElementById('locations-tab')?.classList.add('active')
-                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
-                setActiveTab('locations')
-              }} 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                color: isDarkMode ? '#e2e8f0' : '#1e293b',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ fontSize: '1rem' }}>📍</span>
-              Locations
-            </a>
-            <a 
-              onClick={() => { 
-                setDropdownOpen(false); 
-                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
-                document.getElementById('contacts-tab')?.classList.add('active')
-                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
-                setActiveTab('contacts')
-              }} 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                color: isDarkMode ? '#e2e8f0' : '#1e293b',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ fontSize: '1rem' }}>👤</span>
-              Equipment Contacts
-            </a>
-            <a 
-              onClick={() => { 
-                setDropdownOpen(false); 
-                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
-                document.getElementById('backup-tab')?.classList.add('active')
-                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
-                setActiveTab('backup')
-              }} 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                color: isDarkMode ? '#e2e8f0' : '#1e293b',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ fontSize: '1rem' }}>💾</span>
-              Backup & Activity
-            </a>
-            <a 
-              onClick={() => { 
-                setDropdownOpen(false); 
-                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
-                document.getElementById('reports-tab')?.classList.add('active')
-                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
-                setActiveTab('reports')
-              }} 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                color: isDarkMode ? '#e2e8f0' : '#1e293b',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ fontSize: '1rem' }}>📄</span>
-              Reports
-            </a>
-            {/* Profile Link in Dropdown */}
-            <div className="dropdown-divider" style={{
-              borderTop: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
-              margin: '4px 8px'
-            }}></div>
-            <a 
-              onClick={() => { 
-                setDropdownOpen(false)
-                router.push('/dashboard/profile')
-              }} 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                color: isDarkMode ? '#e2e8f0' : '#1e293b',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ fontSize: '1rem' }}>👤</span>
-              My Profile
-            </a>
-            <a 
-              onClick={() => { signOut({ callbackUrl: '/login' }) }} 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                color: '#dc2626',
-                borderRadius: '4px',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ fontSize: '1rem' }}>🚪</span>
-              Sign Out
-            </a>
-          </div>
-        </div>
       </div>
 
-      {/* TABS CONTENT */}
-      <div className="tab-content active" id="queue-tab">
-        <DailyTally 
-          locations={locations} 
-          containers={containers} 
-          isDarkMode={isDarkMode}
-          greeting={greeting}
-          dateStr={dateStr}
-        />
-        <StatsGrid 
-          containers={containers} 
-          importQueue={importQueue} 
-          devanningQueue={devanningQueue}
-          isDarkMode={isDarkMode}
-        />
-        <QueueTab 
-          importQueue={importQueue}
-          isDarkMode={isDarkMode}
-          showToast={showToast}
-          fetchAllData={fetchAllData}
-        />
-      </div>
-
-      <div className="tab-content" id="receivals-tab">
-        <ReceivalsTab 
-          containers={containers}
-          isDarkMode={isDarkMode}
-          showToast={showToast}
-          setSelectedContainer={setSelectedContainer}
-          setShowContainerDetailModal={setShowContainerDetailModal}
-          fetchAllData={fetchAllData}
-        />
-      </div>
-
-      <div className="tab-content" id="tallies-tab">
-        <TalliesTab 
-          containers={containers}
-          locations={locations}
-          allPositions={allPositions}
-          isDarkMode={isDarkMode}
-          showToast={showToast}
-          fetchAllData={fetchAllData}
-          setSelectedContainer={setSelectedContainer}
-          setShowContainerDetailModal={setShowContainerDetailModal}
-          setShowEditModal={setShowEditModal}
-          setShowRepositionModal={setShowRepositionModal}
-        />
-      </div>
-
-      <div className="tab-content" id="devanning-tab">
-        <DevanningTab 
-          devanningQueue={devanningQueue}
-          isDarkMode={isDarkMode}
-          showToast={showToast}
-          fetchAllData={fetchAllData}
-          setShowWizard={setShowWizard}
-          setWizardContainer={setWizardContainer}
-          setSelectedContainer={setSelectedContainer}
-          setShowContainerDetailModal={setShowContainerDetailModal}
-        />
-      </div>
-
-      <div className="tab-content" id="unstuffed-tab">
-        <UnstuffedTab 
-          unstuffedContainers={unstuffedContainers}
-          isDarkMode={isDarkMode}
-          showToast={showToast}
-          fetchAllData={fetchAllData}
-          selectedEvacContainer={selectedEvacContainer}
-          setSelectedEvacContainer={setSelectedEvacContainer}
-          evacuationSelectionMode={evacuationSelectionMode}
-          setEvacuationSelectionMode={setEvacuationSelectionMode}
-          setSelectedContainer={setSelectedContainer}
-          setShowContainerDetailModal={setShowContainerDetailModal}
-          setShowLoadoutModal={setShowLoadoutModal}
-          setShowScannerModal={setShowScannerModal}
-        />
-      </div>
-
-      <div className="tab-content" id="evacuation-tab">
-        <EvacuationTab 
-          evacuationRecords={evacuationRecords}
-          isDarkMode={isDarkMode}
-          showToast={showToast}
-          fetchAllData={fetchAllData}
-        />
-      </div>
-
-      <div className="tab-content" id="locations-tab">
-        <LocationsTab 
-          locations={locations}
-          containers={containers}
-          isDarkMode={isDarkMode}
-          showToast={showToast}
-          setLocations={setLocations}
-          setShowAddLocationModal={setShowAddLocationModal}
-        />
-      </div>
-
-      <div className="tab-content" id="contacts-tab">
-        <ContactsTab 
-          shiftData={shiftData}
-          setShiftData={setShiftData}
-          isDarkMode={isDarkMode}
-          session={session}
-          showToast={showToast}
-        />
-      </div>
-
-      <div className="tab-content" id="backup-tab">
-        <BackupTab 
-          containers={containers}
-          importQueue={importQueue}
-          devanningQueue={devanningQueue}
-          unstuffedContainers={unstuffedContainers}
-          evacuationRecords={evacuationRecords}
-          loadingRecords={loadingRecords}
-          scannedDocuments={scannedDocuments}
-          locations={locations}
-          shiftData={shiftData}
-          isDarkMode={isDarkMode}
-          showToast={showToast}
-          fetchAllData={fetchAllData}
-        />
-      </div>
-
-      <div className="tab-content" id="reports-tab">
-        <ReportsTab 
-          loadingRecords={loadingRecords}
-          isDarkMode={isDarkMode}
-          showToast={showToast}
-        />
-      </div>
-
-      {/* FLOATING BUTTONS */}
-      <FloatingButtons 
-        setShowReceivalModal={setShowReceivalModal}
-        setShowDevanningModal={setShowDevanningModal}
-        setShowSearchModal={setShowSearchModal}
-        activeTab={activeTab}
-      />
-
-      {/* MODALS */}
-      {showWizard && wizardContainer && (
-        <div className="modal" style={{display:'flex', position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)', justifyContent:'center', alignItems:'center', zIndex:1000}}>
-          <DevanningWizard 
-            container={wizardContainer}
-            onClose={() => { setShowWizard(false); setWizardContainer(null) }}
-            onComplete={fetchAllData}
-            showToast={showToast}
-          />
-        </div>
-      )}
-
-      {showReceivalModal && (
-        <ReceivalModal 
-          onClose={() => setShowReceivalModal(false)}
-          onSave={fetchAllData}
-          isDarkMode={isDarkMode}
-          allPositions={allPositions}
-          showToast={showToast}
-        />
-      )}
-
-      {showDevanningModal && (
-        <DevanningModal 
-          onClose={() => setShowDevanningModal(false)}
-          onSave={fetchAllData}
-          isDarkMode={isDarkMode}
-          containers={containers}
-          allPositions={allPositions}
-          showToast={showToast}
-        />
-      )}
-
-      {showLoadoutModal && (
-        <LoadoutModal 
-          onClose={() => setShowLoadoutModal(false)}
-          onSave={fetchAllData}
-          isDarkMode={isDarkMode}
-          container={selectedContainer}
-          unstuffedContainers={unstuffedContainers}
-          showToast={showToast}
-        />
-      )}
-
-      {showEditModal && (
-        <EditModal 
-          onClose={() => setShowEditModal(false)}
-          onSave={fetchAllData}
-          isDarkMode={isDarkMode}
-          container={selectedContainer}
-          containers={containers}
-          allPositions={allPositions}
-          showToast={showToast}
-        />
-      )}
-
-      {showRepositionModal && (
-        <RepositionModal 
-          onClose={() => setShowRepositionModal(false)}
-          onSave={fetchAllData}
-          isDarkMode={isDarkMode}
-          container={selectedContainer}
-          allPositions={allPositions}
-          showToast={showToast}
-        />
-      )}
-
-      {showSearchModal && (
-        <SearchModal 
-          onClose={() => setShowSearchModal(false)}
-          isDarkMode={isDarkMode}
-          containers={containers}
-          unstuffedContainers={unstuffedContainers}
-          showToast={showToast}
-        />
-      )}
-
-      {showContainerDetailModal && (
-        <ContainerDetailModal 
-          onClose={() => setShowContainerDetailModal(false)}
-          isDarkMode={isDarkMode}
-          container={selectedContainer}
-          containers={containers}
-          devanningQueue={devanningQueue}
-          unstuffedContainers={unstuffedContainers}
-          scannedDocuments={scannedDocuments}
-          showToast={showToast}
-          setShowScannerModal={setShowScannerModal}
-          setShowEditModal={setShowEditModal}
-          setShowDevanningModal={setShowDevanningModal}
-          setShowLoadoutModal={setShowLoadoutModal}
-          fetchAllData={fetchAllData}
-        />
-      )}
-
-      {showAddLocationModal && (
-        <AddLocationModal 
-          onClose={() => setShowAddLocationModal(false)}
-          onSave={fetchAllData}
-          isDarkMode={isDarkMode}
-          locations={locations}
-          setLocations={setLocations}
-          showToast={showToast}
-        />
-      )}
-
-      {showScannerModal && (
-        <ScannerModal 
-          onClose={() => setShowScannerModal(false)}
-          isDarkMode={isDarkMode}
-          container={selectedContainer}
-          scannedDocuments={scannedDocuments}
-          setScannedDocuments={setScannedDocuments}
-          showToast={showToast}
-        />
-      )}
-
-      {/* FOOTER */}
-      <div style={{textAlign:'center',fontSize:'0.65rem',color: getColor(isDarkMode, '#94a3b8', '#94a3b8'),padding:'12px 0',borderTop: getColor(isDarkMode, '1px solid #e2e8f0', '1px solid #1f2937'),marginTop:'16px',flexShrink:0}}>
-        Developed by <strong>O'Bour Dev</strong> © 2026
+      <div style={{ padding: '16px' }}>
+        {activeTab === 'queue' && <QueueTab importQueue={[]} isDarkMode={isDarkMode} showToast={() => {}} fetchAllData={() => {}} />}
+        {activeTab === 'receivals' && <ReceivalsTab containers={[]} isDarkMode={isDarkMode} showToast={() => {}} setSelectedContainer={() => {}} setShowContainerDetailModal={() => {}} fetchAllData={() => {}} />}
+        {activeTab === 'tallies' && <TalliesTab containers={[]} locations={[]} allPositions={[]} isDarkMode={isDarkMode} showToast={() => {}} fetchAllData={() => {}} setSelectedContainer={() => {}} setShowContainerDetailModal={() => {}} setShowEditModal={() => {}} setShowRepositionModal={() => {}} />}
+        {activeTab === 'devanning' && <DevanningTab devanningQueue={[]} isDarkMode={isDarkMode} showToast={() => {}} fetchAllData={() => {}} setShowWizard={() => {}} setWizardContainer={() => {}} setSelectedContainer={() => {}} setShowContainerDetailModal={() => {}} />}
+        {activeTab === 'unstuffed' && <UnstuffedTab unstuffedContainers={[]} isDarkMode={isDarkMode} showToast={() => {}} fetchAllData={() => {}} selectedEvacContainer={null} setSelectedEvacContainer={() => {}} evacuationSelectionMode={false} setEvacuationSelectionMode={() => {}} setSelectedContainer={() => {}} setShowContainerDetailModal={() => {}} setShowLoadoutModal={() => {}} setShowScannerModal={() => {}} />}
+        {activeTab === 'evacuation' && <EvacuationTab evacuationRecords={[]} isDarkMode={isDarkMode} showToast={() => {}} fetchAllData={() => {}} />}
+        {activeTab === 'locations' && <LocationsTab locations={[]} containers={[]} isDarkMode={isDarkMode} showToast={() => {}} setLocations={() => {}} setShowAddLocationModal={() => {}} />}
+        {activeTab === 'contacts' && <ContactsTab shiftData={{}} setShiftData={() => {}} isDarkMode={isDarkMode} session={session} showToast={() => {}} />}
+        {activeTab === 'backup' && <BackupTab containers={[]} importQueue={[]} devanningQueue={[]} unstuffedContainers={[]} evacuationRecords={[]} loadingRecords={[]} scannedDocuments={{}} locations={[]} shiftData={{}} isDarkMode={isDarkMode} showToast={() => {}} fetchAllData={() => {}} />}
+        {activeTab === 'reports' && <ReportsTab loadingRecords={[]} isDarkMode={isDarkMode} showToast={() => {}} />}
       </div>
     </div>
   )

@@ -1,3 +1,4 @@
+import React from "react"
 'use client'
 import React, { useState } from 'react'
 import { EQUIPMENT_LIST } from '@/lib/constants'
