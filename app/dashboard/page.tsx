@@ -126,24 +126,28 @@ export default function DashboardPage() {
 
   if (!session) return null
 
-  const switchToTab = (tabId: string) => {
-    setActiveTab(tabId)
+  const handleTabClick = (tab: string) => {
+    setActiveTab(tab)
+    // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
-    const tabContent = document.getElementById(tabId + '-tab')
+    // Show selected tab content
+    const tabContent = document.getElementById(tab + '-tab')
     if (tabContent) tabContent.classList.add('active')
+    // Update tab buttons
     document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
-    const tabButton = document.querySelector(`.tab-button[data-tab="${tabId}"]`)
+    const tabButton = document.querySelector(`.tab-button[data-tab="${tab}"]`)
     if (tabButton) tabButton.classList.add('active')
     setDropdownOpen(false)
-  }
-
-  const handleTabClick = (tab: string) => {
-    switchToTab(tab)
   }
 
   const toggleDropdown = (e: React.MouseEvent) => {
     e.stopPropagation()
     setDropdownOpen(!dropdownOpen)
+  }
+
+  // Navigate to profile page
+  const goToProfile = () => {
+    router.push('/dashboard/profile')
   }
 
   const now = new Date()
@@ -178,13 +182,47 @@ export default function DashboardPage() {
         </div>
         <div className="header-actions">
           <NotificationBell />
-          <span style={{fontSize:'0.75rem',opacity:0.8}}>👤 {session.user?.userId}</span>
-          <button className="btn" onClick={toggleDarkMode} style={{background:'rgba(255,255,255,0.2)',padding:'2px 10px'}}>{isDarkMode ? '☀️' : '🌙'}</button>
+          {/* Clickable Worker ID - Navigates to Profile */}
+          <button 
+            onClick={goToProfile}
+            style={{
+              background: 'rgba(255,255,255,0.15)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '20px',
+              padding: '4px 12px',
+              color: 'white',
+              fontSize: '0.75rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+            title="View Profile"
+          >
+            👤 {session.user?.userId}
+          </button>
+          <button 
+            className="btn" 
+            onClick={toggleDarkMode} 
+            style={{
+              background:'rgba(255,255,255,0.2)',
+              padding:'2px 10px',
+              borderRadius:'8px',
+              border:'none',
+              color:'white',
+              cursor:'pointer'
+            }}
+          >
+            {isDarkMode ? '☀️' : '🌙'}
+          </button>
         </div>
       </div>
 
       {/* TAB BAR */}
-      <div className="tab-bar" style={{ overflow: 'visible', position: 'relative', zIndex: 10 }}>
+      <div className="tab-bar">
         {tabs.map(t => (
           <TabWithCount
             key={t.id}
@@ -196,7 +234,7 @@ export default function DashboardPage() {
             isDarkMode={isDarkMode}
           />
         ))}
-        <div className="dropdown-container" ref={dropdownRef} style={{ position: 'relative', zIndex: 100 }}>
+        <div className="dropdown-container" ref={dropdownRef}>
           <button 
             ref={dropdownButtonRef}
             className="dropdown-btn" 
@@ -234,17 +272,21 @@ export default function DashboardPage() {
               background: isDarkMode ? '#1e293b' : 'white',
               border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
               borderRadius: '12px',
-              minWidth: '200px',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+              minWidth: '190px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
               zIndex: 9999,
               padding: '4px 0',
-              marginTop: '4px',
-              maxHeight: '400px',
-              overflowY: 'auto'
+              marginTop: '4px'
             }}
           >
             <a 
-              onClick={() => switchToTab('evacuation')} 
+              onClick={() => { 
+                setDropdownOpen(false); 
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
+                document.getElementById('evacuation-tab')?.classList.add('active')
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
+                setActiveTab('evacuation')
+              }} 
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -265,7 +307,13 @@ export default function DashboardPage() {
               Evacuation & Boxes ({tabCounts.evacuation})
             </a>
             <a 
-              onClick={() => switchToTab('locations')} 
+              onClick={() => { 
+                setDropdownOpen(false); 
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
+                document.getElementById('locations-tab')?.classList.add('active')
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
+                setActiveTab('locations')
+              }} 
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -286,7 +334,13 @@ export default function DashboardPage() {
               Locations
             </a>
             <a 
-              onClick={() => switchToTab('contacts')} 
+              onClick={() => { 
+                setDropdownOpen(false); 
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
+                document.getElementById('contacts-tab')?.classList.add('active')
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
+                setActiveTab('contacts')
+              }} 
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -307,7 +361,13 @@ export default function DashboardPage() {
               Equipment Contacts
             </a>
             <a 
-              onClick={() => switchToTab('backup')} 
+              onClick={() => { 
+                setDropdownOpen(false); 
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
+                document.getElementById('backup-tab')?.classList.add('active')
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
+                setActiveTab('backup')
+              }} 
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -328,7 +388,13 @@ export default function DashboardPage() {
               Backup & Activity
             </a>
             <a 
-              onClick={() => switchToTab('reports')} 
+              onClick={() => { 
+                setDropdownOpen(false); 
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
+                document.getElementById('reports-tab')?.classList.add('active')
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
+                setActiveTab('reports')
+              }} 
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -348,10 +414,35 @@ export default function DashboardPage() {
               <span style={{ fontSize: '1rem' }}>📄</span>
               Reports
             </a>
+            {/* Profile Link in Dropdown */}
             <div className="dropdown-divider" style={{
               borderTop: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
-              margin: '4px 0'
+              margin: '4px 8px'
             }}></div>
+            <a 
+              onClick={() => { 
+                setDropdownOpen(false)
+                router.push('/dashboard/profile')
+              }} 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                textDecoration: 'none',
+                color: isDarkMode ? '#e2e8f0' : '#1e293b',
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+              <span style={{ fontSize: '1rem' }}>👤</span>
+              My Profile
+            </a>
             <a 
               onClick={() => { signOut({ callbackUrl: '/login' }) }} 
               style={{
@@ -519,7 +610,7 @@ export default function DashboardPage() {
         activeTab={activeTab}
       />
 
-      {/* MODALS */}
+      {/* MODALS - Same as before */}
       {showWizard && wizardContainer && (
         <div className="modal" style={{display:'flex', position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)', justifyContent:'center', alignItems:'center', zIndex:1000}}>
           <DevanningWizard 

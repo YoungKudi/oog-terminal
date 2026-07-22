@@ -1,81 +1,55 @@
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/db'
+import { useState, useEffect } from 'react';
+import { getTabCounts } from '@/lib/utils';
 
-export function useTabCounts() {
-  const [counts, setCounts] = useState({
+interface TabCounts {
+  queue: number;
+  receivals: number;
+  tallies: number;
+  devanning: number;
+  unstuffed: number;
+}
+
+export const useTabCounts = () => {
+  const [counts, setCounts] = useState<TabCounts>({
     queue: 0,
     receivals: 0,
     tallies: 0,
     devanning: 0,
     unstuffed: 0,
-    evacuation: 0,
-  })
-  const [previousCounts, setPreviousCounts] = useState(counts)
+  });
+  const [loading, setLoading] = useState(true);
 
   const fetchCounts = async () => {
     try {
-      const [
-        { count: queueCount },
-        { count: receivalsCount },
-        { count: talliesCount },
-        { count: devanningCount },
-        { count: unstuffedCount },
-        { count: evacuationCount },
-      ] = await Promise.all([
-        supabase.from('ImportQueue').select('*', { count: 'exact', head: true }),
-        supabase.from('Container').select('*', { count: 'exact', head: true }),
-        supabase.from('Container').select('*', { count: 'exact', head: true }),
-        supabase.from('DevanningQueue').select('*', { count: 'exact', head: true }),
-        supabase.from('UnstuffedContainer').select('*', { count: 'exact', head: true }),
-        supabase.from('EvacuationRecord').select('*', { count: 'exact', head: true }),
-      ])
-
-      setPreviousCounts(counts)
-      setCounts({
-        queue: queueCount || 0,
-        receivals: receivalsCount || 0,
-        tallies: talliesCount || 0,
-        devanning: devanningCount || 0,
-        unstuffed: unstuffedCount || 0,
-        evacuation: evacuationCount || 0,
-      })
+      const newCounts = await getTabCounts();
+      setCounts(newCounts);
     } catch (error) {
-      console.error('Error fetching tab counts:', error)
+      console.error('Error fetching tab counts:', error);
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchCounts()
-
-    const channels = [
-      supabase.channel('queue-count').on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'ImportQueue' },
-        () => fetchCounts()
-      ),
-      supabase.channel('container-count').on('postgres_changes',
-        { event: '*', schema: 'public', table: 'Container' },
-        () => fetchCounts()
-      ),
-      supabase.channel('devanning-count').on('postgres_changes',
-        { event: '*', schema: 'public', table: 'DevanningQueue' },
-        () => fetchCounts()
-      ),
-      supabase.channel('unstuffed-count').on('postgres_changes',
-        { event: '*', schema: 'public', table: 'UnstuffedContainer' },
-        () => fetchCounts()
-      ),
-      supabase.channel('evacuation-count').on('postgres_changes',
-        { event: '*', schema: 'public', table: 'EvacuationRecord' },
-        () => fetchCounts()
-      ),
-    ]
-
-    channels.forEach(ch => ch.subscribe())
-
+    fetchCounts();
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchCounts, 30000);
+    
+    // Listen for visibility change to refresh when user returns to tab
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchCounts();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
     return () => {
-      channels.forEach(ch => supabase.removeChannel(ch))
-    }
-  }, [])
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
-  return counts
-}
+  return { counts, loading, refreshCounts: fetchCounts };
+};

@@ -1,350 +1,334 @@
 "use client"
 import React, { useState, useEffect } from 'react'
-import { useSession, signOut } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useDarkMode } from '@/hooks/useDarkMode'
 import { useToast } from '@/hooks/useToast'
+import { supabase } from '@/lib/db'
 
-export default function UserProfilePage() {
+export default function ProfilePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const { isDarkMode } = useDarkMode()
   const { showToast } = useToast()
-  const [isEditing, setIsEditing] = useState(false)
-  const [isMounted, setIsMounted] = useState(false)
-  const [userData, setUserData] = useState({
-    userId: '',
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState(false)
+  const [userData, setUserData] = useState<any>(null)
+  const [formData, setFormData] = useState({
     name: '',
-    email: '',
-    role: 'Operator',
-    shift: 'A',
-    joinDate: '2024-01-15'
+    phone: '',
   })
 
-  useEffect(() => {
-    setIsMounted(true)
-    if (session?.user) {
-      setUserData({
-        userId: session.user.userId || '',
-        name: session.user.name || '',
-        email: session.user.email || '',
-        role: session.user.role || 'Operator',
-        shift: session.user.shift || 'A',
-        joinDate: '2024-01-15'
-      })
-    }
-  }, [session])
-
-  // Redirect if not authenticated
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login')
     }
-  }, [status, router])
+    if (session?.user?.id) {
+      fetchUserProfile()
+    }
+  }, [session, status])
 
-  const handleSave = async () => {
+  const fetchUserProfile = async () => {
     try {
-      // In a real app, you'd call an API to update the user profile
-      showToast('Profile updated successfully!', 'success')
-      setIsEditing(false)
+      const { data, error } = await supabase
+        .from('User')
+        .select('*')
+        .eq('id', session?.user?.id)
+        .single()
+
+      if (error) throw error
+      
+      setUserData(data)
+      setFormData({
+        name: data.name || '',
+        phone: data.phone || '',
+      })
     } catch (error) {
+      console.error('Error fetching profile:', error)
+      showToast('Failed to load profile', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUpdate = async () => {
+    try {
+      const { error } = await supabase
+        .from('User')
+        .update({
+          name: formData.name,
+          phone: formData.phone,
+          updatedAt: new Date().toISOString(),
+        })
+        .eq('id', session?.user?.id)
+
+      if (error) throw error
+
+      setUserData(prev => ({ ...prev, ...formData }))
+      setEditing(false)
+      showToast('Profile updated successfully!', 'success')
+    } catch (error) {
+      console.error('Error updating profile:', error)
       showToast('Failed to update profile', 'error')
     }
   }
 
-  // Don't render until mounted to avoid hydration mismatch
-  if (!isMounted || status === 'loading') {
+  if (loading || status === 'loading') {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: isDarkMode ? '#0a0e17' : '#f5f7fb'
-      }}>
-        <div style={{
-          width: '48px',
-          height: '48px',
-          border: '4px solid #e2e8f0',
-          borderTop: '4px solid #1e6f3f',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <div style={{ 
+          width: '48px', 
+          height: '48px', 
+          border: '4px solid #e2e8f0', 
+          borderTop: '4px solid #1e6f3f', 
+          borderRadius: '50%', 
+          animation: 'spin 1s linear infinite' 
         }} />
         <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
       </div>
     )
   }
 
-  if (!session) {
-    return null
-  }
-
-  const bgColor = isDarkMode ? '#0a0e17' : '#f5f7fb'
-  const cardBg = isDarkMode ? '#1e293b' : 'white'
-  const textColor = isDarkMode ? '#e2e8f0' : '#1e293b'
-  const subTextColor = isDarkMode ? '#94a3b8' : '#64748b'
-  const borderColor = isDarkMode ? '#334155' : '#e2e8f0'
-
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: bgColor,
+    <div style={{ 
+      maxWidth: '800px', 
+      margin: '0 auto',
       padding: '20px',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center'
+      background: isDarkMode ? '#1e293b' : 'white',
+      borderRadius: '12px',
+      boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
     }}>
-      <div style={{
-        background: cardBg,
-        borderRadius: '16px',
-        padding: '32px',
-        maxWidth: '600px',
-        width: '100%',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-        border: `1px solid ${borderColor}`
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        marginBottom: '24px',
+        borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+        paddingBottom: '16px'
       }}>
-        <button
-          onClick={() => router.push('/dashboard')}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: subTextColor,
-            cursor: 'pointer',
-            fontSize: '0.85rem',
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}
-        >
-          ← Back to Dashboard
-        </button>
-
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
-            background: '#1e6f3f',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 12px',
-            fontSize: '32px',
-            color: 'white'
-          }}>
-            {userData.userId.charAt(0).toUpperCase()}
-          </div>
-          <h1 style={{
-            color: textColor,
-            fontSize: '1.5rem',
-            margin: '0 0 4px 0'
-          }}>
-            {userData.name || userData.userId}
-          </h1>
-          <p style={{ color: subTextColor, fontSize: '0.85rem' }}>
-            {userData.role} • Shift {userData.shift}
-          </p>
-        </div>
-
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '12px'
-          }}>
-            <div style={{
-              padding: '12px',
-              background: isDarkMode ? '#0f172a' : '#f8fafc',
-              borderRadius: '8px'
-            }}>
-              <p style={{ fontSize: '0.7rem', color: subTextColor, margin: '0 0 2px 0' }}>
-                USER ID
-              </p>
-              <p style={{ fontSize: '0.9rem', color: textColor, margin: 0, fontWeight: '600' }}>
-                {userData.userId}
-              </p>
-            </div>
-            <div style={{
-              padding: '12px',
-              background: isDarkMode ? '#0f172a' : '#f8fafc',
-              borderRadius: '8px'
-            }}>
-              <p style={{ fontSize: '0.7rem', color: subTextColor, margin: '0 0 2px 0' }}>
-                JOINED
-              </p>
-              <p style={{ fontSize: '0.9rem', color: textColor, margin: 0, fontWeight: '600' }}>
-                {userData.joinDate}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ marginBottom: '20px' }}>
-          <h3 style={{ color: textColor, fontSize: '0.9rem', margin: '0 0 12px 0' }}>
-            Profile Details
-          </h3>
-          
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ fontSize: '0.75rem', color: subTextColor, display: 'block', marginBottom: '4px' }}>
-              Full Name
-            </label>
-            <input
-              type="text"
-              value={userData.name}
-              onChange={(e) => setUserData({...userData, name: e.target.value})}
-              disabled={!isEditing}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                background: isDarkMode ? '#0f172a' : '#f8fafc',
-                border: `1px solid ${borderColor}`,
-                borderRadius: '8px',
-                color: textColor,
-                fontSize: '0.9rem',
-                opacity: isEditing ? 1 : 0.7
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ fontSize: '0.75rem', color: subTextColor, display: 'block', marginBottom: '4px' }}>
-              Email
-            </label>
-            <input
-              type="email"
-              value={userData.email}
-              onChange={(e) => setUserData({...userData, email: e.target.value})}
-              disabled={!isEditing}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                background: isDarkMode ? '#0f172a' : '#f8fafc',
-                border: `1px solid ${borderColor}`,
-                borderRadius: '8px',
-                color: textColor,
-                fontSize: '0.9rem',
-                opacity: isEditing ? 1 : 0.7
-              }}
-            />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div>
-              <label style={{ fontSize: '0.75rem', color: subTextColor, display: 'block', marginBottom: '4px' }}>
-                Role
-              </label>
-              <select
-                value={userData.role}
-                onChange={(e) => setUserData({...userData, role: e.target.value})}
-                disabled={!isEditing}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  background: isDarkMode ? '#0f172a' : '#f8fafc',
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '8px',
-                  color: textColor,
-                  fontSize: '0.9rem',
-                  opacity: isEditing ? 1 : 0.7
-                }}
-              >
-                <option value="Operator">Operator</option>
-                <option value="Supervisor">Supervisor</option>
-                <option value="Manager">Manager</option>
-                <option value="Admin">Admin</option>
-              </select>
-            </div>
-            <div>
-              <label style={{ fontSize: '0.75rem', color: subTextColor, display: 'block', marginBottom: '4px' }}>
-                Shift
-              </label>
-              <select
-                value={userData.shift}
-                onChange={(e) => setUserData({...userData, shift: e.target.value})}
-                disabled={!isEditing}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  background: isDarkMode ? '#0f172a' : '#f8fafc',
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '8px',
-                  color: textColor,
-                  fontSize: '0.9rem',
-                  opacity: isEditing ? 1 : 0.7
-                }}
-              >
-                <option value="A">A (06:00-14:00)</option>
-                <option value="B">B (14:00-22:00)</option>
-                <option value="C">C (22:00-06:00)</option>
-                <option value="D">D (Flex)</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-          {isEditing ? (
-            <>
-              <button
-                onClick={() => setIsEditing(false)}
-                style={{
-                  padding: '8px 20px',
-                  background: 'transparent',
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '8px',
-                  color: subTextColor,
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                style={{
-                  padding: '8px 20px',
-                  background: '#1e6f3f',
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontWeight: '600'
-                }}
-              >
-                Save Changes
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => setIsEditing(true)}
-              style={{
-                padding: '8px 20px',
-                background: '#1e6f3f',
-                border: 'none',
-                borderRadius: '8px',
-                color: 'white',
-                cursor: 'pointer',
-                fontWeight: '600'
-              }}
-            >
-              Edit Profile
-            </button>
-          )}
+        <h1 style={{ 
+          fontSize: '1.5rem', 
+          fontWeight: 'bold',
+          color: isDarkMode ? '#e2e8f0' : '#1e293b'
+        }}>
+          👤 User Profile
+        </h1>
+        {!editing && (
           <button
-            onClick={() => signOut({ callbackUrl: '/login' })}
+            onClick={() => setEditing(true)}
             style={{
-              padding: '8px 20px',
-              background: '#dc2626',
+              padding: '8px 16px',
+              background: '#1e6f3f',
+              color: 'white',
               border: 'none',
               borderRadius: '8px',
-              color: 'white',
               cursor: 'pointer',
-              fontWeight: '600'
+              fontWeight: '500',
+              transition: 'all 0.2s'
             }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#15803d'}
+            onMouseLeave={(e) => e.currentTarget.style.background = '#1e6f3f'}
           >
-            Sign Out
+            ✏️ Edit Profile
           </button>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Worker ID */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <label style={{ 
+            minWidth: '120px', 
+            fontWeight: '500',
+            color: isDarkMode ? '#94a3b8' : '#64748b'
+          }}>
+            Worker ID
+          </label>
+          <div style={{ 
+            flex: 1,
+            padding: '8px 12px',
+            background: isDarkMode ? '#0f172a' : '#f1f5f9',
+            borderRadius: '8px',
+            color: isDarkMode ? '#e2e8f0' : '#1e293b',
+            fontFamily: 'monospace'
+          }}>
+            {userData?.userId || session?.user?.userId}
+          </div>
         </div>
+
+        {/* Name */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <label style={{ 
+            minWidth: '120px', 
+            fontWeight: '500',
+            color: isDarkMode ? '#94a3b8' : '#64748b'
+          }}>
+            Full Name
+          </label>
+          {editing ? (
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                border: `1px solid ${isDarkMode ? '#475569' : '#cbd5e1'}`,
+                borderRadius: '8px',
+                background: isDarkMode ? '#0f172a' : 'white',
+                color: isDarkMode ? '#e2e8f0' : '#1e293b'
+              }}
+            />
+          ) : (
+            <div style={{ 
+              flex: 1,
+              padding: '8px 12px',
+              background: isDarkMode ? '#0f172a' : '#f1f5f9',
+              borderRadius: '8px',
+              color: isDarkMode ? '#e2e8f0' : '#1e293b'
+            }}>
+              {userData?.name || 'Not set'}
+            </div>
+          )}
+        </div>
+
+        {/* Email */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <label style={{ 
+            minWidth: '120px', 
+            fontWeight: '500',
+            color: isDarkMode ? '#94a3b8' : '#64748b'
+          }}>
+            Email
+          </label>
+          <div style={{ 
+            flex: 1,
+            padding: '8px 12px',
+            background: isDarkMode ? '#0f172a' : '#f1f5f9',
+            borderRadius: '8px',
+            color: isDarkMode ? '#e2e8f0' : '#1e293b'
+          }}>
+            {userData?.email}
+          </div>
+        </div>
+
+        {/* Phone */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <label style={{ 
+            minWidth: '120px', 
+            fontWeight: '500',
+            color: isDarkMode ? '#94a3b8' : '#64748b'
+          }}>
+            Phone
+          </label>
+          {editing ? (
+            <input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                border: `1px solid ${isDarkMode ? '#475569' : '#cbd5e1'}`,
+                borderRadius: '8px',
+                background: isDarkMode ? '#0f172a' : 'white',
+                color: isDarkMode ? '#e2e8f0' : '#1e293b'
+              }}
+            />
+          ) : (
+            <div style={{ 
+              flex: 1,
+              padding: '8px 12px',
+              background: isDarkMode ? '#0f172a' : '#f1f5f9',
+              borderRadius: '8px',
+              color: isDarkMode ? '#e2e8f0' : '#1e293b'
+            }}>
+              {userData?.phone || 'Not set'}
+            </div>
+          )}
+        </div>
+
+        {/* Role */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <label style={{ 
+            minWidth: '120px', 
+            fontWeight: '500',
+            color: isDarkMode ? '#94a3b8' : '#64748b'
+          }}>
+            Role
+          </label>
+          <div style={{ 
+            flex: 1,
+            padding: '8px 12px',
+            background: isDarkMode ? '#0f172a' : '#f1f5f9',
+            borderRadius: '8px',
+            color: isDarkMode ? '#e2e8f0' : '#1e293b',
+            textTransform: 'capitalize'
+          }}>
+            <span style={{
+              padding: '2px 12px',
+              borderRadius: '12px',
+              background: userData?.role === 'admin' ? '#dc2626' : 
+                        userData?.role === 'officer' ? '#2563eb' : '#64748b',
+              color: 'white',
+              fontSize: '0.75rem'
+            }}>
+              {userData?.role || 'user'}
+            </span>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        {editing && (
+          <div style={{ 
+            display: 'flex', 
+            gap: '12px',
+            marginTop: '16px',
+            paddingTop: '16px',
+            borderTop: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`
+          }}>
+            <button
+              onClick={handleUpdate}
+              style={{
+                padding: '8px 24px',
+                background: '#22c55e',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '500',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#16a34a'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#22c55e'}
+            >
+              💾 Save Changes
+            </button>
+            <button
+              onClick={() => {
+                setEditing(false)
+                setFormData({
+                  name: userData?.name || '',
+                  phone: userData?.phone || '',
+                })
+              }}
+              style={{
+                padding: '8px 24px',
+                background: '#64748b',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '500',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#475569'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#64748b'}
+            >
+              ❌ Cancel
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

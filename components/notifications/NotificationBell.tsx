@@ -1,328 +1,235 @@
-"use client"
-import React, { useState, useEffect, useRef } from 'react'
-import { useNotifications } from '@/hooks/useNotifications'
-import { useRealtime } from '@/hooks/useRealtime'
-import { getColor } from '@/lib/utils'
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { BellIcon } from '@heroicons/react/24/outline';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { formatDistanceToNow } from 'date-fns';
+
+interface Notification {
+  id: string;
+  action: string;
+  containerNumber?: string;
+  details?: string;
+  createdAt: string;
+  userId?: string;
+  user?: {
+    name?: string;
+    userId?: string;
+  };
+}
 
 export function NotificationBell() {
-  const {
-    notifications,
-    unreadCount,
-    permission,
-    isPushEnabled,
-    hasBeenAsked,
-    requestPermission,
-    toggleNotifications,
-    addNotification,
-    markAsRead,
-    markAllAsRead,
-    clearAll,
-  } = useNotifications()
-
-  const [isOpen, setIsOpen] = useState(false)
-  const [isDarkMode, setIsDarkMode] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
+  const { data: session } = useSession();
+  const [isOpen, setIsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const { unreadCount, markAsRead, fetchNotifications, permission } = useNotifications();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const dark = localStorage.getItem('oog_dark_mode') === 'true'
-    setIsDarkMode(dark)
-  }, [])
+    const loadNotifications = async () => {
+      if (isOpen) {
+        setIsLoading(true);
+        try {
+          const data = await fetchNotifications();
+          setNotifications(data);
+        } catch (error) {
+          console.error('Error loading notifications:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadNotifications();
+  }, [isOpen, fetchNotifications]);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current && 
-        !dropdownRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false)
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
       }
     }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  // Realtime listeners with user info
-  useRealtime('Container', (event) => {
-    if (event.action === 'INSERT') {
-      addNotification({
-        type: 'container',
-        title: '📦 New Container Added',
-        message: `${event.new.containerNumber} added at ${event.new.position}`,
-        data: event.new,
-        user: event.user,
-      })
-    } else if (event.action === 'DELETE') {
-      addNotification({
-        type: 'container',
-        title: '🗑️ Container Removed',
-        message: `${event.old.containerNumber} was removed from stack`,
-        data: event.old,
-        user: event.user,
-      })
+  const handleBellClick = () => {
+    setIsOpen(!isOpen);
+    if (!isOpen && unreadCount > 0) {
+      markAsRead();
     }
-  })
+  };
 
-  useRealtime('DevanningQueue', (event) => {
-    if (event.action === 'INSERT') {
-      addNotification({
-        type: 'devanning',
-        title: '🏗️ In Devanning',
-        message: `${event.new.containerNumber} moved to devanning`,
-        data: event.new,
-        user: event.user,
-      })
-    } else if (event.action === 'UPDATE' && event.old?.devanningStatus !== event.new?.devanningStatus) {
-      addNotification({
-        type: 'devanning',
-        title: '🔄 Status Updated',
-        message: `${event.new.containerNumber}: ${event.new.devanningStatus}`,
-        data: event.new,
-        user: event.user,
-      })
+  const getActionIcon = (action: string) => {
+    switch (action.toLowerCase()) {
+      case 'added':
+      case 'receival':
+        return '📦';
+      case 'devanning':
+      case 'started':
+        return '🔧';
+      case 'unstuffed':
+        return '📋';
+      case 'cleared':
+      case 'loadout':
+        return '✅';
+      case 'evacuated':
+        return '🚛';
+      case 'updated':
+        return '✏️';
+      case 'deleted':
+      case 'removed':
+        return '🗑️';
+      default:
+        return '📢';
     }
-  })
+  };
 
-  useRealtime('UnstuffedContainer', (event) => {
-    if (event.action === 'INSERT') {
-      addNotification({
-        type: 'unstuffed',
-        title: '✅ Container Unstuffed',
-        message: `${event.new.containerNumber} has been unstuffed`,
-        data: event.new,
-        user: event.user,
-      })
-    }
-  })
+  const getActionColor = (action: string) => {
+    const lower = action.toLowerCase();
+    if (lower.includes('add') || lower.includes('receival')) return 'text-green-600 dark:text-green-400';
+    if (lower.includes('devanning')) return 'text-blue-600 dark:text-blue-400';
+    if (lower.includes('unstuffed')) return 'text-purple-600 dark:text-purple-400';
+    if (lower.includes('clear') || lower.includes('loadout')) return 'text-green-600 dark:text-green-400';
+    if (lower.includes('evacuat')) return 'text-orange-600 dark:text-orange-400';
+    if (lower.includes('update')) return 'text-yellow-600 dark:text-yellow-400';
+    if (lower.includes('delete') || lower.includes('remove')) return 'text-red-600 dark:text-red-400';
+    return 'text-gray-600 dark:text-gray-400';
+  };
 
-  useRealtime('LoadoutRecord', (event) => {
-    if (event.action === 'INSERT') {
-      addNotification({
-        type: 'loadout',
-        title: '✅ Container Cleared',
-        message: `${event.new.containerNumber} cleared with truck ${event.new.truckPlate}`,
-        data: event.new,
-        user: event.user,
-      })
-    }
-  })
+  const getUserDisplay = (notification: Notification) => {
+    if (!notification.userId) return 'System';
+    if (notification.user?.name) return notification.user.name;
+    if (notification.user?.userId) return notification.user.userId;
+    return `User ${notification.userId.slice(0, 8)}`;
+  };
 
-  useRealtime('EvacuationRecord', (event) => {
-    if (event.action === 'INSERT') {
-      addNotification({
-        type: 'evacuation',
-        title: '🚚 Container Evacuated',
-        message: `${event.new.containerNumber} evacuated`,
-        data: event.new,
-        user: event.user,
-      })
-    }
-  })
-
-  const toggleDropdown = () => {
-    setIsOpen(!isOpen)
-  }
-
-  const bgColor = getColor(isDarkMode, 'white', '#1e293b')
-  const textColor = getColor(isDarkMode, '#1e293b', '#e2e8f0')
-  const borderColor = getColor(isDarkMode, '#e2e8f0', '#334155')
-  const hoverBg = getColor(isDarkMode, '#f1f5f9', '#2d3a5e')
+  const getNotificationLink = (notification: Notification) => {
+    // Link to relevant page based on action
+    const action = notification.action.toLowerCase();
+    if (action.includes('devanning')) return '/dashboard/devanning';
+    if (action.includes('unstuffed')) return '/dashboard/unstuffed';
+    if (action.includes('clear') || action.includes('loadout')) return '/dashboard/unstuffed';
+    if (action.includes('evacuat')) return '/dashboard/evacuation';
+    if (action.includes('add') || action.includes('receival')) return '/dashboard/receivals';
+    if (action.includes('update') || action.includes('delete')) return '/dashboard/tallies';
+    return '/dashboard';
+  };
 
   return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
+    <div className="relative" ref={dropdownRef}>
       <button
-        ref={buttonRef}
-        onClick={toggleDropdown}
-        style={{
-          background: 'rgba(255,255,255,0.15)',
-          border: 'none',
-          borderRadius: '50%',
-          width: '36px',
-          height: '36px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-          color: 'white',
-          fontSize: '1.2rem'
-        }}
+        onClick={handleBellClick}
+        className="relative p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        aria-label="Notifications"
       >
-        🔔
+        <BellIcon className="h-5 w-5" />
         {unreadCount > 0 && (
-          <span
-            style={{
-              position: 'absolute',
-              top: '-4px',
-              right: '-4px',
-              background: '#dc2626',
-              color: 'white',
-              borderRadius: '50%',
-              padding: '2px 6px',
-              fontSize: '0.6rem',
-              fontWeight: 'bold',
-              minWidth: '18px',
-              textAlign: 'center'
-            }}
-          >
-            {unreadCount}
-          </span>
+          <span className="absolute top-1 right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse"></span>
         )}
       </button>
 
       {isOpen && (
-        <div
-          ref={dropdownRef}
-          style={{
-            position: 'fixed',
-            top: '60px',
-            right: '16px',
-            width: window.innerWidth < 480 ? 'calc(100vw - 32px)' : '380px',
-            maxWidth: '380px',
-            maxHeight: window.innerHeight < 600 ? 'calc(100vh - 100px)' : '400px',
-            background: bgColor,
-            borderRadius: '12px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-            zIndex: 1000,
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-            border: `1px solid ${borderColor}`,
-          }}
-        >
-          <div
-            style={{
-              padding: '12px 16px',
-              borderBottom: `1px solid ${borderColor}`,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '4px',
-              background: getColor(isDarkMode, '#f8fafc', '#0f172a')
-            }}
-          >
-            <span style={{ fontWeight: '600', fontSize: '0.9rem', color: textColor }}>
-              📢 Notifications
-              {isPushEnabled && (
-                <span style={{ fontSize: '0.55rem', color: '#10b981', marginLeft: '8px' }}>
-                  ● Live
-                </span>
-              )}
-            </span>
-            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-              <button
-                onClick={toggleNotifications}
-                style={{
-                  background: isPushEnabled ? '#10b981' : '#64748b',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  padding: '2px 8px',
-                  fontSize: '0.55rem',
-                  cursor: 'pointer'
-                }}
+        <div className="absolute right-0 mt-2 w-96 max-h-[80vh] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden z-50">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Notifications</h3>
+              <Link
+                href="/dashboard/profile"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                onClick={() => setIsOpen(false)}
               >
-                {isPushEnabled ? '🔔 On' : '🔕 Off'}
-              </button>
-              {notifications.length > 0 && (
-                <>
-                  <button
-                    onClick={markAllAsRead}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      fontSize: '0.6rem',
-                      color: getColor(isDarkMode, '#64748b', '#94a3b8'),
-                      cursor: 'pointer',
-                      padding: '2px 6px'
-                    }}
-                  >
-                    ✓ All
-                  </button>
-                  <button
-                    onClick={clearAll}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      fontSize: '0.6rem',
-                      color: '#dc2626',
-                      cursor: 'pointer',
-                      padding: '2px 6px'
-                    }}
-                  >
-                    ✕ Clear
-                  </button>
-                </>
-              )}
+                View Profile
+              </Link>
             </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}
+            </p>
           </div>
 
-          <div style={{ overflowY: 'auto', flex: 1 }}>
-            {notifications.length === 0 ? (
-              <div
-                style={{
-                  padding: '40px 20px',
-                  textAlign: 'center',
-                  color: getColor(isDarkMode, '#94a3b8', '#64748b'),
-                  fontSize: '0.85rem'
-                }}
-              >
-                🔕 No notifications
+          <div className="overflow-y-auto max-h-[calc(80vh-8rem)]">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <p className="text-sm">No notifications</p>
+                <p className="text-xs mt-1">New activity will appear here</p>
               </div>
             ) : (
-              notifications.slice(0, 50).map((notification) => (
+              notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  onClick={() => markAsRead(notification.id)}
-                  style={{
-                    padding: '10px 14px',
-                    borderBottom: `1px solid ${borderColor}`,
-                    cursor: 'pointer',
-                    background: notification.read ? 'transparent' : getColor(isDarkMode, '#f0fdf4', '#0f172a'),
-                    transition: 'background 0.2s',
-                    color: textColor,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = hoverBg
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = notification.read ? 'transparent' : getColor(isDarkMode, '#f0fdf4', '#0f172a')
-                  }}
+                  className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: '600' }}>
-                      {notification.title}
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <span className="text-lg">{getActionIcon(notification.action)}</span>
                     </div>
-                    {notification.user && (
-                      <span style={{ 
-                        fontSize: '0.55rem', 
-                        color: getColor(isDarkMode, '#64748b', '#94a3b8'),
-                        background: getColor(isDarkMode, '#f1f5f9', '#1e293b'),
-                        padding: '1px 8px',
-                        borderRadius: '12px',
-                        marginLeft: '4px',
-                        flexShrink: 0
-                      }}>
-                        👤 {notification.user.name || notification.user.userId}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '0.7rem', color: getColor(isDarkMode, '#475569', '#94a3b8') }}>
-                    {notification.message}
-                  </div>
-                  <div style={{ fontSize: '0.55rem', color: getColor(isDarkMode, '#94a3b8', '#64748b'), marginTop: '4px' }}>
-                    {notification.timestamp.toLocaleTimeString()}
+                    <div className="flex-1 min-w-0">
+                      <Link
+                        href={getNotificationLink(notification)}
+                        onClick={() => setIsOpen(false)}
+                        className="block"
+                      >
+                        <p className="text-sm text-gray-900 dark:text-white">
+                          <span className={`font-medium ${getActionColor(notification.action)}`}>
+                            {notification.action}
+                          </span>
+                          {notification.containerNumber && (
+                            <span className="font-mono ml-1 text-gray-700 dark:text-gray-300">
+                              {notification.containerNumber}
+                            </span>
+                          )}
+                        </p>
+                        {notification.details && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                            {notification.details}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-gray-400 dark:text-gray-500">
+                            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                          </span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">•</span>
+                          <Link
+                            href="/dashboard/profile"
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {getUserDisplay(notification)}
+                          </Link>
+                        </div>
+                      </Link>
+                    </div>
                   </div>
                 </div>
               ))
             )}
           </div>
+
+          {notifications.length > 0 && (
+            <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-500 dark:text-gray-400">
+                  {notifications.length} notifications
+                </span>
+                <Link
+                  href="/dashboard/profile"
+                  className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Go to Profile →
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
-  )
+  );
 }

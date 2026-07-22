@@ -11,6 +11,15 @@ interface TabWithCountProps {
 }
 
 export function TabWithCount({ icon, label, count, isActive, onClick, isDarkMode }: TabWithCountProps) {
+  const [isMobile, setIsMobile] = React.useState(false)
+
+  React.useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 480)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   return (
     <button
       onClick={onClick}
@@ -20,7 +29,7 @@ export function TabWithCount({ icon, label, count, isActive, onClick, isDarkMode
         background: 'transparent',
         border: 'none',
         fontWeight: '600',
-        fontSize: window.innerWidth < 480 ? '0.5rem' : '0.6rem',
+        fontSize: isMobile ? '0.5rem' : '0.6rem',
         color: isActive ? (isDarkMode ? '#8b5cf6' : '#1e6f3f') : (isDarkMode ? '#94a3b8' : '#5b6e8c'),
         cursor: 'pointer',
         display: 'flex',
@@ -45,13 +54,13 @@ export function TabWithCount({ icon, label, count, isActive, onClick, isDarkMode
         justifyContent: 'center'
       }}>
         <span style={{ 
-          fontSize: window.innerWidth < 480 ? '1rem' : '1.1rem',
+          fontSize: isMobile ? '1rem' : '1.1rem',
           lineHeight: 1
         }}>{icon}</span>
         <span style={{ 
-          fontSize: window.innerWidth < 480 ? '0.45rem' : '0.55rem',
+          fontSize: isMobile ? '0.45rem' : '0.55rem',
           marginTop: '0px',
-          display: window.innerWidth < 480 ? 'none' : 'inline'
+          display: isMobile ? 'none' : 'inline'
         }}>{label}</span>
         {/* Red dot badge - shows when count > 0 */}
         {count > 0 && (
