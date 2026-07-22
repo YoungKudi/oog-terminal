@@ -182,42 +182,28 @@ export default function DashboardPage() {
         </div>
         <div className="header-actions">
           <NotificationBell />
-          {/* Clickable Worker ID - Navigates to Profile */}
           <button 
-            onClick={goToProfile}
+            onClick={() => window.location.href = "/dashboard/profile"}
             style={{
-              background: 'rgba(255,255,255,0.15)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '20px',
-              padding: '4px 12px',
-              color: 'white',
-              fontSize: '0.75rem',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
+              background: "rgba(255,255,255,0.15)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              borderRadius: "20px",
+              padding: "4px 12px",
+              color: "white",
+              fontSize: "0.75rem",
+              cursor: "pointer",
+              transition: "all 0.2s",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px"
             }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+            onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.25)"}
+            onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}
             title="View Profile"
           >
             👤 {session.user?.userId}
           </button>
-          <button 
-            className="btn" 
-            onClick={toggleDarkMode} 
-            style={{
-              background:'rgba(255,255,255,0.2)',
-              padding:'2px 10px',
-              borderRadius:'8px',
-              border:'none',
-              color:'white',
-              cursor:'pointer'
-            }}
-          >
-            {isDarkMode ? '☀️' : '🌙'}
-          </button>
+          <button className="btn" onClick={toggleDarkMode} style={{background:"rgba(255,255,255,0.2)",padding:"2px 10px",border:"none",borderRadius:"8px",color:"white",cursor:"pointer"}}>{isDarkMode ? "☀️" : "🌙"}</button>
         </div>
       </div>
 
