@@ -6,7 +6,6 @@ export function getColor(isDark: boolean, lightColor: string, darkColor: string)
 // Parse cargo number from container number
 export function parseCargoNumber(containerNumber: string): string {
   if (!containerNumber) return ''
-  // Extract numbers from container number
   const matches = containerNumber.match(/\d+/)
   return matches ? matches[0] : ''
 }
@@ -14,7 +13,6 @@ export function parseCargoNumber(containerNumber: string): string {
 // Validate container number format
 export function validateContainerNumber(containerNumber: string): boolean {
   if (!containerNumber) return false
-  // Standard container number format: 4 letters + 7 numbers
   const pattern = /^[A-Z]{4}\d{7}$/
   return pattern.test(containerNumber.toUpperCase())
 }
@@ -126,4 +124,23 @@ export function getInitials(name: string): string {
     .join('')
     .toUpperCase()
     .substring(0, 2)
+}
+
+// Get tab counts
+export function getTabCounts(containers: any[], importQueue: any[], devanningQueue: any[], unstuffedContainers: any[], evacuationRecords: any[]): {
+  queue: number
+  receivals: number
+  tallies: number
+  devanning: number
+  unstuffed: number
+  evacuation: number
+} {
+  return {
+    queue: importQueue?.length || 0,
+    receivals: containers?.filter(c => c.status === 'receivals').length || 0,
+    tallies: containers?.filter(c => c.status === 'tallies').length || 0,
+    devanning: devanningQueue?.length || 0,
+    unstuffed: unstuffedContainers?.length || 0,
+    evacuation: evacuationRecords?.length || 0,
+  }
 }
