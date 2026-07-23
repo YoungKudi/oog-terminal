@@ -1,334 +1,96 @@
 "use client"
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useDarkMode } from '@/hooks/useDarkMode'
-import { useToast } from '@/hooks/useToast'
-import { supabase } from '@/lib/db'
 
 export default function ProfilePage() {
-  const { data: session, status } = useSession()
+  const { data: session } = useSession()
   const router = useRouter()
-  const { isDarkMode } = useDarkMode()
-  const { showToast } = useToast()
-  const [loading, setLoading] = useState(true)
-  const [editing, setEditing] = useState(false)
-  const [userData, setUserData] = useState<any>(null)
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-  })
+  const [name, setName] = useState(session?.user?.name || '')
+  const [phone, setPhone] = useState(session?.user?.phone || '')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-    }
-    if (session?.user?.id) {
-      fetchUserProfile()
-    }
-  }, [session, status])
+  if (!session) return null
 
-  const fetchUserProfile = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('User')
-        .select('*')
-        .eq('id', session?.user?.id)
-        .single()
-
-      if (error) throw error
-      
-      setUserData(data)
-      setFormData({
-        name: data.name || '',
-        phone: data.phone || '',
-      })
-    } catch (error) {
-      console.error('Error fetching profile:', error)
-      showToast('Failed to load profile', 'error')
-    } finally {
-      setLoading(false)
-    }
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(''); setMessage(''); setLoading(true)
+    const updates: any = {}
+    if (name !== session.user.name) updates.name = name
+    if (phone !== session.user.phone) updates.phone = phone
+    if (Object.keys(updates).length === 0) { setError('No changes'); setLoading(false); return }
+    const res = await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updates) })
+    if (res.ok) { setMessage('✅ Profile updated!') } else { const data = await res.json(); setError(data.error || 'Update failed') }
+    setLoading(false)
   }
 
-  const handleUpdate = async () => {
-    try {
-      const { error } = await supabase
-        .from('User')
-        .update({
-          name: formData.name,
-          phone: formData.phone,
-          updatedAt: new Date().toISOString(),
-        })
-        .eq('id', session?.user?.id)
-
-      if (error) throw error
-
-      setUserData(prev => ({ ...prev, ...formData }))
-      setEditing(false)
-      showToast('Profile updated successfully!', 'success')
-    } catch (error) {
-      console.error('Error updating profile:', error)
-      showToast('Failed to update profile', 'error')
-    }
-  }
-
-  if (loading || status === 'loading') {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <div style={{ 
-          width: '48px', 
-          height: '48px', 
-          border: '4px solid #e2e8f0', 
-          borderTop: '4px solid #1e6f3f', 
-          borderRadius: '50%', 
-          animation: 'spin 1s linear infinite' 
-        }} />
-        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-      </div>
-    )
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (newPassword !== confirmPassword) { setError('Passwords do not match'); return }
+    if (newPassword.length < 6) { setError('Password must be at least 6 characters'); return }
+    const res = await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword, newPassword }) })
+    if (res.ok) { setMessage('✅ Password changed! Please login again.'); setTimeout(() => router.push('/api/auth/signout?callbackUrl=/login'), 1500) } 
+    else { const data = await res.json(); setError(data.error || 'Password change failed') }
   }
 
   return (
-    <div style={{ 
-      maxWidth: '800px', 
-      margin: '0 auto',
-      padding: '20px',
-      background: isDarkMode ? '#1e293b' : 'white',
-      borderRadius: '12px',
-      boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-    }}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '24px',
-        borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
-        paddingBottom: '16px'
-      }}>
-        <h1 style={{ 
-          fontSize: '1.5rem', 
-          fontWeight: 'bold',
-          color: isDarkMode ? '#e2e8f0' : '#1e293b'
-        }}>
-          👤 User Profile
-        </h1>
-        {!editing && (
-          <button
-            onClick={() => setEditing(true)}
-            style={{
-              padding: '8px 16px',
-              background: '#1e6f3f',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: '500',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#15803d'}
-            onMouseLeave={(e) => e.currentTarget.style.background = '#1e6f3f'}
-          >
-            ✏️ Edit Profile
-          </button>
-        )}
+    <div style={{padding:'20px',maxWidth:'500px',margin:'0 auto'}}>
+      <div style={{display:'flex',alignItems:'center',gap:'12px',marginBottom:'20px'}}>
+        <button onClick={() => router.push('/dashboard')} style={{background:'none',border:'none',cursor:'pointer',fontSize:'1.2rem'}}>←</button>
+        <h2 style={{fontSize:'1.2rem'}}>👤 My Profile</h2>
       </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Worker ID */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <label style={{ 
-            minWidth: '120px', 
-            fontWeight: '500',
-            color: isDarkMode ? '#94a3b8' : '#64748b'
-          }}>
-            Worker ID
-          </label>
-          <div style={{ 
-            flex: 1,
-            padding: '8px 12px',
-            background: isDarkMode ? '#0f172a' : '#f1f5f9',
-            borderRadius: '8px',
-            color: isDarkMode ? '#e2e8f0' : '#1e293b',
-            fontFamily: 'monospace'
-          }}>
-            {userData?.userId || session?.user?.userId}
-          </div>
-        </div>
-
-        {/* Name */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <label style={{ 
-            minWidth: '120px', 
-            fontWeight: '500',
-            color: isDarkMode ? '#94a3b8' : '#64748b'
-          }}>
-            Full Name
-          </label>
-          {editing ? (
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              style={{
-                flex: 1,
-                padding: '8px 12px',
-                border: `1px solid ${isDarkMode ? '#475569' : '#cbd5e1'}`,
-                borderRadius: '8px',
-                background: isDarkMode ? '#0f172a' : 'white',
-                color: isDarkMode ? '#e2e8f0' : '#1e293b'
-              }}
-            />
-          ) : (
-            <div style={{ 
-              flex: 1,
-              padding: '8px 12px',
-              background: isDarkMode ? '#0f172a' : '#f1f5f9',
-              borderRadius: '8px',
-              color: isDarkMode ? '#e2e8f0' : '#1e293b'
-            }}>
-              {userData?.name || 'Not set'}
+      <div className="card">
+        <div className="card-header">Profile Information</div>
+        <div className="card-body">
+          <div style={{marginBottom:'12px'}}>
+            <label style={{fontSize:'0.7rem',color:'#64748b'}}>Worker ID</label>
+            <div style={{padding:'8px 12px',background:'#f1f5f9',borderRadius:'8px',fontSize:'0.9rem',fontWeight:'600'}}>
+              {session.user?.userId}
             </div>
-          )}
-        </div>
-
-        {/* Email */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <label style={{ 
-            minWidth: '120px', 
-            fontWeight: '500',
-            color: isDarkMode ? '#94a3b8' : '#64748b'
-          }}>
-            Email
-          </label>
-          <div style={{ 
-            flex: 1,
-            padding: '8px 12px',
-            background: isDarkMode ? '#0f172a' : '#f1f5f9',
-            borderRadius: '8px',
-            color: isDarkMode ? '#e2e8f0' : '#1e293b'
-          }}>
-            {userData?.email}
           </div>
-        </div>
-
-        {/* Phone */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <label style={{ 
-            minWidth: '120px', 
-            fontWeight: '500',
-            color: isDarkMode ? '#94a3b8' : '#64748b'
-          }}>
-            Phone
-          </label>
-          {editing ? (
-            <input
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              style={{
-                flex: 1,
-                padding: '8px 12px',
-                border: `1px solid ${isDarkMode ? '#475569' : '#cbd5e1'}`,
-                borderRadius: '8px',
-                background: isDarkMode ? '#0f172a' : 'white',
-                color: isDarkMode ? '#e2e8f0' : '#1e293b'
-              }}
-            />
-          ) : (
-            <div style={{ 
-              flex: 1,
-              padding: '8px 12px',
-              background: isDarkMode ? '#0f172a' : '#f1f5f9',
-              borderRadius: '8px',
-              color: isDarkMode ? '#e2e8f0' : '#1e293b'
-            }}>
-              {userData?.phone || 'Not set'}
-            </div>
-          )}
-        </div>
-
-        {/* Role */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <label style={{ 
-            minWidth: '120px', 
-            fontWeight: '500',
-            color: isDarkMode ? '#94a3b8' : '#64748b'
-          }}>
-            Role
-          </label>
-          <div style={{ 
-            flex: 1,
-            padding: '8px 12px',
-            background: isDarkMode ? '#0f172a' : '#f1f5f9',
-            borderRadius: '8px',
-            color: isDarkMode ? '#e2e8f0' : '#1e293b',
-            textTransform: 'capitalize'
-          }}>
-            <span style={{
-              padding: '2px 12px',
-              borderRadius: '12px',
-              background: userData?.role === 'admin' ? '#dc2626' : 
-                        userData?.role === 'officer' ? '#2563eb' : '#64748b',
-              color: 'white',
-              fontSize: '0.75rem'
-            }}>
-              {userData?.role || 'user'}
-            </span>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        {editing && (
-          <div style={{ 
-            display: 'flex', 
-            gap: '12px',
-            marginTop: '16px',
-            paddingTop: '16px',
-            borderTop: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`
-          }}>
-            <button
-              onClick={handleUpdate}
-              style={{
-                padding: '8px 24px',
-                background: '#22c55e',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: '500',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#16a34a'}
-              onMouseLeave={(e) => e.currentTarget.style.background = '#22c55e'}
-            >
-              💾 Save Changes
+          <form onSubmit={handleUpdate}>
+            <div className="form-group"><label>Full Name</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} required /></div>
+            <div className="form-group"><label>Email</label><input type="email" value={session.user?.email || ''} disabled style={{background:'#f1f5f9'}} /></div>
+            <div className="form-group"><label>Phone Number</label><input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required /></div>
+            {error && <p style={{color:'#dc2626',fontSize:'0.85rem',margin:'8px 0'}}>{error}</p>}
+            {message && <p style={{color:'#10b981',fontSize:'0.85rem',margin:'8px 0'}}>{message}</p>}
+            <button type="submit" disabled={loading} className="btn btn-primary" style={{width:'100%'}}>
+              {loading ? 'Saving...' : '💾 Save Changes'}
             </button>
-            <button
-              onClick={() => {
-                setEditing(false)
-                setFormData({
-                  name: userData?.name || '',
-                  phone: userData?.phone || '',
-                })
-              }}
-              style={{
-                padding: '8px 24px',
-                background: '#64748b',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: '500',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#475569'}
-              onMouseLeave={(e) => e.currentTarget.style.background = '#64748b'}
-            >
-              ❌ Cancel
+          </form>
+          <div style={{marginTop:'12px',paddingTop:'12px',borderTop:'1px solid #e2e8f0'}}>
+            <button className="btn btn-outline" style={{width:'100%'}} onClick={() => setShowPasswordModal(true)}>
+              🔑 Change Password
             </button>
           </div>
-        )}
+        </div>
+      </div>
+      {showPasswordModal && (
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.5)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:'20px'}}>
+          <div style={{background:'white',borderRadius:'24px',padding:'24px',maxWidth:'440px',width:'100%'}}>
+            <h3 style={{marginBottom:'16px'}}>🔑 Change Password</h3>
+            <form onSubmit={handlePasswordChange}>
+              <div className="form-group"><label>Current Password</label><input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required /></div>
+              <div className="form-group"><label>New Password</label><input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required /></div>
+              <div className="form-group"><label>Confirm New Password</label><input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required /></div>
+              {error && <p style={{color:'#dc2626',fontSize:'0.85rem',margin:'8px 0'}}>{error}</p>}
+              {message && <p style={{color:'#10b981',fontSize:'0.85rem',margin:'8px 0'}}>{message}</p>}
+              <div style={{display:'flex',gap:'8px',marginTop:'12px'}}>
+                <button type="submit" className="btn btn-primary" style={{flex:1}}>✅ Change Password</button>
+                <button type="button" className="btn btn-outline" onClick={() => { setShowPasswordModal(false); setError(''); setMessage('') }}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      <div style={{textAlign:'center',fontSize:'0.65rem',color:'#94a3b8',padding:'12px 0',borderTop:'1px solid #e2e8f0',marginTop:'16px'}}>
+        Developed by <strong>O'Bour Dev</strong> © 2026
       </div>
     </div>
   )
