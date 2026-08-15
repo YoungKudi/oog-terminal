@@ -2,8 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: false,
-  experimental: { 
-    forceSwcTransforms: false 
+  experimental: {
+    forceSwcTransforms: false,
+    serverActions: true,
   },
   webpack: (config) => {
     config.cache = false
@@ -20,6 +21,15 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    domains: ['gsskpaxijbnlpuqcadxr.supabase.co'],
+  },
+  env: {
+    NEXTAUTH_URL: process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : process.env.NEXTAUTH_URL || 'http://localhost:3000',
+    NEXT_PUBLIC_API_URL: process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}/api` 
+      : process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
   },
 }
 
