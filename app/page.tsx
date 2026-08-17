@@ -6,3 +6,4 @@ export default async function Home() {
   const session = await getServerSession(authOptions)
   return session ? redirect('/dashboard') : redirect('/login')
 }
+// Trigger deployment Mon Aug 17 22:37:41 GMT 2026
