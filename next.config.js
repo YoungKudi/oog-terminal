@@ -1,9 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: false,
+  swcMinify: true,  // ✅ Enable SWC
   experimental: {
-    forceSwcTransforms: false,
+    forceSwcTransforms: true,  // ✅ Force SWC over Babel
     serverActions: true,
   },
   webpack: (config) => {
