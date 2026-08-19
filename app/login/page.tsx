@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 export default function LoginPage() {
-  const [userId, setUserId] = useState('')
+  const [workerId, setWorkerId] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -18,7 +18,7 @@ export default function LoginPage() {
 
     try {
       const result = await signIn('credentials', {
-        userId,
+        workerId: workerId.toUpperCase().trim(),
         password,
         redirect: false,
       })
@@ -40,53 +40,53 @@ export default function LoginPage() {
       <div style={{ background: 'white', padding: '40px', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px' }}>
         <h1 style={{ textAlign: 'center', marginBottom: '24px' }}>🚢 OOG Terminal</h1>
         <h2 style={{ textAlign: 'center', marginBottom: '24px', fontSize: '1.2rem', color: '#64748b' }}>Login</h2>
-        
+
         {error && <div style={{ background: '#fee2e2', color: '#dc2626', padding: '10px', borderRadius: '8px', marginBottom: '16px' }}>{error}</div>}
-        
+
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>Worker ID</label>
-            <input 
-              type="text" 
-              value={userId} 
-              onChange={(e) => setUserId(e.target.value)} 
+            <input
+              type="text"
+              value={workerId}
+              onChange={(e) => setWorkerId(e.target.value)}
               placeholder="Enter your Worker ID"
-              style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px' }} 
-              required 
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px' }}
+              required
             />
           </div>
-          
+
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>Password</label>
-            <input 
-              type="password" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
-              style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px' }} 
-              required 
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px' }}
+              required
             />
           </div>
-          
-          <button 
-            type="submit" 
+
+          <button
+            type="submit"
             disabled={loading}
-            style={{ 
-              width: '100%', 
-              padding: '12px', 
-              background: loading ? '#6c757d' : '#1e6f3f', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '8px', 
-              fontSize: '1rem', 
-              fontWeight: '600', 
-              cursor: loading ? 'not-allowed' : 'pointer' 
+            style={{
+              width: '100%',
+              padding: '12px',
+              background: loading ? '#6c757d' : '#1e6f3f',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '1rem',
+              fontWeight: '600',
+              cursor: loading ? 'not-allowed' : 'pointer'
             }}
           >
             {loading ? 'Loading...' : 'Login'}
           </button>
         </form>
-        
+
         <div style={{ marginTop: '16px', textAlign: 'center' }}>
           <Link href="/auth/reset-password" style={{ color: '#64748b', fontSize: '0.85rem' }}>Forgot Password?</Link>
         </div>
