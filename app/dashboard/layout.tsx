@@ -13,7 +13,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const router = useRouter()
   const pathname = usePathname()
   const { darkMode, toggleDarkMode } = useDarkMode()
@@ -23,8 +23,10 @@ export default function DashboardLayout({
   useEffect(() => {
     if (session?.user?.id) {
       fetchUser()
+    } else if (status === 'unauthenticated') {
+      router.push('/login')
     }
-  }, [session])
+  }, [session, status])
 
   const fetchUser = async () => {
     try {
@@ -47,9 +49,18 @@ export default function DashboardLayout({
     signOut({ callbackUrl: '/login' })
   }
 
-  // Redirect to login if not authenticated
-  if (!session && !loading) {
-    router.push('/login')
+  if (status === 'loading' || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!session) {
     return null
   }
 
