@@ -1,91 +1,61 @@
 "use client"
-import React, { useState, useEffect, useRef } from 'react'
-import { useSession, signOut } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { useData } from '@/hooks/useData'
-import { useToast } from '@/hooks/useToast'
-import { useDarkMode } from '@/hooks/useDarkMode'
-import { useTabCounts } from '@/hooks/useTabCounts'
-import { getColor } from '@/lib/utils'
-import { TabWithCount } from '@/components/common/TabWithCount'
-import { NotificationBell } from '@/components/notifications/NotificationBell'
-import { StatsGrid } from '@/components/common/StatsGrid'
-import { DailyTally } from '@/components/common/DailyTally'
-import { FloatingButtons } from '@/components/common/FloatingButtons'
-
-// Import tab components
-import QueueTab from './components/QueueTab'
-import ReceivalsTab from './components/ReceivalsTab'
-import TalliesTab from './components/TalliesTab'
-import DevanningTab from './components/DevanningTab'
-import UnstuffedTab from './components/UnstuffedTab'
-import EvacuationTab from './components/EvacuationTab'
-import LocationsTab from './components/LocationsTab'
-import ContactsTab from './components/ContactsTab'
-import BackupTab from './components/BackupTab'
-import ReportsTab from './components/ReportsTab'
+import React, { useState, useEffect } from 'react'
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-  const { isDarkMode, toggleDarkMode } = useDarkMode()
-  const tabCounts = useTabCounts()
-  const [activeTab, setActiveTab] = useState('queue')
+  const [data, setData] = useState({ containers: 0, queue: 0, devanning: 0 })
+  const [error, setError] = useState<string | null>(null)
 
-  if (status === 'loading') {
-    return <div>Loading...</div>
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [containersRes, queueRes] = await Promise.all([
+          fetch('/api/containers'),
+          fetch('/api/import-queue')
+        ])
+        
+        const containers = await containersRes.json()
+        const queue = await queueRes.json()
+        
+        setData({
+          containers: containers?.length || 0,
+          queue: queue?.length || 0,
+          devanning: 0
+        })
+      } catch (err) {
+        setError('Failed to load dashboard data')
+        console.error('Dashboard error:', err)
+      }
+    }
+    
+    fetchData()
+  }, [])
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+        <p className="text-red-500">Error: {error}</p>
+      </div>
+    )
   }
-
-  if (!session) {
-    router.push('/login')
-    return null
-  }
-
-  const tabs = [
-    { id: 'queue', icon: '📥', label: 'Queue', count: tabCounts.queue },
-    { id: 'receivals', icon: '📦', label: 'Receivals', count: tabCounts.receivals },
-    { id: 'tallies', icon: '📋', label: 'Tallies', count: tabCounts.tallies },
-    { id: 'devanning', icon: '🔧', label: 'Devanning', count: tabCounts.devanning },
-    { id: 'unstuffed', icon: '✅', label: 'Unstuffed', count: tabCounts.unstuffed }
-  ]
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: '#1e293b', color: 'white' }}>
-        <h1>🚢 OOG Terminal</h1>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <NotificationBell />
-          <span>{session.user?.userId}</span>
-          <button onClick={toggleDarkMode}>{isDarkMode ? '☀️' : '🌙'}</button>
-          <button onClick={() => signOut()}>Logout</button>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+      <p className="text-gray-600 dark:text-gray-300">Welcome to OOG Terminal</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
+          <h3 className="font-semibold">Containers</h3>
+          <p className="text-2xl font-bold">{data.containers}</p>
         </div>
-      </div>
-      
-      <div style={{ display: 'flex', gap: '4px', padding: '8px', background: '#f1f5f9', overflowX: 'auto' }}>
-        {tabs.map(t => (
-          <TabWithCount
-            key={t.id}
-            icon={t.icon}
-            label={t.label}
-            count={t.count}
-            isActive={activeTab === t.id}
-            onClick={() => setActiveTab(t.id)}
-            isDarkMode={isDarkMode}
-          />
-        ))}
-      </div>
-
-      <div style={{ padding: '16px' }}>
-        {activeTab === 'queue' && <QueueTab importQueue={[]} isDarkMode={isDarkMode} showToast={() => {}} fetchAllData={() => {}} />}
-        {activeTab === 'receivals' && <ReceivalsTab containers={[]} isDarkMode={isDarkMode} showToast={() => {}} setSelectedContainer={() => {}} setShowContainerDetailModal={() => {}} fetchAllData={() => {}} />}
-        {activeTab === 'tallies' && <TalliesTab containers={[]} locations={[]} allPositions={[]} isDarkMode={isDarkMode} showToast={() => {}} fetchAllData={() => {}} setSelectedContainer={() => {}} setShowContainerDetailModal={() => {}} setShowEditModal={() => {}} setShowRepositionModal={() => {}} />}
-        {activeTab === 'devanning' && <DevanningTab devanningQueue={[]} isDarkMode={isDarkMode} showToast={() => {}} fetchAllData={() => {}} setShowWizard={() => {}} setWizardContainer={() => {}} setSelectedContainer={() => {}} setShowContainerDetailModal={() => {}} />}
-        {activeTab === 'unstuffed' && <UnstuffedTab unstuffedContainers={[]} isDarkMode={isDarkMode} showToast={() => {}} fetchAllData={() => {}} selectedEvacContainer={null} setSelectedEvacContainer={() => {}} evacuationSelectionMode={false} setEvacuationSelectionMode={() => {}} setSelectedContainer={() => {}} setShowContainerDetailModal={() => {}} setShowLoadoutModal={() => {}} setShowScannerModal={() => {}} />}
-        {activeTab === 'evacuation' && <EvacuationTab evacuationRecords={[]} isDarkMode={isDarkMode} showToast={() => {}} fetchAllData={() => {}} />}
-        {activeTab === 'locations' && <LocationsTab locations={[]} containers={[]} isDarkMode={isDarkMode} showToast={() => {}} setLocations={() => {}} setShowAddLocationModal={() => {}} />}
-        {activeTab === 'contacts' && <ContactsTab shiftData={{}} setShiftData={() => {}} isDarkMode={isDarkMode} session={session} showToast={() => {}} />}
-        {activeTab === 'backup' && <BackupTab containers={[]} importQueue={[]} devanningQueue={[]} unstuffedContainers={[]} evacuationRecords={[]} loadingRecords={[]} scannedDocuments={{}} locations={[]} shiftData={{}} isDarkMode={isDarkMode} showToast={() => {}} fetchAllData={() => {}} />}
-        {activeTab === 'reports' && <ReportsTab loadingRecords={[]} isDarkMode={isDarkMode} showToast={() => {}} />}
+        <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
+          <h3 className="font-semibold">Queue</h3>
+          <p className="text-2xl font-bold">{data.queue}</p>
+        </div>
+        <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
+          <h3 className="font-semibold">Devanning</h3>
+          <p className="text-2xl font-bold">{data.devanning}</p>
+        </div>
       </div>
     </div>
   )
