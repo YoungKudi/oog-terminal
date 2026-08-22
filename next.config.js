@@ -1,10 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,  // ✅ Enable SWC
-  experimental: {
-    forceSwcTransforms: true,  // ✅ Force SWC
-    serverActions: true,
+  swcMinify: false,
+  experimental: { 
+    forceSwcTransforms: false 
   },
   webpack: (config) => {
     config.cache = false
@@ -21,15 +20,6 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
-    domains: ['gsskpaxijbnlpuqcadxr.supabase.co'],
-  },
-  env: {
-    NEXTAUTH_URL: process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : process.env.NEXTAUTH_URL || 'http://localhost:3000',
-    NEXT_PUBLIC_API_URL: process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}/api` 
-      : process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
   },
 }
 
