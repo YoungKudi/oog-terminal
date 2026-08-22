@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/db'
 
 export function useTabCounts() {
@@ -10,63 +10,72 @@ export function useTabCounts() {
     unstuffed: 0,
     evacuation: 0,
   })
+  const [previousCounts, setPreviousCounts] = useState(counts)
+
+  const fetchCounts = async () => {
+    try {
+      const [
+        { count: queueCount },
+        { count: receivalsCount },
+        { count: talliesCount },
+        { count: devanningCount },
+        { count: unstuffedCount },
+        { count: evacuationCount },
+      ] = await Promise.all([
+        supabase.from('ImportQueue').select('*', { count: 'exact', head: true }),
+        supabase.from('Container').select('*', { count: 'exact', head: true }),
+        supabase.from('Container').select('*', { count: 'exact', head: true }),
+        supabase.from('DevanningQueue').select('*', { count: 'exact', head: true }),
+        supabase.from('UnstuffedContainer').select('*', { count: 'exact', head: true }),
+        supabase.from('EvacuationRecord').select('*', { count: 'exact', head: true }),
+      ])
+
+      setPreviousCounts(counts)
+      setCounts({
+        queue: queueCount || 0,
+        receivals: receivalsCount || 0,
+        tallies: talliesCount || 0,
+        devanning: devanningCount || 0,
+        unstuffed: unstuffedCount || 0,
+        evacuation: evacuationCount || 0,
+      })
+    } catch (error) {
+      console.error('Error fetching tab counts:', error)
+    }
+  }
 
   useEffect(() => {
     fetchCounts()
-    
-    // Set up real-time subscriptions
+
     const channels = [
-      supabase.channel('count-queue').on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'ImportQueue' }, 
+      supabase.channel('queue-count').on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'ImportQueue' },
         () => fetchCounts()
       ),
-      supabase.channel('count-containers').on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'Container' }, 
+      supabase.channel('container-count').on('postgres_changes',
+        { event: '*', schema: 'public', table: 'Container' },
         () => fetchCounts()
       ),
-      supabase.channel('count-devanning').on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'DevanningQueue' }, 
+      supabase.channel('devanning-count').on('postgres_changes',
+        { event: '*', schema: 'public', table: 'DevanningQueue' },
         () => fetchCounts()
       ),
-      supabase.channel('count-unstuffed').on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'UnstuffedContainer' }, 
+      supabase.channel('unstuffed-count').on('postgres_changes',
+        { event: '*', schema: 'public', table: 'UnstuffedContainer' },
         () => fetchCounts()
       ),
-      supabase.channel('count-evacuation').on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'EvacuationRecord' }, 
+      supabase.channel('evacuation-count').on('postgres_changes',
+        { event: '*', schema: 'public', table: 'EvacuationRecord' },
         () => fetchCounts()
       ),
     ]
-    
+
     channels.forEach(ch => ch.subscribe())
-    
+
     return () => {
       channels.forEach(ch => supabase.removeChannel(ch))
     }
   }, [])
-
-  async function fetchCounts() {
-    try {
-      const [queue, containers, devanning, unstuffed, evacuation] = await Promise.all([
-        supabase.from('ImportQueue').select('id', { count: 'exact' }),
-        supabase.from('Container').select('id', { count: 'exact' }),
-        supabase.from('DevanningQueue').select('id', { count: 'exact' }),
-        supabase.from('UnstuffedContainer').select('id', { count: 'exact' }),
-        supabase.from('EvacuationRecord').select('id', { count: 'exact' }),
-      ])
-
-      setCounts({
-        queue: queue.count || 0,
-        receivals: containers.count || 0,
-        tallies: containers.count || 0,
-        devanning: devanning.count || 0,
-        unstuffed: unstuffed.count || 0,
-        evacuation: evacuation.count || 0,
-      })
-    } catch (error) {
-      console.error('Error fetching counts:', error)
-    }
-  }
 
   return counts
 }

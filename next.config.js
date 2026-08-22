@@ -3,7 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,  // ✅ Enable SWC
   experimental: {
-    forceSwcTransforms: true,  // ✅ Force SWC over Babel
+    forceSwcTransforms: true,  // ✅ Force SWC
     serverActions: true,
   },
   webpack: (config) => {

@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect, useRef } from 'react'
+import React from "react"
 import { useNotifications } from '@/hooks/useNotifications'
 import { useRealtime } from '@/hooks/useRealtime'
 import { getColor } from '@/lib/utils'

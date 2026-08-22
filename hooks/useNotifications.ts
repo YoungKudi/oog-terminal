@@ -8,6 +8,11 @@ export interface Notification {
   timestamp: Date
   read: boolean
   data?: any
+  user?: {
+    id: string
+    name: string
+    userId: string
+  }
 }
 
 export function useNotifications() {
@@ -17,7 +22,6 @@ export function useNotifications() {
   const [isPushEnabled, setIsPushEnabled] = useState(false)
   const [hasBeenAsked, setHasBeenAsked] = useState(false)
 
-  // Load from localStorage on mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem('oog_notifications')
@@ -46,23 +50,6 @@ export function useNotifications() {
     }
   }, [])
 
-  // Save notifications to localStorage when they change
-  useEffect(() => {
-    try {
-      localStorage.setItem('oog_notifications', JSON.stringify(notifications))
-    } catch (e) {
-      console.error('Error saving notifications:', e)
-    }
-  }, [notifications])
-
-  // Check notification permission
-  useEffect(() => {
-    if (!('Notification' in window)) return
-    setPermission(Notification.permission)
-    setIsPushEnabled(Notification.permission === 'granted')
-  }, [])
-
-  // Request permission (only once)
   const requestPermission = useCallback(async () => {
     if (hasBeenAsked) {
       return isPushEnabled
@@ -94,7 +81,6 @@ export function useNotifications() {
     }
   }, [hasBeenAsked, isPushEnabled])
 
-  // Toggle notifications on/off
   const toggleNotifications = useCallback(() => {
     const newState = !isPushEnabled
     setIsPushEnabled(newState)
@@ -105,7 +91,6 @@ export function useNotifications() {
     return newState
   }, [isPushEnabled, requestPermission])
 
-  // Add notification with push
   const addNotification = useCallback((
     notification: Omit<Notification, 'id' | 'timestamp' | 'read'>,
     sendPush: boolean = true
@@ -120,11 +105,11 @@ export function useNotifications() {
     setNotifications(prev => [newNotification, ...prev])
     setUnreadCount(prev => prev + 1)
 
-    // Send push notification if enabled
     if (sendPush && isPushEnabled && Notification.permission === 'granted') {
       try {
+        const userInfo = notification.user ? ` by ${notification.user.name}` : ''
         new Notification(notification.title, {
-          body: notification.message,
+          body: `${notification.message}${userInfo}`,
           icon: '/logo.png',
           vibrate: [200, 100, 200],
         })
