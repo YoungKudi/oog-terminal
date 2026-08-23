@@ -38,7 +38,6 @@ import { StatsGrid } from '@/components/common/StatsGrid'
 import { DailyTally } from '@/components/common/DailyTally'
 import { FloatingButtons } from '@/components/common/FloatingButtons'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
-import Link from 'next/link'
 
 export default function DashboardPage() {
   const { data: session, status } = useSession()
@@ -48,7 +47,7 @@ export default function DashboardPage() {
   const tabCounts = useTabCounts()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const dropdownButtonRef = useRef<HTMLButtonElement>(null)
-
+  
   const {
     containers,
     importQueue,
@@ -244,32 +243,6 @@ export default function DashboardPage() {
               overflowY: 'auto'
             }}
           >
-            {/* PROFILE LINK - Added at the top */}
-            <Link 
-              href="/dashboard/profile" 
-              onClick={() => setDropdownOpen(false)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                color: isDarkMode ? '#e2e8f0' : '#1e293b',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                transition: 'background 0.2s',
-                borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
-                marginBottom: '4px'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ fontSize: '1rem' }}>👤</span>
-              User Profile
-            </Link>
-
             <a 
               onClick={() => switchToTab('evacuation')} 
               style={{

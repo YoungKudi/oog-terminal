@@ -9,7 +9,8 @@ export async function PUT(req: Request) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   
-  const { name, phone, currentPassword, newPassword } = await req.json()
+  const body = await req.json()
+  const { name, phone, currentPassword, newPassword } = body
   
   const userId = await getUserIdFromSession(session)
   if (!userId) {
@@ -28,8 +29,8 @@ export async function PUT(req: Request) {
   }
   
   const updates: any = {}
-  if (name && name !== user.name) updates.name = name
-  if (phone && phone !== user.phone) updates.phone = phone
+  if (name !== undefined && name !== user.name) updates.name = name
+  if (phone !== undefined && phone !== user.phone) updates.phone = phone
   
   if (newPassword) {
     if (!currentPassword) {
