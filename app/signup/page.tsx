@@ -2,11 +2,13 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import WorkerIdInput from '@/components/common/WorkerIdInput'
+import RoleSelector from '@/components/common/RoleSelector'
+import WorkerIdInputWithRole from '@/components/common/WorkerIdInputWithRole'
 
 export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [workerId, setWorkerId] = useState('')
+  const [role, setRole] = useState<'staff' | 'casual' | null>(null)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [phone, setPhone] = useState('')
@@ -14,7 +16,6 @@ export default function SignupPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
-  const [isWorkerIdValid, setIsWorkerIdValid] = useState(false)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,7 +23,7 @@ export default function SignupPage() {
     setError('')
     setSuccess('')
     
-    if (!email || !workerId || !password || !confirmPassword || !phone) {
+    if (!email || !workerId || !password || !confirmPassword || !phone || !role) {
       setError('Please fill in all fields')
       return
     }
@@ -35,13 +36,18 @@ export default function SignupPage() {
       return
     }
     
-    // Validate worker ID
-    const staffRegex = /^\d{7}$/
-    const casualRegex = /^[A-Z]{2}\d{6}$/
+    // Validate worker ID based on role
     const cleanWorkerId = workerId.toUpperCase().trim()
+    let isValid = false
     
-    if (!staffRegex.test(cleanWorkerId) && !casualRegex.test(cleanWorkerId)) {
-      setError('Worker ID must be either:\n• 7 digits (e.g., 4567423) for staff\n• 2 letters + 6 digits (e.g., TC246789) for casual workers')
+    if (role === 'staff') {
+      isValid = /^\d{7}$/.test(cleanWorkerId)
+    } else if (role === 'casual') {
+      isValid = /^[A-Z]{2}\d{6}$/.test(cleanWorkerId)
+    }
+    
+    if (!isValid) {
+      setError(`Invalid ${role} Worker ID format`)
       return
     }
     
@@ -50,7 +56,14 @@ export default function SignupPage() {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, workerId: cleanWorkerId, password, phone, name })
+        body: JSON.stringify({ 
+          email, 
+          workerId: cleanWorkerId, 
+          password, 
+          phone, 
+          name,
+          role: role // Add role to user data
+        })
       })
       const data = await response.json()
       if (response.ok) {
@@ -92,13 +105,19 @@ export default function SignupPage() {
               style={{ width: '100%', padding: '10px 12px', border: `1px solid ${borderColor}`, borderRadius: '8px', fontSize: '0.9rem' }} required />
           </div>
           
-          {/* Worker ID Input with validation */}
-          <WorkerIdInput
+          {/* Role Selection */}
+          <RoleSelector
+            selectedRole={role}
+            onChange={setRole}
+          />
+          
+          {/* Worker ID Input with Role */}
+          <WorkerIdInputWithRole
             value={workerId}
             onChange={setWorkerId}
-            onValidChange={setIsWorkerIdValid}
+            role={role}
             label="Worker ID"
-            placeholder="7 digits OR 2 letters+6 digits"
+            placeholder={role === 'staff' ? 'Enter 7 digits' : 'Enter 2 letters + 6 digits'}
             required={true}
             showValidation={true}
           />
@@ -118,16 +137,16 @@ export default function SignupPage() {
             <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm password"
               style={{ width: '100%', padding: '10px 12px', border: `1px solid ${borderColor}`, borderRadius: '8px', fontSize: '0.9rem' }} required />
           </div>
-          <button type="submit" disabled={loading || !isWorkerIdValid} style={{ 
+          <button type="submit" disabled={loading || !role || !workerId} style={{ 
             width: '100%', 
             padding: '12px', 
-            background: (loading || !isWorkerIdValid) ? '#6c757d' : primaryColor, 
+            background: (loading || !role || !workerId) ? '#6c757d' : primaryColor, 
             color: 'white', 
             border: 'none', 
             borderRadius: '8px', 
             fontSize: '1rem', 
             fontWeight: '600', 
-            cursor: (loading || !isWorkerIdValid) ? 'not-allowed' : 'pointer' 
+            cursor: (loading || !role || !workerId) ? 'not-allowed' : 'pointer' 
           }}>
             {loading ? 'Creating Account...' : 'Sign Up'}
           </button>

@@ -9,6 +9,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [role, setRole] = useState<'staff' | 'casual' | null>(null)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,17 +43,67 @@ export default function LoginPage() {
         </div>
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>Worker Type</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setRole('staff')}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: `2px solid ${role === 'staff' ? '#1e6f3f' : '#d1d5db'}`,
+                  background: role === 'staff' ? '#f0fdf4' : 'white',
+                  cursor: 'pointer',
+                  fontWeight: role === 'staff' ? '600' : '400',
+                  fontSize: '0.7rem',
+                  transition: 'all 0.2s'
+                }}
+              >
+                👔 Staff
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole('casual')}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: `2px solid ${role === 'casual' ? '#1e6f3f' : '#d1d5db'}`,
+                  background: role === 'casual' ? '#f0fdf4' : 'white',
+                  cursor: 'pointer',
+                  fontWeight: role === 'casual' ? '600' : '400',
+                  fontSize: '0.7rem',
+                  transition: 'all 0.2s'
+                }}
+              >
+                🧑‍💼 Casual
+              </button>
+            </div>
+          </div>
+          <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>Worker ID</label>
             <input 
               type="text" 
               value={workerId} 
-              onChange={(e) => setWorkerId(e.target.value.toUpperCase().trim())} 
-              placeholder="7 digits OR 2 letters+6 digits"
+              onChange={(e) => {
+                let input = e.target.value.toUpperCase().trim()
+                if (role === 'staff') {
+                  input = input.replace(/[^0-9]/g, '').slice(0, 7)
+                } else if (role === 'casual') {
+                  const letters = input.replace(/[0-9]/g, '').slice(0, 2)
+                  const numbers = input.replace(/[A-Z]/g, '').slice(0, 6)
+                  input = letters + numbers
+                }
+                setWorkerId(input)
+              }} 
+              placeholder={role === 'staff' ? '7 digits' : '2 letters + 6 digits'}
               style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', outline: 'none' }} 
               required 
+              disabled={!role}
             />
             <div style={{ fontSize: '0.55rem', color: '#64748b', marginTop: '4px' }}>
-              Staff: 7 digits (e.g., 4567423) | Casual: 2 letters + 6 digits (e.g., TC246789)
+              {role === 'staff' ? 'Staff: 7 digits (e.g., 4567423)' : 
+               role === 'casual' ? 'Casual: 2 letters + 6 digits (e.g., TC246789)' : 
+               'Select a worker type above'}
             </div>
           </div>
           <div style={{ marginBottom: '16px' }}>
@@ -68,17 +119,17 @@ export default function LoginPage() {
           {error && <p style={{ color: '#dc2626', marginBottom: '12px', fontSize: '0.85rem' }}>{error}</p>}
           <button 
             type="submit" 
-            disabled={loading} 
+            disabled={loading || !role} 
             style={{ 
               width: '100%', 
               padding: '12px', 
-              background: loading ? '#6c757d' : '#1e6f3f', 
+              background: (loading || !role) ? '#6c757d' : '#1e6f3f', 
               color: 'white', 
               border: 'none', 
               borderRadius: '8px', 
               fontSize: '1rem', 
               fontWeight: '600', 
-              cursor: loading ? 'not-allowed' : 'pointer' 
+              cursor: (loading || !role) ? 'not-allowed' : 'pointer' 
             }}
           >
             {loading ? 'Signing in...' : 'Sign In'}
