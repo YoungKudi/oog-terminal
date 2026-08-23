@@ -47,12 +47,12 @@ export default function LoginPage() {
               type="text" 
               value={workerId} 
               onChange={(e) => setWorkerId(e.target.value.toUpperCase().trim())} 
-              placeholder="e.g., ADMIN001 or 4567423"
+              placeholder="7 digits OR 2 letters+6 digits"
               style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', outline: 'none' }} 
               required 
             />
             <div style={{ fontSize: '0.55rem', color: '#64748b', marginTop: '4px' }}>
-              7 digits (staff) OR 2 letters + 6 digits (casual)
+              Staff: 7 digits (e.g., 4567423) | Casual: 2 letters + 6 digits (e.g., TC246789)
             </div>
           </div>
           <div style={{ marginBottom: '16px' }}>

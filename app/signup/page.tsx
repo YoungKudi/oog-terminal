@@ -2,6 +2,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import WorkerIdInput from '@/components/common/WorkerIdInput'
 
 export default function SignupPage() {
   const [email, setEmail] = useState('')
@@ -13,6 +14,7 @@ export default function SignupPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isWorkerIdValid, setIsWorkerIdValid] = useState(false)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,11 +35,12 @@ export default function SignupPage() {
       return
     }
     
-    const workerIdRegex1 = /^\d{7}$/
-    const workerIdRegex2 = /^[A-Z]{2}\d{6}$/
+    // Validate worker ID
+    const staffRegex = /^\d{7}$/
+    const casualRegex = /^[A-Z]{2}\d{6}$/
     const cleanWorkerId = workerId.toUpperCase().trim()
     
-    if (!workerIdRegex1.test(cleanWorkerId) && !workerIdRegex2.test(cleanWorkerId)) {
+    if (!staffRegex.test(cleanWorkerId) && !casualRegex.test(cleanWorkerId)) {
       setError('Worker ID must be either:\n• 7 digits (e.g., 4567423) for staff\n• 2 letters + 6 digits (e.g., TC246789) for casual workers')
       return
     }
@@ -88,20 +91,18 @@ export default function SignupPage() {
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com"
               style={{ width: '100%', padding: '10px 12px', border: `1px solid ${borderColor}`, borderRadius: '8px', fontSize: '0.9rem' }} required />
           </div>
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>Worker ID</label>
-            <input 
-              type="text" 
-              value={workerId} 
-              onChange={(e) => setWorkerId(e.target.value.toUpperCase().trim())} 
-              placeholder="7 digits OR 2 letters+6 digits" 
-              style={{ width: '100%', padding: '10px 12px', border: `1px solid ${borderColor}`, borderRadius: '8px', fontSize: '0.9rem' }} 
-              required 
-            />
-            <div style={{ fontSize: '0.6rem', color: mutedColor, marginTop: '4px' }}>
-              Staff: 7 digits (e.g., 4567423) | Casual: 2 letters + 6 digits (e.g., TC246789)
-            </div>
-          </div>
+          
+          {/* Worker ID Input with validation */}
+          <WorkerIdInput
+            value={workerId}
+            onChange={setWorkerId}
+            onValidChange={setIsWorkerIdValid}
+            label="Worker ID"
+            placeholder="7 digits OR 2 letters+6 digits"
+            required={true}
+            showValidation={true}
+          />
+          
           <div style={{ marginBottom: '12px' }}>
             <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>Phone Number</label>
             <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0209679230"
@@ -117,7 +118,17 @@ export default function SignupPage() {
             <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm password"
               style={{ width: '100%', padding: '10px 12px', border: `1px solid ${borderColor}`, borderRadius: '8px', fontSize: '0.9rem' }} required />
           </div>
-          <button type="submit" disabled={loading} style={{ width: '100%', padding: '12px', background: loading ? '#6c757d' : primaryColor, color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer' }}>
+          <button type="submit" disabled={loading || !isWorkerIdValid} style={{ 
+            width: '100%', 
+            padding: '12px', 
+            background: (loading || !isWorkerIdValid) ? '#6c757d' : primaryColor, 
+            color: 'white', 
+            border: 'none', 
+            borderRadius: '8px', 
+            fontSize: '1rem', 
+            fontWeight: '600', 
+            cursor: (loading || !isWorkerIdValid) ? 'not-allowed' : 'pointer' 
+          }}>
             {loading ? 'Creating Account...' : 'Sign Up'}
           </button>
         </form>
