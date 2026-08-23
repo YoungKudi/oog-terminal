@@ -1,0 +1,18 @@
+OOG Terminal - Critical Information
+====================================
+
+APP STRUCTURE:
+$(find app -type d ! -path "*/node_modules/*" ! -path "*/.next/*" | head -30)
+
+HEADER FILES:
+$(find . -type f -name "*Header*" -o -name "*Nav*" ! -path "*/node_modules/*" ! -path "*/.next/*" | head -20)
+
+LAYOUT FILES:
+$(find app -type f -name "*layout*" ! -path "*/node_modules/*" ! -path "*/.next/*")
+
+DASHBOARD TABS:
+$(find app/dashboard -maxdepth 1 -type d ! -path "app/dashboard" 2>/dev/null | sed 's/app\/dashboard\///' || echo "No dashboard tabs found")
+
+EXPORT ENV:
+Supabase URL: $(grep NEXT_PUBLIC_SUPABASE_URL .env.local 2>/dev/null | cut -d= -f2 || echo "Not found")
+NextAuth URL: $(grep NEXTAUTH_URL .env.local 2>/dev/null | cut -d= -f2 || echo "Not found")

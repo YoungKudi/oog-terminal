@@ -1,0 +1,3088 @@
+OOG Terminal - Project Snapshot
+Generated: Tue Jul 21 13:12:14 GMT 2026
+========================================
+
+========================================
+FILE: app/dashboard/layout.tsx
+========================================
+Lines: 72
+
+// app/dashboard/layout.tsx (or wherever your header/navigation is)
+'use client';
+
+import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { useDarkMode } from '@/hooks/useDarkMode';
+
+export function DashboardHeader() {
+  const { data: session } = useSession();
+  const router = useRouter();
+  const { darkMode, toggleDarkMode } = useDarkMode();
+
+  return (
+    <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Left side - Logo/Brand */}
+          <div className="flex items-center">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+              OOG Terminal
+            </h1>
+          </div>
+
+          {/* Right side - Actions */}
+          <div className="flex items-center space-x-4">
+            {/* Notification Bell */}
+            <NotificationBell />
+
+            {/* Clickable Worker ID */}
+            {session?.user?.userId && (
+              <Link
+                href="/dashboard/profile"
+                className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50 transition cursor-pointer"
+              >
+                {session.user.userId}
+              </Link>
+            )}
+
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={toggleDarkMode}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+              aria-label="Toggle dark mode"
+            >
+              {darkMode ? (
+                <svg className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                </svg>
+              )}
+            </button>
+
+            {/* User Menu */}
+            <div className="relative">
+              <button
+                onClick={() => signOut()}
+                className="px-3 py-1 text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+
+========================================
+FILE: app/dashboard/page.tsx
+========================================
+Lines: 645
+
+"use client"
+import React, { useState, useEffect, useRef } from 'react'
+import { useSession, signOut } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { useData } from '@/hooks/useData'
+import { useToast } from '@/hooks/useToast'
+import { useDarkMode } from '@/hooks/useDarkMode'
+import { useTabCounts } from '@/hooks/useTabCounts'
+import { DEFAULT_LOCATIONS, DEFAULT_SHIFT } from '@/lib/constants'
+import { getColor } from '@/lib/utils'
+import { Icons } from '@/components/icons/Icons'
+import { TabWithCount } from '@/components/common/TabWithCount'
+
+// Import all tab components
+import QueueTab from './components/QueueTab'
+import ReceivalsTab from './components/ReceivalsTab'
+import TalliesTab from './components/TalliesTab'
+import DevanningTab from './components/DevanningTab'
+import UnstuffedTab from './components/UnstuffedTab'
+import EvacuationTab from './components/EvacuationTab'
+import LocationsTab from './components/LocationsTab'
+import ContactsTab from './components/ContactsTab'
+import BackupTab from './components/BackupTab'
+import ReportsTab from './components/ReportsTab'
+import DevanningWizard from './components/DevanningWizard'
+
+// Import modals
+import ReceivalModal from '@/components/modals/ReceivalModal'
+import DevanningModal from '@/components/modals/DevanningModal'
+import LoadoutModal from '@/components/modals/LoadoutModal'
+import EditModal from '@/components/modals/EditModal'
+import RepositionModal from '@/components/modals/RepositionModal'
+import SearchModal from '@/components/modals/SearchModal'
+import ContainerDetailModal from '@/components/modals/ContainerDetailModal'
+import AddLocationModal from '@/components/modals/AddLocationModal'
+import ScannerModal from '@/components/modals/ScannerModal'
+import { StatsGrid } from '@/components/common/StatsGrid'
+import { DailyTally } from '@/components/common/DailyTally'
+import { FloatingButtons } from '@/components/common/FloatingButtons'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
+
+export default function DashboardPage() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+  const { showToast } = useToast()
+  const { isDarkMode, toggleDarkMode } = useDarkMode()
+  const tabCounts = useTabCounts()
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const dropdownButtonRef = useRef<HTMLButtonElement>(null)
+  
+  const {
+    containers,
+    importQueue,
+    devanningQueue,
+    unstuffedContainers,
+    evacuationRecords,
+    loadingRecords,
+    activityLog,
+    loading,
+    fetchAllData
+  } = useData()
+
+  const [activeTab, setActiveTab] = useState('queue')
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [locations, setLocations] = useState(DEFAULT_LOCATIONS)
+  const [allPositions, setAllPositions] = useState([])
+  const [shiftData, setShiftData] = useState({A: {...DEFAULT_SHIFT}, B: {...DEFAULT_SHIFT}, C: {...DEFAULT_SHIFT}, D: {...DEFAULT_SHIFT}})
+  const [scannedDocuments, setScannedDocuments] = useState({})
+  const [selectedEvacContainer, setSelectedEvacContainer] = useState(null)
+  const [evacuationSelectionMode, setEvacuationSelectionMode] = useState(false)
+  const [showWizard, setShowWizard] = useState(false)
+  const [wizardContainer, setWizardContainer] = useState(null)
+
+  // Modal states
+  const [showReceivalModal, setShowReceivalModal] = useState(false)
+  const [showDevanningModal, setShowDevanningModal] = useState(false)
+  const [showLoadoutModal, setShowLoadoutModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showRepositionModal, setShowRepositionModal] = useState(false)
+  const [showSearchModal, setShowSearchModal] = useState(false)
+  const [showContainerDetailModal, setShowContainerDetailModal] = useState(false)
+  const [showAddLocationModal, setShowAddLocationModal] = useState(false)
+  const [showScannerModal, setShowScannerModal] = useState(false)
+  const [selectedContainer, setSelectedContainer] = useState(null)
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current && 
+        !dropdownRef.current.contains(event.target as Node) &&
+        dropdownButtonRef.current &&
+        !dropdownButtonRef.current.contains(event.target as Node)
+      ) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  useEffect(() => {
+    const allPos = []
+    for (const loc of locations) {
+      if (loc.positions) allPos.push(...loc.positions)
+    }
+    setAllPositions(allPos.sort())
+  }, [locations])
+
+  useEffect(() => {
+    const scans = localStorage.getItem('oog_scans')
+    if (scans) setScannedDocuments(JSON.parse(scans))
+    const savedShifts = localStorage.getItem('oog_shifts')
+    if (savedShifts) setShiftData(JSON.parse(savedShifts))
+  }, [])
+
+  if (loading || status === 'loading') {
+    return (
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',flexDirection:'column',gap:'16px',background:isDarkMode?'#0a0e17':'#f5f7fb'}}>
+        <div style={{width:'48px',height:'48px',border:'4px solid #e2e8f0',borderTop:'4px solid #1e6f3f',borderRadius:'50%',animation:'spin 1s linear infinite'}} />
+        <p style={{color:isDarkMode?'#94a3b8':'#64748b',fontSize:'0.9rem'}}>Loading OOG Terminal...</p>
+        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      </div>
+    )
+  }
+
+  if (!session) return null
+
+  const switchToTab = (tabId: string) => {
+    setActiveTab(tabId)
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
+    const tabContent = document.getElementById(tabId + '-tab')
+    if (tabContent) tabContent.classList.add('active')
+    document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
+    const tabButton = document.querySelector(`.tab-button[data-tab="${tabId}"]`)
+    if (tabButton) tabButton.classList.add('active')
+    setDropdownOpen(false)
+  }
+
+  const handleTabClick = (tab: string) => {
+    switchToTab(tab)
+  }
+
+  const toggleDropdown = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setDropdownOpen(!dropdownOpen)
+  }
+
+  const now = new Date()
+  const hour = now.getHours()
+  const greeting = hour >= 17 ? 'Good Evening' : hour >= 12 ? 'Good Afternoon' : 'Good Morning'
+  const day = String(now.getDate()).padStart(2,'0')
+  const month = String(now.getMonth()+1).padStart(2,'0')
+  const year = now.getFullYear()
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+  const dayName = days[now.getDay()]
+  const dateStr = `${day}/${month}/${year} ${dayName}`
+
+  const tabs = [
+    { id: 'queue', icon: '📥', label: 'Queue', count: tabCounts.queue },
+    { id: 'receivals', icon: '📦', label: 'Receivals', count: tabCounts.receivals },
+    { id: 'tallies', icon: '📋', label: 'Tallies', count: tabCounts.tallies },
+    { id: 'devanning', icon: '🔧', label: 'Devanning', count: tabCounts.devanning },
+    { id: 'unstuffed', icon: '✅', label: 'Unstuffed', count: tabCounts.unstuffed }
+  ]
+
+  return (
+    <div className="app-container">
+      {/* HEADER */}
+      <div className="app-header">
+        <div className="logo-area">
+          <h1>
+            <span style={{ display: 'inline-flex', marginRight: '8px' }}>
+              <Icons.Dashboard size={20} color="white" />
+            </span>
+            OOG Terminal
+          </h1>
+        </div>
+        <div className="header-actions">
+          <NotificationBell />
+          <span style={{fontSize:'0.75rem',opacity:0.8}}>👤 {session.user?.userId}</span>
+          <button className="btn" onClick={toggleDarkMode} style={{background:'rgba(255,255,255,0.2)',padding:'2px 10px'}}>{isDarkMode ? '☀️' : '🌙'}</button>
+        </div>
+      </div>
+
+      {/* TAB BAR */}
+      <div className="tab-bar" style={{ overflow: 'visible', position: 'relative', zIndex: 10 }}>
+        {tabs.map(t => (
+          <TabWithCount
+            key={t.id}
+            icon={t.icon}
+            label={t.label}
+            count={t.count}
+            isActive={activeTab === t.id}
+            onClick={() => handleTabClick(t.id)}
+            isDarkMode={isDarkMode}
+          />
+        ))}
+        <div className="dropdown-container" ref={dropdownRef} style={{ position: 'relative', zIndex: 100 }}>
+          <button 
+            ref={dropdownButtonRef}
+            className="dropdown-btn" 
+            onClick={toggleDropdown}
+            style={{
+              background: dropdownOpen ? 'rgba(0,0,0,0.05)' : 'transparent',
+              borderRadius: '8px',
+              padding: '6px 10px',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontWeight: '600',
+              fontSize: '0.65rem',
+              color: isDarkMode ? '#94a3b8' : '#5b6e8c',
+              transition: 'all 0.2s'
+            }}
+          >
+            <span style={{ fontSize: '1.1rem' }}>⚙️</span>
+            <span>More</span>
+            <span style={{ 
+              fontSize: '0.7rem', 
+              transform: dropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s'
+            }}>▼</span>
+          </button>
+          <div 
+            className={`dropdown-menu ${dropdownOpen ? 'show' : ''}`}
+            style={{
+              display: dropdownOpen ? 'block' : 'none',
+              position: 'absolute',
+              top: '100%',
+              right: '0',
+              background: isDarkMode ? '#1e293b' : 'white',
+              border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+              borderRadius: '12px',
+              minWidth: '200px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+              zIndex: 9999,
+              padding: '4px 0',
+              marginTop: '4px',
+              maxHeight: '400px',
+              overflowY: 'auto'
+            }}
+          >
+            <a 
+              onClick={() => switchToTab('evacuation')} 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                textDecoration: 'none',
+                color: isDarkMode ? '#e2e8f0' : '#1e293b',
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+              <span style={{ fontSize: '1rem' }}>🚚</span>
+              Evacuation & Boxes ({tabCounts.evacuation})
+            </a>
+            <a 
+              onClick={() => switchToTab('locations')} 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                textDecoration: 'none',
+                color: isDarkMode ? '#e2e8f0' : '#1e293b',
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+              <span style={{ fontSize: '1rem' }}>📍</span>
+              Locations
+            </a>
+            <a 
+              onClick={() => switchToTab('contacts')} 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                textDecoration: 'none',
+                color: isDarkMode ? '#e2e8f0' : '#1e293b',
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+              <span style={{ fontSize: '1rem' }}>👤</span>
+              Equipment Contacts
+            </a>
+            <a 
+              onClick={() => switchToTab('backup')} 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                textDecoration: 'none',
+                color: isDarkMode ? '#e2e8f0' : '#1e293b',
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+              <span style={{ fontSize: '1rem' }}>💾</span>
+              Backup & Activity
+            </a>
+            <a 
+              onClick={() => switchToTab('reports')} 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                textDecoration: 'none',
+                color: isDarkMode ? '#e2e8f0' : '#1e293b',
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+              <span style={{ fontSize: '1rem' }}>📄</span>
+              Reports
+            </a>
+            <div className="dropdown-divider" style={{
+              borderTop: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+              margin: '4px 0'
+            }}></div>
+            <a 
+              onClick={() => { signOut({ callbackUrl: '/login' }) }} 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                textDecoration: 'none',
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                color: '#dc2626',
+                borderRadius: '4px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+              <span style={{ fontSize: '1rem' }}>🚪</span>
+              Sign Out
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* TABS CONTENT - Same as before */}
+      <div className="tab-content active" id="queue-tab">
+        <DailyTally 
+          locations={locations} 
+          containers={containers} 
+          isDarkMode={isDarkMode}
+          greeting={greeting}
+          dateStr={dateStr}
+        />
+        <StatsGrid 
+          containers={containers} 
+          importQueue={importQueue} 
+          devanningQueue={devanningQueue}
+          isDarkMode={isDarkMode}
+        />
+        <QueueTab 
+          importQueue={importQueue}
+          isDarkMode={isDarkMode}
+          showToast={showToast}
+          fetchAllData={fetchAllData}
+        />
+      </div>
+
+      <div className="tab-content" id="receivals-tab">
+        <ReceivalsTab 
+          containers={containers}
+          isDarkMode={isDarkMode}
+          showToast={showToast}
+          setSelectedContainer={setSelectedContainer}
+          setShowContainerDetailModal={setShowContainerDetailModal}
+          fetchAllData={fetchAllData}
+        />
+      </div>
+
+      <div className="tab-content" id="tallies-tab">
+        <TalliesTab 
+          containers={containers}
+          locations={locations}
+          allPositions={allPositions}
+          isDarkMode={isDarkMode}
+          showToast={showToast}
+          fetchAllData={fetchAllData}
+          setSelectedContainer={setSelectedContainer}
+          setShowContainerDetailModal={setShowContainerDetailModal}
+          setShowEditModal={setShowEditModal}
+          setShowRepositionModal={setShowRepositionModal}
+        />
+      </div>
+
+      <div className="tab-content" id="devanning-tab">
+        <DevanningTab 
+          devanningQueue={devanningQueue}
+          isDarkMode={isDarkMode}
+          showToast={showToast}
+          fetchAllData={fetchAllData}
+          setShowWizard={setShowWizard}
+          setWizardContainer={setWizardContainer}
+          setSelectedContainer={setSelectedContainer}
+          setShowContainerDetailModal={setShowContainerDetailModal}
+        />
+      </div>
+
+      <div className="tab-content" id="unstuffed-tab">
+        <UnstuffedTab 
+          unstuffedContainers={unstuffedContainers}
+          isDarkMode={isDarkMode}
+          showToast={showToast}
+          fetchAllData={fetchAllData}
+          selectedEvacContainer={selectedEvacContainer}
+          setSelectedEvacContainer={setSelectedEvacContainer}
+          evacuationSelectionMode={evacuationSelectionMode}
+          setEvacuationSelectionMode={setEvacuationSelectionMode}
+          setSelectedContainer={setSelectedContainer}
+          setShowContainerDetailModal={setShowContainerDetailModal}
+          setShowLoadoutModal={setShowLoadoutModal}
+          setShowScannerModal={setShowScannerModal}
+        />
+      </div>
+
+      <div className="tab-content" id="evacuation-tab">
+        <EvacuationTab 
+          evacuationRecords={evacuationRecords}
+          isDarkMode={isDarkMode}
+          showToast={showToast}
+          fetchAllData={fetchAllData}
+        />
+      </div>
+
+      <div className="tab-content" id="locations-tab">
+        <LocationsTab 
+          locations={locations}
+          containers={containers}
+          isDarkMode={isDarkMode}
+          showToast={showToast}
+          setLocations={setLocations}
+          setShowAddLocationModal={setShowAddLocationModal}
+        />
+      </div>
+
+      <div className="tab-content" id="contacts-tab">
+        <ContactsTab 
+          shiftData={shiftData}
+          setShiftData={setShiftData}
+          isDarkMode={isDarkMode}
+          session={session}
+          showToast={showToast}
+        />
+      </div>
+
+      <div className="tab-content" id="backup-tab">
+        <BackupTab 
+          containers={containers}
+          importQueue={importQueue}
+          devanningQueue={devanningQueue}
+          unstuffedContainers={unstuffedContainers}
+          evacuationRecords={evacuationRecords}
+          loadingRecords={loadingRecords}
+          scannedDocuments={scannedDocuments}
+          locations={locations}
+          shiftData={shiftData}
+          isDarkMode={isDarkMode}
+          showToast={showToast}
+          fetchAllData={fetchAllData}
+        />
+      </div>
+
+      <div className="tab-content" id="reports-tab">
+        <ReportsTab 
+          loadingRecords={loadingRecords}
+          isDarkMode={isDarkMode}
+          showToast={showToast}
+        />
+      </div>
+
+      {/* FLOATING BUTTONS */}
+      <FloatingButtons 
+        setShowReceivalModal={setShowReceivalModal}
+        setShowDevanningModal={setShowDevanningModal}
+        setShowSearchModal={setShowSearchModal}
+        activeTab={activeTab}
+      />
+
+      {/* MODALS */}
+      {showWizard && wizardContainer && (
+        <div className="modal" style={{display:'flex', position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)', justifyContent:'center', alignItems:'center', zIndex:1000}}>
+          <DevanningWizard 
+            container={wizardContainer}
+            onClose={() => { setShowWizard(false); setWizardContainer(null) }}
+            onComplete={fetchAllData}
+            showToast={showToast}
+          />
+        </div>
+      )}
+
+      {showReceivalModal && (
+        <ReceivalModal 
+          onClose={() => setShowReceivalModal(false)}
+          onSave={fetchAllData}
+          isDarkMode={isDarkMode}
+          allPositions={allPositions}
+          showToast={showToast}
+        />
+      )}
+
+      {showDevanningModal && (
+        <DevanningModal 
+          onClose={() => setShowDevanningModal(false)}
+          onSave={fetchAllData}
+          isDarkMode={isDarkMode}
+          containers={containers}
+          allPositions={allPositions}
+          showToast={showToast}
+        />
+      )}
+
+      {showLoadoutModal && (
+        <LoadoutModal 
+          onClose={() => setShowLoadoutModal(false)}
+          onSave={fetchAllData}
+          isDarkMode={isDarkMode}
+          container={selectedContainer}
+          unstuffedContainers={unstuffedContainers}
+          showToast={showToast}
+        />
+      )}
+
+      {showEditModal && (
+        <EditModal 
+          onClose={() => setShowEditModal(false)}
+          onSave={fetchAllData}
+          isDarkMode={isDarkMode}
+          container={selectedContainer}
+          containers={containers}
+          allPositions={allPositions}
+          showToast={showToast}
+        />
+      )}
+
+      {showRepositionModal && (
+        <RepositionModal 
+          onClose={() => setShowRepositionModal(false)}
+          onSave={fetchAllData}
+          isDarkMode={isDarkMode}
+          container={selectedContainer}
+          allPositions={allPositions}
+          showToast={showToast}
+        />
+      )}
+
+      {showSearchModal && (
+        <SearchModal 
+          onClose={() => setShowSearchModal(false)}
+          isDarkMode={isDarkMode}
+          containers={containers}
+          unstuffedContainers={unstuffedContainers}
+          showToast={showToast}
+        />
+      )}
+
+      {showContainerDetailModal && (
+        <ContainerDetailModal 
+          onClose={() => setShowContainerDetailModal(false)}
+          isDarkMode={isDarkMode}
+          container={selectedContainer}
+          containers={containers}
+          devanningQueue={devanningQueue}
+          unstuffedContainers={unstuffedContainers}
+          scannedDocuments={scannedDocuments}
+          showToast={showToast}
+          setShowScannerModal={setShowScannerModal}
+          setShowEditModal={setShowEditModal}
+          setShowDevanningModal={setShowDevanningModal}
+          setShowLoadoutModal={setShowLoadoutModal}
+          fetchAllData={fetchAllData}
+        />
+      )}
+
+      {showAddLocationModal && (
+        <AddLocationModal 
+          onClose={() => setShowAddLocationModal(false)}
+          onSave={fetchAllData}
+          isDarkMode={isDarkMode}
+          locations={locations}
+          setLocations={setLocations}
+          showToast={showToast}
+        />
+      )}
+
+      {showScannerModal && (
+        <ScannerModal 
+          onClose={() => setShowScannerModal(false)}
+          isDarkMode={isDarkMode}
+          container={selectedContainer}
+          scannedDocuments={scannedDocuments}
+          setScannedDocuments={setScannedDocuments}
+          showToast={showToast}
+        />
+      )}
+
+      {/* FOOTER */}
+      <div style={{textAlign:'center',fontSize:'0.65rem',color: getColor(isDarkMode, '#94a3b8', '#94a3b8'),padding:'12px 0',borderTop: getColor(isDarkMode, '1px solid #e2e8f0', '1px solid #1f2937'),marginTop:'16px',flexShrink:0}}>
+        Developed by <strong>O'Bour Dev</strong> © 2026
+      </div>
+    </div>
+  )
+}
+
+
+========================================
+FILE: app/layout.tsx
+========================================
+Lines: 42
+
+import React from 'react'
+import type { Metadata } from 'next'
+import './globals.css'
+import AuthProvider from '@/components/providers/AuthProvider'
+
+export const metadata: Metadata = {
+  title: 'OOG Terminal',
+  description: 'OOG Terminal Management System',
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet" />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/logo.png" />
+        <meta name="theme-color" content="#0a2b3e" />
+      </head>
+      <body>
+        <AuthProvider>{children}</AuthProvider>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Register Service Worker for push notifications
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                  navigator.serviceWorker.register('/service-worker.js')
+                    .then(reg => console.log('📡 Service Worker registered', reg))
+                    .catch(err => console.log('❌ Service Worker registration failed', err))
+                })
+              }
+            `,
+          }}
+        />
+      </body>
+    </html>
+  )
+}
+
+
+========================================
+FILE: app/page.tsx
+========================================
+Lines: 8
+
+import { redirect } from 'next/navigation'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+
+export default async function Home() {
+  const session = await getServerSession(authOptions)
+  return session ? redirect('/dashboard') : redirect('/login')
+}
+
+
+========================================
+FILE: components/common/TabWithCount.tsx
+========================================
+Lines: 81
+
+"use client"
+import React from 'react'
+
+interface TabWithCountProps {
+  icon: React.ReactNode
+  label: string
+  count: number
+  isActive: boolean
+  onClick: () => void
+  isDarkMode: boolean
+}
+
+export function TabWithCount({ icon, label, count, isActive, onClick, isDarkMode }: TabWithCountProps) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        flex: '1 0 auto',
+        padding: '6px 4px',
+        background: 'transparent',
+        border: 'none',
+        fontWeight: '600',
+        fontSize: window.innerWidth < 480 ? '0.5rem' : '0.6rem',
+        color: isActive ? (isDarkMode ? '#8b5cf6' : '#1e6f3f') : (isDarkMode ? '#94a3b8' : '#5b6e8c'),
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '1px',
+        borderRadius: '8px',
+        transition: 'all 0.2s ease',
+        whiteSpace: 'nowrap',
+        minWidth: '36px',
+        position: 'relative',
+        borderBottom: isActive ? (isDarkMode ? '2px solid #8b5cf6' : '2px solid #1e6f3f') : '2px solid transparent',
+        flexShrink: 0,
+      }}
+    >
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '2px',
+        position: 'relative',
+        flexWrap: 'wrap',
+        justifyContent: 'center'
+      }}>
+        <span style={{ 
+          fontSize: window.innerWidth < 480 ? '1rem' : '1.1rem',
+          lineHeight: 1
+        }}>{icon}</span>
+        <span style={{ 
+          fontSize: window.innerWidth < 480 ? '0.45rem' : '0.55rem',
+          marginTop: '0px',
+          display: window.innerWidth < 480 ? 'none' : 'inline'
+        }}>{label}</span>
+        {/* Red dot badge - shows when count > 0 */}
+        {count > 0 && (
+          <span
+            style={{
+              position: 'absolute',
+              top: '-2px',
+              right: '-4px',
+              width: '10px',
+              height: '10px',
+              background: '#ef4444',
+              borderRadius: '50%',
+              boxShadow: '0 0 0 2px ' + (isDarkMode ? '#111827' : 'white'),
+              animation: 'pulse-dot 1.5s ease-in-out infinite',
+            }}
+          />
+        )}
+      </div>
+      <style>{`
+        @keyframes pulse-dot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.7; transform: scale(0.9); }
+        }
+      `}</style>
+    </button>
+  )
+}
+
+
+========================================
+FILE: components/common/StatsGrid.tsx
+========================================
+Lines: 37
+
+import React from 'react'
+import { parseCargoNumber } from '@/lib/utils'
+import { getColor } from '@/lib/utils'
+
+interface StatsGridProps {
+  containers: any[]
+  importQueue: any[]
+  devanningQueue: any[]
+  isDarkMode: boolean
+}
+
+export function StatsGrid({ containers, importQueue, devanningQueue, isDarkMode }: StatsGridProps) {
+  const total = containers.length
+  const excavators = containers.filter(c => c.equipment === 'Excavator' || c.equipment === '2x Excavator').length
+  const cargo = containers.reduce((s, c) => s + parseCargoNumber(c.auxCargo), 0)
+  const devanning = devanningQueue.length
+  const queue = importQueue.length
+
+  const stats = [
+    { label: '📊 Stack', value: total },
+    { label: '🚜 Excavators', value: excavators },
+    { label: '📦 Cargo', value: cargo },
+    { label: '⏳ Devanning', value: devanning },
+    { label: '📥 Queue', value: queue }
+  ]
+
+  return (
+    <div className="stats-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(90px, 1fr))',gap:'8px',marginBottom:'12px'}}>
+      {stats.map((stat, i) => (
+        <div key={i} className="stat-card" style={{background: getColor(isDarkMode, '#f8fafc', '#1e293b'), borderRadius:'12px', padding:'8px 10px', textAlign:'center', border: getColor(isDarkMode, '1px solid #e2e8f0', '1px solid #334155')}}>
+          <div className="num" style={{fontSize:'1.2rem',fontWeight:'700',color: getColor(isDarkMode, '#1e293b', '#e2e8f0')}}>{stat.value}</div>
+          <div className="label" style={{fontSize:'0.6rem',color: getColor(isDarkMode, '#64748b', '#94a3b8')}}>{stat.label}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+
+========================================
+FILE: components/common/DailyTally.tsx
+========================================
+Lines: 51
+
+import React from 'react'
+import { parseCargoNumber } from '@/lib/utils'
+import { getColor } from '@/lib/utils'
+
+interface DailyTallyProps {
+  locations: any[]
+  containers: any[]
+  isDarkMode: boolean
+  greeting: string
+  dateStr: string
+}
+
+export function DailyTally({ locations, containers, isDarkMode, greeting, dateStr }: DailyTallyProps) {
+  return (
+    <div className="tally-summary" style={{background: getColor(isDarkMode, '#f8fafc', '#1e293b'), borderRadius:'16px', padding:'12px 16px', marginBottom:'16px', border: getColor(isDarkMode, '1px solid #e2e8f0', '1px solid #334155')}}>
+      <div className="greeting" style={{color: getColor(isDarkMode, '#1e293b', '#e2e8f0'), fontSize:'0.9rem', fontWeight:'600'}}>{greeting}</div>
+      <div className="date-line" style={{color: getColor(isDarkMode, '#64748b', '#94a3b8'), fontSize:'0.75rem', marginBottom:'6px'}}>{dateStr}</div>
+      <div style={{fontWeight:700,fontSize:'0.9rem',margin:'4px 0 2px',color: getColor(isDarkMode, '#1e293b', '#e2e8f0')}}>*OOG DAILY TALLIES*</div>
+      <div>
+        {locations.map(loc => {
+          const locContainers = containers.filter(c => loc.positions?.includes(c.position))
+          const stuffed = locContainers.filter(c => c.equipment !== 'Unstuffed' && c.equipment !== '')
+          const unstuffed = locContainers.filter(c => c.equipment === 'Unstuffed' || c.equipment === '')
+          const excavators = stuffed.filter(c => c.equipment === 'Excavator' || c.equipment === '2x Excavator')
+          const nonExcavators = stuffed.filter(c => c.equipment !== 'Excavator' && c.equipment !== '2x Excavator')
+          const boxes = locContainers.reduce((sum, c) => sum + parseCargoNumber(c.auxCargo), 0)
+          return (
+            <div key={loc.id} className="section">
+              <div className="section-title" style={{color: getColor(isDarkMode, '#1e293b', '#e2e8f0')}}>📍 {loc.name}</div>
+              <div className="row" style={{color: getColor(isDarkMode, '#64748b', '#94a3b8'),display:'flex',justifyContent:'space-between',padding:'1px 0',fontSize:'0.8rem'}}><span>Stuffed</span><span>{stuffed.length}</span></div>
+              {loc.type === 'grid' && (
+                <>
+                  <div className="row" style={{color: getColor(isDarkMode, '#64748b', '#94a3b8'),display:'flex',justifyContent:'space-between',padding:'1px 0 1px 16px',fontSize:'0.75rem'}}><span>Excavators</span><span>{excavators.length}</span></div>
+                  <div className="row" style={{color: getColor(isDarkMode, '#64748b', '#94a3b8'),display:'flex',justifyContent:'space-between',padding:'1px 0 1px 16px',fontSize:'0.75rem'}}><span>Non-excavators</span><span>{nonExcavators.length}</span></div>
+                </>
+              )}
+              <div className="row" style={{color: getColor(isDarkMode, '#64748b', '#94a3b8'),display:'flex',justifyContent:'space-between',padding:'1px 0',fontSize:'0.8rem'}}><span>Unstuffed</span><span>{unstuffed.length}</span></div>
+              {loc.type === 'row' && (
+                <div className="row" style={{color: getColor(isDarkMode, '#64748b', '#94a3b8'),display:'flex',justifyContent:'space-between',padding:'1px 0 1px 16px',fontSize:'0.75rem'}}><span>Boxes</span><span>{boxes}</span></div>
+              )}
+            </div>
+          )
+        })}
+        <div className="total-row" style={{borderTop:`1px solid ${getColor(isDarkMode, '#e2e8f0', '#334155')}`,marginTop:'6px',paddingTop:'6px',fontWeight:'700',fontSize:'0.9rem',display:'flex',justifyContent:'space-between',color: getColor(isDarkMode, '#1e293b', '#e2e8f0')}}>
+          <span>STACK (Total Stuffed)</span>
+          <span>{containers.filter(c => c.equipment !== 'Unstuffed' && c.equipment !== '').length}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+========================================
+FILE: components/common/FloatingButtons.tsx
+========================================
+Lines: 145
+
+"use client"
+import React, { useState } from 'react'
+import { Icons } from '@/components/icons/Icons'
+
+interface FloatingButtonsProps {
+  setShowReceivalModal: (show: boolean) => void
+  setShowDevanningModal: (show: boolean) => void
+  setShowSearchModal: (show: boolean) => void
+  activeTab: string
+}
+
+export function FloatingButtons({ 
+  setShowReceivalModal, 
+  setShowDevanningModal, 
+  setShowSearchModal, 
+  activeTab 
+}: FloatingButtonsProps) {
+  const [isOpen, setIsOpen] = useState(false)
+
+  const toggleButtons = () => {
+    setIsOpen(!isOpen)
+  }
+
+  return (
+    <div style={{ position: 'fixed', bottom: '80px', right: '16px', zIndex: 100 }}>
+      {/* Main Button */}
+      <button 
+        onClick={toggleButtons}
+        style={{
+          width: '56px',
+          height: '56px',
+          borderRadius: '50%',
+          background: '#1e6f3f',
+          color: 'white',
+          border: 'none',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'transform 0.3s ease',
+          transform: isOpen ? 'rotate(45deg)' : 'rotate(0deg)'
+        }}
+      >
+        <Icons.Add size={28} color="white" />
+      </button>
+
+      {/* Sub Buttons */}
+      <div style={{
+        position: 'absolute',
+        bottom: '70px',
+        right: '0',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+        opacity: isOpen ? 1 : 0,
+        pointerEvents: isOpen ? 'auto' : 'none',
+        transform: isOpen ? 'translateY(0)' : 'translateY(20px)',
+        transition: 'all 0.3s ease'
+      }}>
+        <button 
+          onClick={() => { setShowReceivalModal(true); setIsOpen(false) }}
+          style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            background: '#1e6f3f',
+            color: 'white',
+            border: 'none',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          title="Add Container"
+        >
+          <Icons.Add size={24} color="white" />
+        </button>
+
+        <button 
+          onClick={() => { setShowDevanningModal(true); setIsOpen(false) }}
+          style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            background: '#3b82f6',
+            color: 'white',
+            border: 'none',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          title="Devanning"
+        >
+          <Icons.Devanning size={24} color="white" />
+        </button>
+
+        <button 
+          onClick={() => { setShowSearchModal(true); setIsOpen(false) }}
+          style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            background: '#8b5cf6',
+            color: 'white',
+            border: 'none',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          title="Search"
+        >
+          <Icons.Search size={24} color="white" />
+        </button>
+
+        {activeTab === 'tallies' && (
+          <button 
+            onClick={() => { document.getElementById('tallySearch')?.focus(); setIsOpen(false) }}
+            style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '50%',
+              background: '#f59e0b',
+              color: 'white',
+              border: 'none',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            title="Tally Search"
+          >
+            <Icons.Search size={24} color="white" />
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+
+========================================
+FILE: components/notifications/NotificationBell.tsx
+========================================
+Lines: 235
+
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { BellIcon } from '@heroicons/react/24/outline';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { formatDistanceToNow } from 'date-fns';
+
+interface Notification {
+  id: string;
+  action: string;
+  containerNumber?: string;
+  details?: string;
+  createdAt: string;
+  userId?: string;
+  user?: {
+    name?: string;
+    userId?: string;
+  };
+}
+
+export function NotificationBell() {
+  const { data: session } = useSession();
+  const [isOpen, setIsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const { unreadCount, markAsRead, fetchNotifications, permission } = useNotifications();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const loadNotifications = async () => {
+      if (isOpen) {
+        setIsLoading(true);
+        try {
+          const data = await fetchNotifications();
+          setNotifications(data);
+        } catch (error) {
+          console.error('Error loading notifications:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadNotifications();
+  }, [isOpen, fetchNotifications]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleBellClick = () => {
+    setIsOpen(!isOpen);
+    if (!isOpen && unreadCount > 0) {
+      markAsRead();
+    }
+  };
+
+  const getActionIcon = (action: string) => {
+    switch (action.toLowerCase()) {
+      case 'added':
+      case 'receival':
+        return '📦';
+      case 'devanning':
+      case 'started':
+        return '🔧';
+      case 'unstuffed':
+        return '📋';
+      case 'cleared':
+      case 'loadout':
+        return '✅';
+      case 'evacuated':
+        return '🚛';
+      case 'updated':
+        return '✏️';
+      case 'deleted':
+      case 'removed':
+        return '🗑️';
+      default:
+        return '📢';
+    }
+  };
+
+  const getActionColor = (action: string) => {
+    const lower = action.toLowerCase();
+    if (lower.includes('add') || lower.includes('receival')) return 'text-green-600 dark:text-green-400';
+    if (lower.includes('devanning')) return 'text-blue-600 dark:text-blue-400';
+    if (lower.includes('unstuffed')) return 'text-purple-600 dark:text-purple-400';
+    if (lower.includes('clear') || lower.includes('loadout')) return 'text-green-600 dark:text-green-400';
+    if (lower.includes('evacuat')) return 'text-orange-600 dark:text-orange-400';
+    if (lower.includes('update')) return 'text-yellow-600 dark:text-yellow-400';
+    if (lower.includes('delete') || lower.includes('remove')) return 'text-red-600 dark:text-red-400';
+    return 'text-gray-600 dark:text-gray-400';
+  };
+
+  const getUserDisplay = (notification: Notification) => {
+    if (!notification.userId) return 'System';
+    if (notification.user?.name) return notification.user.name;
+    if (notification.user?.userId) return notification.user.userId;
+    return `User ${notification.userId.slice(0, 8)}`;
+  };
+
+  const getNotificationLink = (notification: Notification) => {
+    // Link to relevant page based on action
+    const action = notification.action.toLowerCase();
+    if (action.includes('devanning')) return '/dashboard/devanning';
+    if (action.includes('unstuffed')) return '/dashboard/unstuffed';
+    if (action.includes('clear') || action.includes('loadout')) return '/dashboard/unstuffed';
+    if (action.includes('evacuat')) return '/dashboard/evacuation';
+    if (action.includes('add') || action.includes('receival')) return '/dashboard/receivals';
+    if (action.includes('update') || action.includes('delete')) return '/dashboard/tallies';
+    return '/dashboard';
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={handleBellClick}
+        className="relative p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        aria-label="Notifications"
+      >
+        <BellIcon className="h-5 w-5" />
+        {unreadCount > 0 && (
+          <span className="absolute top-1 right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse"></span>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-96 max-h-[80vh] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden z-50">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Notifications</h3>
+              <Link
+                href="/dashboard/profile"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                onClick={() => setIsOpen(false)}
+              >
+                View Profile
+              </Link>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}
+            </p>
+          </div>
+
+          <div className="overflow-y-auto max-h-[calc(80vh-8rem)]">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <p className="text-sm">No notifications</p>
+                <p className="text-xs mt-1">New activity will appear here</p>
+              </div>
+            ) : (
+              notifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <span className="text-lg">{getActionIcon(notification.action)}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <Link
+                        href={getNotificationLink(notification)}
+                        onClick={() => setIsOpen(false)}
+                        className="block"
+                      >
+                        <p className="text-sm text-gray-900 dark:text-white">
+                          <span className={`font-medium ${getActionColor(notification.action)}`}>
+                            {notification.action}
+                          </span>
+                          {notification.containerNumber && (
+                            <span className="font-mono ml-1 text-gray-700 dark:text-gray-300">
+                              {notification.containerNumber}
+                            </span>
+                          )}
+                        </p>
+                        {notification.details && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                            {notification.details}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-gray-400 dark:text-gray-500">
+                            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                          </span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">•</span>
+                          <Link
+                            href="/dashboard/profile"
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {getUserDisplay(notification)}
+                          </Link>
+                        </div>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {notifications.length > 0 && (
+            <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-500 dark:text-gray-400">
+                  {notifications.length} notifications
+                </span>
+                <Link
+                  href="/dashboard/profile"
+                  className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Go to Profile →
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: hooks/useNotifications.ts
+========================================
+Lines: 160
+
+import { useState, useEffect, useCallback } from 'react'
+
+export interface Notification {
+  id: string
+  type: 'container' | 'devanning' | 'loadout' | 'evacuation' | 'unstuffed' | 'system'
+  title: string
+  message: string
+  timestamp: Date
+  read: boolean
+  data?: any
+  user?: {
+    id: string
+    name: string
+    userId: string
+  }
+}
+
+export function useNotifications() {
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [permission, setPermission] = useState<NotificationPermission>('default')
+  const [isPushEnabled, setIsPushEnabled] = useState(false)
+  const [hasBeenAsked, setHasBeenAsked] = useState(false)
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('oog_notifications')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        setNotifications(parsed.map((n: any) => ({
+          ...n,
+          timestamp: new Date(n.timestamp)
+        })))
+        const unread = parsed.filter((n: any) => !n.read).length
+        setUnreadCount(unread)
+      }
+
+      const asked = localStorage.getItem('oog_notification_asked')
+      if (asked === 'true') {
+        setHasBeenAsked(true)
+      }
+
+      const enabled = localStorage.getItem('oog_notification_enabled')
+      if (enabled === 'true') {
+        setIsPushEnabled(true)
+        setPermission('granted')
+      }
+    } catch (e) {
+      console.error('Error loading notifications:', e)
+    }
+  }, [])
+
+  const requestPermission = useCallback(async () => {
+    if (hasBeenAsked) {
+      return isPushEnabled
+    }
+
+    if (!('Notification' in window)) {
+      setHasBeenAsked(true)
+      localStorage.setItem('oog_notification_asked', 'true')
+      return false
+    }
+
+    try {
+      const result = await Notification.requestPermission()
+      const granted = result === 'granted'
+      
+      setPermission(granted ? 'granted' : 'denied')
+      setIsPushEnabled(granted)
+      setHasBeenAsked(true)
+      
+      localStorage.setItem('oog_notification_asked', 'true')
+      localStorage.setItem('oog_notification_enabled', String(granted))
+      
+      return granted
+    } catch (error) {
+      console.error('Notification permission error:', error)
+      setHasBeenAsked(true)
+      localStorage.setItem('oog_notification_asked', 'true')
+      return false
+    }
+  }, [hasBeenAsked, isPushEnabled])
+
+  const toggleNotifications = useCallback(() => {
+    const newState = !isPushEnabled
+    setIsPushEnabled(newState)
+    localStorage.setItem('oog_notification_enabled', String(newState))
+    if (newState && Notification.permission !== 'granted') {
+      requestPermission()
+    }
+    return newState
+  }, [isPushEnabled, requestPermission])
+
+  const addNotification = useCallback((
+    notification: Omit<Notification, 'id' | 'timestamp' | 'read'>,
+    sendPush: boolean = true
+  ) => {
+    const newNotification: Notification = {
+      ...notification,
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: new Date(),
+      read: false,
+    }
+
+    setNotifications(prev => [newNotification, ...prev])
+    setUnreadCount(prev => prev + 1)
+
+    if (sendPush && isPushEnabled && Notification.permission === 'granted') {
+      try {
+        const userInfo = notification.user ? ` by ${notification.user.name}` : ''
+        new Notification(notification.title, {
+          body: `${notification.message}${userInfo}`,
+          icon: '/logo.png',
+          vibrate: [200, 100, 200],
+        })
+      } catch (error) {
+        console.error('Push notification error:', error)
+      }
+    }
+
+    return newNotification
+  }, [isPushEnabled])
+
+  const markAsRead = useCallback((id: string) => {
+    setNotifications(prev => {
+      const updated = prev.map(n => n.id === id ? { ...n, read: true } : n)
+      const unread = updated.filter(n => !n.read).length
+      setUnreadCount(unread)
+      return updated
+    })
+  }, [])
+
+  const markAllAsRead = useCallback(() => {
+    setNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, read: true }))
+      setUnreadCount(0)
+      return updated
+    })
+  }, [])
+
+  const clearAll = useCallback(() => {
+    setNotifications([])
+    setUnreadCount(0)
+  }, [])
+
+  return {
+    notifications,
+    unreadCount,
+    permission,
+    isPushEnabled,
+    hasBeenAsked,
+    requestPermission,
+    toggleNotifications,
+    addNotification,
+    markAsRead,
+    markAllAsRead,
+    clearAll,
+    setNotifications,
+  }
+}
+
+
+========================================
+FILE: hooks/useRealtime.ts
+========================================
+Lines: 86
+
+import { useEffect, useState, useRef } from 'react'
+import { supabase } from '@/lib/db'
+
+type RealtimeEvent = {
+  table: string
+  action: 'INSERT' | 'UPDATE' | 'DELETE'
+  new: any
+  old: any
+  user?: {
+    id: string
+    name: string
+    userId: string
+  }
+}
+
+export function useRealtime(
+  table: string,
+  onEvent: (event: RealtimeEvent) => void
+) {
+  const [isConnected, setIsConnected] = useState(false)
+  const onEventRef = useRef(onEvent)
+
+  useEffect(() => {
+    onEventRef.current = onEvent
+  }, [onEvent])
+
+  useEffect(() => {
+    if (!table) return
+
+    const channel = supabase
+      .channel(`table-changes-${table}-${Date.now()}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: table,
+        },
+        async (payload) => {
+          console.log(`📡 Realtime event on ${table}:`, payload.eventType, payload)
+          
+          // Try to get user info from ActivityLog
+          let userInfo = null
+          try {
+            // Get the most recent activity for this container
+            const { data: activity } = await supabase
+              .from('ActivityLog')
+              .select('userId, User!inner(name, userId)')
+              .eq('containerNumber', payload.new?.containerNumber || payload.old?.containerNumber)
+              .order('createdAt', { ascending: false })
+              .limit(1)
+            
+            if (activity && activity.length > 0 && activity[0].User) {
+              userInfo = {
+                id: activity[0].userId,
+                name: activity[0].User.name,
+                userId: activity[0].User.userId
+              }
+            }
+          } catch (error) {
+            console.warn('Could not fetch user info:', error)
+          }
+          
+          onEventRef.current({
+            table: payload.table,
+            action: payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE',
+            new: payload.new,
+            old: payload.old,
+            user: userInfo || undefined
+          })
+        }
+      )
+      .subscribe((status) => {
+        const connected = status === 'SUBSCRIBED'
+        setIsConnected(connected)
+        console.log(`📡 Realtime ${table} status:`, status)
+      })
+
+    return () => {
+      console.log(`📡 Unsubscribing from ${table}`)
+      supabase.removeChannel(channel)
+    }
+  }, [table])
+
+  return { isConnected }
+}
+
+
+========================================
+FILE: hooks/useDarkMode.ts
+========================================
+Lines: 20
+
+import { useState, useEffect } from 'react'
+
+export function useDarkMode() {
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  useEffect(() => {
+    const dark = localStorage.getItem('oog_dark_mode') === 'true'
+    setIsDarkMode(dark)
+    if (dark) document.body.classList.add('dark-mode')
+  }, [])
+
+  const toggleDarkMode = () => {
+    const newMode = !isDarkMode
+    setIsDarkMode(newMode)
+    document.body.classList.toggle('dark-mode', newMode)
+    localStorage.setItem('oog_dark_mode', String(newMode))
+  }
+
+  return { isDarkMode, toggleDarkMode }
+}
+
+
+========================================
+FILE: hooks/useData.ts
+========================================
+Lines: 51
+
+import { useState, useEffect, useCallback } from 'react'
+
+export function useData() {
+  const [containers, setContainers] = useState([])
+  const [importQueue, setImportQueue] = useState([])
+  const [devanningQueue, setDevanningQueue] = useState([])
+  const [unstuffedContainers, setUnstuffedContainers] = useState([])
+  const [evacuationRecords, setEvacuationRecords] = useState([])
+  const [loadingRecords, setLoadingRecords] = useState([])
+  const [activityLog, setActivityLog] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchAllData = useCallback(async () => {
+    try {
+      const [c, q, d, u, e, l, a] = await Promise.all([
+        fetch('/api/containers'), fetch('/api/import-queue'), fetch('/api/devanning'),
+        fetch('/api/unstuffed'), fetch('/api/evacuation'), fetch('/api/loadout'), fetch('/api/activity?limit=100')
+      ])
+      const [cd, qd, dd, ud, ed, ld, ad] = await Promise.all([
+        c.json().catch(() => []), q.json().catch(() => []), d.json().catch(() => []),
+        u.json().catch(() => []), e.json().catch(() => []), l.json().catch(() => []), a.json().catch(() => [])
+      ])
+      setContainers(cd)
+      setImportQueue(qd)
+      setDevanningQueue(dd)
+      setUnstuffedContainers(ud)
+      setEvacuationRecords(ed)
+      setLoadingRecords(ld)
+      setActivityLog(ad)
+      setLoading(false)
+    } catch (err) {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchAllData()
+  }, [fetchAllData])
+
+  return {
+    containers, setContainers,
+    importQueue, setImportQueue,
+    devanningQueue, setDevanningQueue,
+    unstuffedContainers, setUnstuffedContainers,
+    evacuationRecords, setEvacuationRecords,
+    loadingRecords, setLoadingRecords,
+    activityLog, setActivityLog,
+    loading,
+    fetchAllData
+  }
+}
+
+
+========================================
+FILE: hooks/useToast.ts
+========================================
+Lines: 22
+
+import { useRef, useCallback } from 'react'
+
+export function useToast() {
+  const toastStackRef = useRef(null)
+
+  const showToast = useCallback((msg: string) => {
+    let container = toastStackRef.current
+    if (!container) {
+      container = document.createElement('div')
+      container.className = 'toast-stack'
+      document.body.appendChild(container)
+      toastStackRef.current = container
+    }
+    const toast = document.createElement('div')
+    toast.className = 'toast-item'
+    toast.textContent = msg
+    container.appendChild(toast)
+    setTimeout(() => toast.remove(), 3000)
+  }, [])
+
+  return { showToast }
+}
+
+
+========================================
+FILE: hooks/useTabCounts.ts
+========================================
+Lines: 55
+
+import { useState, useEffect } from 'react';
+import { getTabCounts } from '@/lib/utils';
+
+interface TabCounts {
+  queue: number;
+  receivals: number;
+  tallies: number;
+  devanning: number;
+  unstuffed: number;
+}
+
+export const useTabCounts = () => {
+  const [counts, setCounts] = useState<TabCounts>({
+    queue: 0,
+    receivals: 0,
+    tallies: 0,
+    devanning: 0,
+    unstuffed: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  const fetchCounts = async () => {
+    try {
+      const newCounts = await getTabCounts();
+      setCounts(newCounts);
+    } catch (error) {
+      console.error('Error fetching tab counts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCounts();
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchCounts, 30000);
+    
+    // Listen for visibility change to refresh when user returns to tab
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchCounts();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  return { counts, loading, refreshCounts: fetchCounts };
+};
+
+
+========================================
+FILE: lib/db.ts
+========================================
+Lines: 45
+
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('❌ Missing Supabase environment variables!')
+  console.error('URL:', supabaseUrl)
+  console.error('Key:', supabaseKey ? 'Set but hidden' : 'Missing')
+}
+
+export const supabase = createClient(supabaseUrl || '', supabaseKey || '', {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+  global: {
+    headers: {
+      'apikey': supabaseKey || '',
+    },
+  },
+})
+
+// Simple query wrapper for compatibility
+export async function query(table: string, select: string = '*', filters: Record<string, any> = {}) {
+  try {
+    let query = supabase.from(table).select(select)
+    
+    // Apply filters
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        query = query.eq(key, value)
+      }
+    })
+    
+    const { data, error } = await query
+    if (error) throw error
+    return { rows: data || [], rowCount: data?.length || 0 }
+  } catch (error: any) {
+    console.error(`❌ Query error on ${table}:`, error.message)
+    return { rows: [], rowCount: 0, error: error.message }
+  }
+}
+
+export default supabase
+
+
+========================================
+FILE: lib/types.ts
+========================================
+Lines: 148
+
+export interface User {
+  id: string
+  name: string
+  email: string
+  userId: string
+  phone: string
+  role: 'user' | 'officer'
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Container {
+  id: string
+  containerNumber: string
+  position: string
+  size: string
+  type: string
+  equipment: string
+  auxCargo: string
+  auxCargoType: string
+  auxCargoQuantity: number
+  vessel: string
+  arrivalDate: string
+  remarks: string
+  receivedDate: string
+  userId: string
+  devanningAttempts: number
+  lastDevanningAttempt: string
+}
+
+export interface DevanningQueue {
+  id: string
+  containerNumber: string
+  size: string
+  type: string
+  position: string
+  equipment: string
+  auxCargo: string
+  auxCargoType: string
+  auxCargoQuantity: number
+  vessel: string
+  arrivalDate: string
+  agency: string
+  devanningType: string
+  remarks: string
+  status: string
+  devanningStatus: 'in_stack' | 'breaking' | 'positioned' | 'unlashing' | 'ready_to_drop'
+  step_breaking: boolean
+  step_breaking_at: string
+  step_positioned: boolean
+  step_positioned_at: string
+  step_unlashing: boolean
+  step_unlashing_at: string
+  step_ready_to_drop: boolean
+  step_ready_to_drop_at: string
+  fuelNeeded: boolean
+  electricalFault: boolean
+  mechanicalFault: boolean
+  fuel_resolved: boolean
+  fuel_resolved_at: string
+  fuel_resolved_by: string
+  electrical_resolved: boolean
+  electrical_resolved_at: string
+  electrical_resolved_by: string
+  mechanical_resolved: boolean
+  mechanical_resolved_at: string
+  mechanical_resolved_by: string
+  damageRemarks: string
+  bookedDate: string
+  expired: boolean
+  expiredAt: string
+  movedToDevanAt: string
+  userId: string
+}
+
+export interface UnstuffedContainer {
+  id: string
+  containerNumber: string
+  size: string
+  type: string
+  position: string
+  equipment: string
+  auxCargo: string
+  auxCargoType: string
+  auxCargoQuantity: number
+  vessel: string
+  arrivalDate: string
+  agency: string
+  devanningType: string
+  remarks: string
+  unstuffedAt: string
+  userId: string
+}
+
+export interface Location {
+  id: string
+  name: string
+  positions: string[]
+  type: string
+  prefix: string
+  columns: number
+  rows: number
+}
+
+export interface EvacuationRecord {
+  id: string
+  containerNumber: string
+  size: string
+  type: string
+  position: string
+  equipment: string
+  vessel: string
+  arrivalDate: string
+  auxCargo: string
+  devanningType: string
+  evacuatedAt: string
+  userId: string
+}
+
+export interface LoadoutRecord {
+  id: string
+  containerNumber: string
+  size: string
+  type: string
+  equipment: string
+  vessel: string
+  arrivalDate: string
+  unstuffedDate: string
+  deliveryDate: string
+  location: string
+  content: string
+  truckPlate: string
+  agentContact: string
+  boxesLoaded: number
+  devanningType: string
+  remarks: string
+  clearedAt: string
+  userId: string
+}
+
+export interface ActivityLog {
+  id: string
+  userId: string
+  action: string
+  containerNumber: string
+  details: string
+  createdAt: string
+}
+
+
+========================================
+FILE: lib/constants.ts
+========================================
+Lines: 82
+
+export const EQUIPMENT_LIST = [
+  'Excavator', '2x Excavator', 'General Goods', 'Boxed Cargo', 'Cone Crusher',
+  'Surface Drill Rig', 'Dump Truck', 'Fork Lift', 'Reach Stacker', 'Earthmover Tyres',
+  'Grader', 'Compact Roller', 'Excavator Drill Rig', 'Bulldozer', 'Truck Head',
+  'Drilling Rig', 'Bus', 'Wheel Loader', 'Asphalt Paver', 'Backhoe',
+  '3 Tonner', '16 Tonner', '32 Tonner'
+]
+
+export const AUX_CARGO_TYPES = ['Boxes', 'Pallets', 'Barrel', 'Bundle', 'Units', 'Pieces']
+
+export const MACHINE_TYPES = ['3 Tonner', '16 Tonner', '32 Tonner', 'Reach Stacker']
+
+export const DEVANNING_STATUSES = [
+  { value: 'in_stack', label: '📦 In Stack', color: '#94a3b8', progress: 0 },
+  { value: 'breaking', label: '🔨 Breaking', color: '#f59e0b', progress: 25 },
+  { value: 'positioned', label: '📍 Positioned', color: '#3b82f6', progress: 50 },
+  { value: 'unlashing', label: '🔗 Unlashing', color: '#8b5cf6', progress: 75 },
+  { value: 'ready_to_drop', label: '📦 Ready to Drop', color: '#10b981', progress: 90 }
+]
+
+export const DEVANNING_STEPS = ['in_stack', 'breaking', 'positioned', 'unlashing', 'ready_to_drop']
+
+export const DEFAULT_LOCATIONS = [
+  { 
+    id: 'loc_1', 
+    name: 'Japan', 
+    type: 'grid', 
+    prefix: 'J', 
+    columns: 2, 
+    rows: 11, 
+    positions: ['L1','L2','L3','L4','L5','L6','L7','L8','L9','L10','L11','R1','R2','R3','R4','R5','R6','R7','R8','R9','R10','R11','M'] 
+  },
+  { 
+    id: 'loc_2', 
+    name: 'Ship Yard', 
+    type: 'grid', 
+    prefix: 'SY', 
+    columns: 1, 
+    rows: 15, 
+    positions: ['SY1','SY2','SY3','SY4','SY5','SY6','SY7','SY8','SY9','SY10','SY11','SY12','SY13','SY14','SY15'] 
+  },
+  { 
+    id: 'loc_3', 
+    name: 'Kilimanjaro', 
+    type: 'grid', 
+    prefix: 'K', 
+    columns: 1, 
+    rows: 1, 
+    positions: ['K'] 
+  },
+  { 
+    id: 'loc_4', 
+    name: 'T2', 
+    type: 'row', 
+    positions: ['T2'] 
+  },
+  { 
+    id: 'loc_5', 
+    name: 'Shipside', 
+    type: 'row', 
+    positions: ['SS'] 
+  },
+  { 
+    id: 'loc_6', 
+    name: 'Western Gate', 
+    type: 'row', 
+    positions: ['WG1','WG2','WG3','WG4','WG5','WG6','WG7','WG8','WG9','WG10','WG11','WG12'] 
+  }
+]
+
+export const DEFAULT_SHIFT = {
+  supervisors: [{name: 'Not Assigned', contact: ''}, {name: 'Not Assigned', contact: ''}],
+  operators: [
+    { name: 'Not Assigned', contact: '', machine: '3 Tonner' },
+    { name: 'Not Assigned', contact: '', machine: '16 Tonner' },
+    { name: 'Not Assigned', contact: '', machine: '32 Tonner' },
+    { name: 'Not Assigned', contact: '', machine: 'Reach Stacker' }
+  ]
+}
+
+export const WORKER_ID_REGEX_1 = /^[A-Z]{2}\d{6}$/
+export const WORKER_ID_REGEX_2 = /^\d{7}$/
+
+
+========================================
+FILE: lib/utils.ts
+========================================
+Lines: 76
+
+import { supabase } from './db';
+
+export const getTabCounts = async () => {
+  try {
+    // Get queue count
+    const { count: queueCount } = await supabase
+      .from('ImportQueue')
+      .select('*', { count: 'exact', head: true });
+
+    // Get receivals count (last 4 days)
+    const fourDaysAgo = new Date();
+    fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
+    const { count: receivalsCount } = await supabase
+      .from('Container')
+      .select('*', { count: 'exact', head: true })
+      .gte('receivedDate', fourDaysAgo.toISOString().split('T')[0]);
+
+    // Get tallies count (all containers)
+    const { count: talliesCount } = await supabase
+      .from('Container')
+      .select('*', { count: 'exact', head: true });
+
+    // Get devanning count (pending)
+    const { count: devanningCount } = await supabase
+      .from('DevanningQueue')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+
+    // Get unstuffed count
+    const { count: unstuffedCount } = await supabase
+      .from('UnstuffedContainer')
+      .select('*', { count: 'exact', head: true });
+
+    return {
+      queue: queueCount || 0,
+      receivals: receivalsCount || 0,
+      tallies: talliesCount || 0,
+      devanning: devanningCount || 0,
+      unstuffed: unstuffedCount || 0,
+    };
+  } catch (error) {
+    console.error('Error fetching tab counts:', error);
+    return { queue: 0, receivals: 0, tallies: 0, devanning: 0, unstuffed: 0 };
+  }
+};
+
+export const formatDate = (date: string | Date) => {
+  return new Date(date).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
+export const formatTime = (date: string | Date) => {
+  return new Date(date).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+export const formatDateTime = (date: string | Date) => {
+  return `${formatDate(date)} ${formatTime(date)}`;
+};
+
+export const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(amount);
+};
+
+export const truncateText = (text: string, length: number = 50) => {
+  if (text.length <= length) return text;
+  return text.substring(0, length) + '...';
+};
+
+
+========================================
+FILE: lib/auth-helpers.ts
+========================================
+Lines: 22
+
+import { supabase } from './db'
+
+export async function getUserIdFromSession(session: any) {
+  if (!session?.user?.userId) return null
+  
+  try {
+    const { data, error } = await supabase
+      .from('User')
+      .select('id')
+      .eq('userId', session.user.userId)
+      .single()
+    
+    if (error) {
+      console.error('Error getting user ID:', error)
+      return null
+    }
+    return data?.id
+  } catch (error) {
+    console.error('Error getting user ID:', error)
+    return null
+  }
+}
+
+
+========================================
+FILE: services/containerService.ts
+========================================
+Lines: 32
+
+import { query } from '@/lib/db'
+
+export const containerService = {
+  async getAll() {
+    const result = await query('SELECT * FROM "Container" ORDER BY "receivedDate" DESC')
+    return result.rows
+  },
+
+  async create(data: any) {
+    const { containerNumber, position, size, type, equipment, auxCargo, auxCargoType, auxCargoQuantity, remarks, userId } = data
+    const result = await query(
+      `INSERT INTO "Container" ("containerNumber", position, size, type, equipment, "auxCargo", "auxCargoType", "auxCargoQuantity", remarks, "userId") 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      [containerNumber, position, size, type, equipment, auxCargo, auxCargoType, auxCargoQuantity, remarks, userId]
+    )
+    return result.rows[0]
+  },
+
+  async update(id: string, data: any) {
+    const { position, size, type, equipment, auxCargo, remarks } = data
+    const result = await query(
+      `UPDATE "Container" SET position = $1, size = $2, type = $3, equipment = $4, "auxCargo" = $5, remarks = $6 WHERE id = $7 RETURNING *`,
+      [position, size, type, equipment, auxCargo, remarks, id]
+    )
+    return result.rows[0]
+  },
+
+  async delete(id: string) {
+    await query('DELETE FROM "Container" WHERE id = $1', [id])
+    return { success: true }
+  }
+}
+
+
+========================================
+FILE: services/devanningService.ts
+========================================
+Lines: 149
+
+import { query } from '@/lib/db'
+
+export const devanningService = {
+  async getAll() {
+    const result = await query('SELECT * FROM "DevanningQueue" ORDER BY "movedToDevanAt" DESC')
+    return result.rows
+  },
+
+  async create(data: any) {
+    const { 
+      containerNumber, containerId, position, size, type, equipment, 
+      auxCargo, auxCargoType, auxCargoQuantity, vessel, arrivalDate, 
+      devanningType, agency, remarks, userId 
+    } = data
+    const today = new Date().toISOString().split('T')[0]
+    const cleanVessel = vessel && vessel.trim() !== '' ? vessel.trim() : null
+    const cleanArrivalDate = arrivalDate && arrivalDate.trim() !== '' ? arrivalDate.trim() : null
+    
+    const result = await query(
+      `INSERT INTO "DevanningQueue" (
+        "containerNumber", size, type, position, equipment, "auxCargo", 
+        "auxCargoType", "auxCargoQuantity", vessel, "arrivalDate", 
+        "devanningType", agency, remarks, "userId", "devanningStatus", "bookedDate"
+      ) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) 
+      RETURNING *`,
+      [
+        containerNumber.toUpperCase().trim(), size, type, position, equipment, 
+        auxCargo || '', auxCargoType || 'units', auxCargoQuantity || 0, 
+        cleanVessel, cleanArrivalDate, devanningType || 'unstuffing', 
+        agency || '', remarks || '', userId, 'in_stack', today
+      ]
+    )
+    if (containerId) {
+      await query('DELETE FROM "Container" WHERE id = $1', [containerId])
+    }
+    return result.rows[0]
+  },
+
+  async updateStep(id: string, step: string, userId: string, flags: any) {
+    const { fuelNeeded, electricalFault, mechanicalFault, damageRemarks } = flags
+    const stepColumn = `step_${step}`
+    const stepAtColumn = `step_${step}_at`
+    const stepLabel = step === 'ready_to_drop' ? 'Ready to Drop' : step.charAt(0).toUpperCase() + step.slice(1)
+    
+    await query(
+      `UPDATE "DevanningQueue" SET 
+        ${stepColumn} = TRUE, 
+        ${stepAtColumn} = CURRENT_TIMESTAMP, 
+        "devanningStatus" = $1, 
+        "statusUpdatedAt" = CURRENT_TIMESTAMP, 
+        "statusUpdatedBy" = $2, 
+        "fuelNeeded" = $3, 
+        "electricalFault" = $4, 
+        "mechanicalFault" = $5, 
+        "damageRemarks" = $6 
+      WHERE id = $7`,
+      [step, userId, fuelNeeded || false, electricalFault || false, mechanicalFault || false, damageRemarks || '', id]
+    )
+    await query(
+      `INSERT INTO "DevanningStepHistory" ("devanningId", "stepName", "completed", "completedBy") 
+       VALUES ($1, $2, $3, $4)`,
+      [id, stepLabel, true, userId]
+    )
+    return { success: true, step }
+  },
+
+  async resolveFlag(id: string, flagType: string, userId: string) {
+    const validFlags = ['fuel', 'electrical', 'mechanical']
+    if (!validFlags.includes(flagType)) {
+      throw new Error('Invalid flag type')
+    }
+    
+    const column = `${flagType}_resolved`
+    const atColumn = `${flagType}_resolved_at`
+    const byColumn = `${flagType}_resolved_by`
+    
+    await query(
+      `UPDATE "DevanningQueue" SET 
+        ${column} = TRUE, 
+        ${atColumn} = CURRENT_TIMESTAMP, 
+        ${byColumn} = $1 
+      WHERE id = $2`,
+      [userId, id]
+    )
+    return { success: true }
+  },
+
+  async unstuff(id: string, userId: string) {
+    const item = await query('SELECT * FROM "DevanningQueue" WHERE id = $1', [id])
+    if (!item.rows.length) throw new Error('Not found')
+    const d = item.rows[0]
+    
+    const cleanVessel = d.vessel && d.vessel.trim() !== '' ? d.vessel.trim() : null
+    const cleanArrivalDate = d.arrivalDate && d.arrivalDate.trim() !== '' ? d.arrivalDate.trim() : null
+    
+    await query(
+      `INSERT INTO "UnstuffedContainer" (
+        "containerNumber", size, type, position, equipment, "auxCargo",
+        "auxCargoType", "auxCargoQuantity", vessel, "arrivalDate", 
+        agency, "devanningType", remarks, "userId"
+      ) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+      [
+        d.containerNumber, d.size, d.type, d.position, d.equipment, 
+        d.auxCargo || '', d.auxCargoType || 'units', d.auxCargoQuantity || 0, 
+        cleanVessel, cleanArrivalDate, 
+        d.agency || '', d.devanningType || 'unstuffing', d.remarks || '', userId
+      ]
+    )
+    await query('DELETE FROM "DevanningQueue" WHERE id = $1', [id])
+    return { success: true }
+  },
+
+  async checkExpired() {
+    const now = new Date()
+    const today6am = new Date(now)
+    today6am.setHours(6, 0, 0, 0)
+    if (now < today6am) {
+      today6am.setDate(today6am.getDate() - 1)
+    }
+    
+    const result = await query(
+      `SELECT * FROM "DevanningQueue" 
+       WHERE "bookedDate" < $1 
+       AND expired = FALSE 
+       AND "devanningStatus" != 'ready_to_drop'`,
+      [today6am.toISOString().split('T')[0]]
+    )
+    
+    for (const item of result.rows) {
+      await query(
+        `INSERT INTO "Container" (
+          "containerNumber", position, size, type, equipment, "auxCargo",
+          "auxCargoType", "auxCargoQuantity", vessel, "arrivalDate", remarks, "receivedDate"
+        ) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+        [
+          item.containerNumber, item.position, item.size, item.type, 
+          item.equipment, item.auxCargo || '', item.auxCargoType || 'units', 
+          item.auxCargoQuantity || 0, item.vessel || '', item.arrivalDate || '',
+          item.remarks || '', new Date().toISOString().split('T')[0]
+        ]
+      )
+      await query('UPDATE "DevanningQueue" SET expired = TRUE, expiredAt = CURRENT_TIMESTAMP WHERE id = $1', [item.id])
+    }
+    return result.rows
+  }
+}
+
+
+========================================
+FILE: app/api/auth/[...nextauth]/route.ts
+========================================
+Lines: 105
+
+import NextAuth from 'next-auth'
+import CredentialsProvider from 'next-auth/providers/credentials'
+import { supabase } from '@/lib/db'
+import bcrypt from 'bcryptjs'
+
+export const authOptions = {
+  providers: [
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        workerId: { label: 'Worker ID', type: 'text' },
+        password: { label: 'Password', type: 'password' }
+      },
+      async authorize(credentials) {
+        if (!credentials?.workerId || !credentials?.password) {
+          console.log('❌ Missing credentials')
+          return null
+        }
+
+        try {
+          console.log('🔍 Looking for user:', credentials.workerId.toUpperCase().trim())
+          
+          const { data: users, error } = await supabase
+            .from('User')
+            .select('*')
+            .eq('userId', credentials.workerId.toUpperCase().trim())
+
+          if (error) {
+            console.error('❌ Supabase error:', error.message)
+            return null
+          }
+
+          console.log('📊 Found users:', users?.length || 0)
+
+          if (!users || users.length === 0) {
+            console.log('❌ No user found with ID:', credentials.workerId)
+            return null
+          }
+
+          const user = users[0]
+          console.log('👤 User found:', user.userId)
+
+          if (!user.password) {
+            console.log('❌ User has no password')
+            return null
+          }
+
+          const isValid = await bcrypt.compare(credentials.password, user.password)
+          console.log('🔐 Password valid:', isValid)
+
+          if (!isValid) return null
+
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            userId: user.userId,
+            phone: user.phone,
+            role: user.role || 'user'
+          }
+        } catch (error: any) {
+          console.error('❌ Auth error:', error.message)
+          return null
+        }
+      }
+    })
+  ],
+  session: {
+    strategy: 'jwt' as const,
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id
+        token.role = user.role
+        token.userId = user.userId
+        token.name = user.name
+        token.email = user.email
+        token.phone = user.phone
+      }
+      return token
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string
+        session.user.role = token.role as string
+        session.user.userId = token.userId as string
+        session.user.name = token.name as string
+        session.user.email = token.email as string
+        session.user.phone = token.phone as string
+      }
+      return session
+    }
+  },
+  pages: {
+    signIn: '/login',
+    error: '/login',
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: true, // Enable debug logging
+}
+
+const handler = NextAuth(authOptions)
+export { handler as GET, handler as POST }
+
+
+========================================
+FILE: app/login/page.tsx
+========================================
+Lines: 64
+
+'use client'
+import React, { useState } from 'react'
+import { signIn } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+
+export default function LoginPage() {
+  const [workerId, setWorkerId] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    const res = await signIn('credentials', { workerId, password, redirect: false })
+    setLoading(false)
+    if (res?.error) { 
+      setError('Invalid Worker ID or password') 
+    } else { 
+      router.push('/dashboard')
+      router.refresh()
+    }
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f2f5' }}>
+      <div style={{ background: 'white', padding: '40px', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <span style={{ fontSize: '40px' }}>🚢</span>
+          <h1 style={{ marginTop: '8px', fontSize: '24px', fontWeight: '700' }}>OOG Terminal</h1>
+          <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Sign in with your Worker ID</p>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>Worker ID</label>
+            <input type="text" value={workerId} onChange={(e) => setWorkerId(e.target.value.toUpperCase().trim())} placeholder="e.g., ADMIN001"
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', outline: 'none' }} required />
+          </div>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>Password</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', outline: 'none' }} required />
+          </div>
+          {error && <p style={{ color: '#dc2626', marginBottom: '12px', fontSize: '0.85rem' }}>{error}</p>}
+          <button type="submit" disabled={loading} style={{ width: '100%', padding: '12px', background: loading ? '#6c757d' : '#1e6f3f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer' }}>
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+        <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '0.85rem' }}>
+          <Link href="/signup" style={{ color: '#1e6f3f', textDecoration: 'underline' }}>Don't have an account? Sign up</Link>
+        <div style={{ marginTop: "8px", textAlign: "center", fontSize: "0.8rem" }}>
+          <Link href="/auth/reset-password" style={{ color: "#64748b", textDecoration: "underline" }}>Forgot Password?</Link>
+        </div>
+        </div>
+        <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.65rem', color: '#94a3b8', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
+          Developed by <strong>O'Bour Dev</strong> © 2026
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+========================================
+FILE: app/signup/page.tsx
+========================================
+Lines: 129
+
+'use client'
+import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+
+export default function SignupPage() {
+  const [email, setEmail] = useState('')
+  const [workerId, setWorkerId] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [phone, setPhone] = useState('')
+  const [name, setName] = useState('')
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+    
+    if (!email || !workerId || !password || !confirmPassword || !phone) {
+      setError('Please fill in all fields')
+      return
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters')
+      return
+    }
+    
+    // Worker ID: 7 digits OR 2 letters + 6 digits
+    const workerIdRegex1 = /^\d{7}$/           // 7 digits (staff)
+    const workerIdRegex2 = /^[A-Z]{2}\d{6}$/   // 2 letters + 6 digits (casual)
+    const cleanWorkerId = workerId.toUpperCase().trim()
+    
+    if (!workerIdRegex1.test(cleanWorkerId) && !workerIdRegex2.test(cleanWorkerId)) {
+      setError('Worker ID must be either:\n• 7 digits (e.g., 7890411) for staff\n• 2 letters + 6 digits (e.g., SP670311) for casual workers')
+      return
+    }
+    
+    setLoading(true)
+    try {
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, workerId: cleanWorkerId, password, phone, name })
+      })
+      const data = await response.json()
+      if (response.ok) {
+        setSuccess('✅ Account created successfully! Redirecting to login...')
+        setTimeout(() => router.push('/login'), 2000)
+      } else {
+        setError(data.error || 'Signup failed. Please try again.')
+      }
+    } catch (err) {
+      setError('Network error. Please check your connection.')
+    }
+    setLoading(false)
+  }
+
+  const textColor = '#1e293b'
+  const mutedColor = '#64748b'
+  const borderColor = '#d1d5db'
+  const primaryColor = '#1e6f3f'
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f2f5', padding: '20px' }}>
+      <div style={{ background: 'white', padding: '40px', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', width: '100%', maxWidth: '420px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <span style={{ fontSize: '40px' }}>📝</span>
+          <h1 style={{ marginTop: '8px', fontSize: '24px', fontWeight: '700', color: textColor }}>Create Account</h1>
+          <p style={{ color: mutedColor, fontSize: '0.85rem' }}>Register with your Worker ID</p>
+        </div>
+        {error && <div style={{ background: '#fee2e2', color: '#dc2626', padding: '10px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.85rem', whiteSpace: 'pre-line' }}>❌ {error}</div>}
+        {success && <div style={{ background: '#d1fae5', color: '#059669', padding: '10px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.85rem' }}>✅ {success}</div>}
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>Full Name</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name"
+              style={{ width: '100%', padding: '10px 12px', border: `1px solid ${borderColor}`, borderRadius: '8px', fontSize: '0.9rem' }} />
+          </div>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>Email</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com"
+              style={{ width: '100%', padding: '10px 12px', border: `1px solid ${borderColor}`, borderRadius: '8px', fontSize: '0.9rem' }} required />
+          </div>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>Worker ID</label>
+            <input type="text" value={workerId} onChange={(e) => setWorkerId(e.target.value.toUpperCase().trim())} 
+              placeholder="7 digits (staff) OR 2 letters+6 digits (casual)" 
+              style={{ width: '100%', padding: '10px 12px', border: `1px solid ${borderColor}`, borderRadius: '8px', fontSize: '0.9rem' }} required />
+            <div style={{ fontSize: '0.6rem', color: mutedColor, marginTop: '4px' }}>
+              Staff: 7 digits (e.g., 7890411) | Casual: 2 letters + 6 digits (e.g., SP670311)
+            </div>
+          </div>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>Phone Number</label>
+            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0209679230"
+              style={{ width: '100%', padding: '10px 12px', border: `1px solid ${borderColor}`, borderRadius: '8px', fontSize: '0.9rem' }} required />
+          </div>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>Password</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min 6 characters"
+              style={{ width: '100%', padding: '10px 12px', border: `1px solid ${borderColor}`, borderRadius: '8px', fontSize: '0.9rem' }} required />
+          </div>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>Confirm Password</label>
+            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm password"
+              style={{ width: '100%', padding: '10px 12px', border: `1px solid ${borderColor}`, borderRadius: '8px', fontSize: '0.9rem' }} required />
+          </div>
+          <button type="submit" disabled={loading} style={{ width: '100%', padding: '12px', background: loading ? '#6c757d' : primaryColor, color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer' }}>
+            {loading ? 'Creating Account...' : 'Sign Up'}
+          </button>
+        </form>
+        <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '0.85rem' }}>
+          <Link href="/login" style={{ color: primaryColor, textDecoration: 'underline' }}>Already have an account? Login</Link>
+        </div>
+        <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.65rem', color: '#94a3b8', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
+          Developed by <strong>O'Bour Dev</strong> © 2026
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+========================================
+FILE: app/dashboard/profile/page.tsx
+========================================
+Lines: 200
+
+// app/dashboard/profile/page.tsx
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { supabase } from '@/lib/db';
+import { useToast } from '@/hooks/useToast';
+import { User } from '@/lib/types';
+
+export default function UserProfilePage() {
+  const { data: session } = useSession();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    email: '',
+  });
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, [session]);
+
+  const fetchUserProfile = async () => {
+    if (!session?.user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('User')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error) throw error;
+      
+      setUser(data);
+      setFormData({
+        name: data.name || '',
+        phone: data.phone || '',
+        email: data.email || '',
+      });
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      showToast('Failed to load profile', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!session?.user?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('User')
+        .update({
+          name: formData.name,
+          phone: formData.phone,
+          updatedAt: new Date().toISOString(),
+        })
+        .eq('id', session.user.id);
+
+      if (error) throw error;
+
+      setUser(prev => prev ? { ...prev, ...formData } : null);
+      setEditing(false);
+      showToast('Profile updated successfully!', 'success');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      showToast('Failed to update profile', 'error');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            User Profile
+          </h1>
+          {!editing && (
+            <button
+              onClick={() => setEditing(true)}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+            >
+              Edit Profile
+            </button>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          {/* Worker ID (Read-only) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Worker ID
+            </label>
+            <div className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md text-gray-900 dark:text-white font-mono">
+              {user?.userId || session?.user?.userId || 'N/A'}
+            </div>
+          </div>
+
+          {/* Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Full Name
+            </label>
+            {editing ? (
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="Enter your full name"
+              />
+            ) : (
+              <div className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-md text-gray-900 dark:text-white">
+                {user?.name || 'Not set'}
+              </div>
+            )}
+          </div>
+
+          {/* Email (Read-only) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Email Address
+            </label>
+            <div className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md text-gray-900 dark:text-white">
+              {user?.email || 'Not set'}
+            </div>
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Phone Number
+            </label>
+            {editing ? (
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="Enter phone number"
+              />
+            ) : (
+              <div className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-md text-gray-900 dark:text-white">
+                {user?.phone || 'Not set'}
+              </div>
+            )}
+          </div>
+
+          {/* Role */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Role
+            </label>
+            <div className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md text-gray-900 dark:text-white capitalize">
+              {user?.role || 'user'}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          {editing && (
+            <div className="flex space-x-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={handleUpdate}
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition"
+              >
+                Save Changes
+              </button>
+              <button
+                onClick={() => {
+                  setEditing(false);
+                  setFormData({
+                    name: user?.name || '',
+                    phone: user?.phone || '',
+                    email: user?.email || '',
+                  });
+                }}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+========================================
+FILE: package.json
+========================================
+Lines: 31
+
+{
+  "name": "oog-terminal",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000 -H 0.0.0.0",
+    "build": "next build",
+    "start": "next start",
+    "vercel-build": "next build"
+  },
+  "dependencies": {
+    "@supabase/realtime-js": "^2.110.7",
+    "@supabase/supabase-js": "^2.110.7",
+    "bcryptjs": "^2.4.3",
+    "next": "13.5.6",
+    "next-auth": "^4.24.7",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.3",
+    "@babel/preset-env": "^7.23.3",
+    "@babel/preset-react": "^7.23.3",
+    "@babel/preset-typescript": "^7.23.3",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "typescript": "^5.2.2"
+  }
+}
+
+
+========================================
+FILE: next.config.js
+========================================
+Lines: 26
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  swcMinify: false,
+  experimental: { 
+    forceSwcTransforms: false 
+  },
+  webpack: (config) => {
+    config.cache = false
+    config.watchOptions = {
+      ignored: ['**/node_modules', '**/.git', '**/data']
+    }
+    return config
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  images: {
+    unoptimized: true,
+  },
+}
+
+module.exports = nextConfig
+
+
+========================================
+FILE: tsconfig.json
+========================================
+Lines: 24
+
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules"]
+}
+
+
+========================================
+FILE: vercel.json
+========================================
+Lines: 14
+
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "outputDirectory": ".next",
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://xtsdewhvjvxkxnidioiz.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0c2Rld2h2anZ4a3huaWRpb2l6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NTM3MzMsImV4cCI6MjEwMDAyOTczM30.eEvdO_U9wKZicLURfT1Fi8OVyj-yezohspJAOWFaMck",
+    "NEXTAUTH_SECRET": "cLiAcQ04Bxn3BfuUErSsHcyDW4HIsqql6la+xIOyLhM=",
+    "NEXTAUTH_URL": "https://oog-terminal.vercel.app",
+    "NEXT_DISABLE_SWC": "1"
+  }
+}
+
+
+========================================
+FILE: .env.local
+========================================
+Lines: 10
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL="https://xtsdewhvjvxkxnidioiz.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0c2Rld2h2anZ4a3huaWRpb2l6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NTM3MzMsImV4cCI6MjEwMDAyOTczM30.eEvdO_U9wKZicLURfT1Fi8OVyj-yezohspJAOWFaMck"
+
+# NextAuth - USE THE FIXED SECRET (replace with the one generated above)
+NEXTAUTH_SECRET="cLiAcQ04Bxn3BfuUErSsHcyDW4HIsqql6la+xIOyLhM="
+NEXTAUTH_URL="http://localhost:3000"
+
+# Next.js
+NEXT_DISABLE_SWC=1
+
+

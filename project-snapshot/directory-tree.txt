@@ -1,0 +1,191 @@
+OOG Terminal - Directory Structure
+Generated: Tue Jul 21 13:12:01 GMT 2026
+========================================
+
+├── .git/
+├── .github/
+  ├── workflows/
+├── .next/
+├── .vercel/
+├── app/
+  ├── api/
+    ├── activity/
+    ├── admin/
+      ├── clear-receivals/
+      ├── clear-stack/
+    ├── auth/
+      ├── [...nextauth]/
+      ├── reset-password/
+      ├── signup/
+    ├── containers/
+      ├── [id]/
+      ├── clear-receivals/
+    ├── devanning/
+      ├── [id]/
+    ├── evacuation/
+    ├── health/
+    ├── import-queue/
+      ├── [id]/
+    ├── loadout/
+    ├── locations/
+    ├── profile/
+    ├── unstuffed/
+    ├── users/
+      ├── [id]/
+  ├── auth/
+    ├── reset-password/
+    ├── update-password/
+  ├── dashboard/
+    ├── admin/
+    ├── components/
+    ├── profile/
+  ├── login/
+  ├── reset-password/
+  ├── signup/
+├── backups/
+├── components/
+  ├── common/
+  ├── icons/
+  ├── modals/
+  ├── notifications/
+  ├── providers/
+├── config/
+├── hooks/
+  ├── useRealtime/
+├── lib/
+  ├── notifications/
+├── logs/
+├── node_modules/
+├── project-snapshot/
+├── public/
+├── scripts/
+├── services/
+├── types/
+
+Files:
+----------------------------------------
+├── .admin_seeded
+├── .babelrc
+├── .db_setup
+├── .env.local
+├── .env.production
+    ├── deploy.yml
+├── .gitignore
+  ├── README.txt
+  ├── project.json
+├── .vercelignore
+├── SUPABASE_MIGRATION_CHECKLIST.md
+      ├── route.ts
+        ├── route.ts
+        ├── route.ts
+        ├── route.ts
+        ├── route.ts
+        ├── route.ts
+        ├── route.ts
+        ├── route.ts
+      ├── route.ts
+        ├── route.ts
+      ├── route.ts
+      ├── route.ts
+      ├── route.ts
+        ├── route.ts
+      ├── route.ts
+      ├── route.ts
+      ├── route.ts
+      ├── route.ts
+      ├── route.ts
+        ├── route.ts
+      ├── route.ts
+      ├── page.tsx
+      ├── page.tsx
+      ├── page.tsx
+      ├── BackupTab.tsx
+      ├── ContactsTab.tsx
+      ├── DashboardNavigation.tsx
+      ├── DevanningTab.tsx
+      ├── DevanningWizard.tsx
+      ├── EvacuationTab.tsx
+      ├── LocationsTab.tsx
+      ├── QueueTab.tsx
+      ├── ReceivalsTab.tsx
+      ├── ReportsTab.tsx
+      ├── SearchSuggestions.tsx
+      ├── TalliesTab.tsx
+      ├── UnstuffedTab.tsx
+    ├── layout.tsx
+    ├── page.tsx
+      ├── page.tsx
+  ├── globals.css
+  ├── layout.tsx
+    ├── page.tsx
+  ├── page.tsx
+    ├── page.tsx
+    ├── page.tsx
+├── complete_fixes.sh
+    ├── DailyTally.tsx
+    ├── FloatingButtons.tsx
+    ├── StatsGrid.tsx
+    ├── TabBadge.tsx
+    ├── TabWithCount.tsx
+    ├── Icons.tsx
+    ├── AddLocationModal.tsx
+    ├── ContactsModal.tsx
+    ├── ContainerDetailModal.tsx
+    ├── DevanningModal.tsx
+    ├── EditModal.tsx
+    ├── EvacuateFromStackModal.tsx
+    ├── LoadoutModal.tsx
+    ├── ReceivalModal.tsx
+    ├── RepositionModal.tsx
+    ├── ScannerModal.tsx
+    ├── SearchModal.tsx
+    ├── NotificationBell.tsx
+    ├── AuthProvider.tsx
+├── ecosystem.config.js
+├── fix-colors.sh
+  ├── useDarkMode.ts
+  ├── useData.ts
+  ├── useNotifications.ts
+  ├── useRealtime.ts
+  ├── useTabCounts.ts
+  ├── useToast.ts
+├── jest.config.js
+├── jest.setup.js
+  ├── auth-helpers.ts
+  ├── constants.ts
+  ├── db.ts
+  ├── logger.ts
+    ├── push.ts
+  ├── performance.ts
+  ├── permissions.ts
+  ├── rate-limit.ts
+  ├── types.ts
+  ├── utils.ts
+  ├── validation.ts
+├── next-env.d.ts
+├── next.config.js
+├── package-lock.json
+├── package.json
+├── patch-notifications.sh
+├── patch_locations.js
+├── patch_svg_icons.sh
+  ├── directory-tree.txt
+  ├── service-worker.js
+  ├── backup-db.sh
+  ├── check-devanning-expiry.js
+  ├── check-devanning-expiry.sh
+  ├── complete-audit.sh
+  ├── deploy.sh
+  ├── optimize-db.sh
+  ├── production-setup.sh
+  ├── push-schema.py
+  ├── seed-admin.sh
+  ├── setup-db.sh
+  ├── test-supabase.js
+  ├── update-schema.sh
+  ├── containerService.ts
+  ├── devanningService.ts
+├── start.sh
+├── supabase-schema.sql
+├── tsconfig.json
+├── vercel.json
