@@ -2,8 +2,6 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import RoleSelector from '@/components/common/RoleSelector'
-import WorkerIdInputWithRole from '@/components/common/WorkerIdInputWithRole'
 
 export default function SignupPage() {
   const [email, setEmail] = useState('')
@@ -17,6 +15,25 @@ export default function SignupPage() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+
+  // Validate worker ID based on role
+  const isValidWorkerId = (id: string, roleType: 'staff' | 'casual' | null): boolean => {
+    if (!roleType || !id) return false
+    const clean = id.toUpperCase().trim()
+    if (roleType === 'staff') {
+      return /^\d{7}$/.test(clean)
+    } else if (roleType === 'casual') {
+      return /^[A-Z]{2}\d{6}$/.test(clean)
+    }
+    return false
+  }
+
+  const handleWorkerIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.toUpperCase()
+    // Remove spaces and special characters
+    value = value.replace(/[^A-Z0-9]/g, '')
+    setWorkerId(value)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,19 +53,21 @@ export default function SignupPage() {
       return
     }
     
-    // Validate worker ID based on role
     const cleanWorkerId = workerId.toUpperCase().trim()
     let isValid = false
     
     if (role === 'staff') {
       isValid = /^\d{7}$/.test(cleanWorkerId)
+      if (!isValid) {
+        setError('Staff ID must be exactly 7 digits (e.g., 4567423)')
+        return
+      }
     } else if (role === 'casual') {
       isValid = /^[A-Z]{2}\d{6}$/.test(cleanWorkerId)
-    }
-    
-    if (!isValid) {
-      setError(`Invalid ${role} Worker ID format`)
-      return
+      if (!isValid) {
+        setError('Casual ID must be 2 letters + 6 digits (e.g., TC246789)')
+        return
+      }
     }
     
     setLoading(true)
@@ -61,8 +80,7 @@ export default function SignupPage() {
           workerId: cleanWorkerId, 
           password, 
           phone, 
-          name,
-          role: role // Add role to user data
+          name
         })
       })
       const data = await response.json()
@@ -82,6 +100,7 @@ export default function SignupPage() {
   const mutedColor = '#64748b'
   const borderColor = '#d1d5db'
   const primaryColor = '#1e6f3f'
+  const isValid = isValidWorkerId(workerId, role)
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f2f5', padding: '20px' }}>
@@ -106,21 +125,103 @@ export default function SignupPage() {
           </div>
           
           {/* Role Selection */}
-          <RoleSelector
-            selectedRole={role}
-            onChange={setRole}
-          />
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>
+              Worker Type <span style={{ color: '#dc2626' }}>*</span>
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setRole('staff')}
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  border: `2px solid ${role === 'staff' ? '#1e6f3f' : '#d1d5db'}`,
+                  background: role === 'staff' ? '#f0fdf4' : 'white',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  transition: 'all 0.2s',
+                  fontWeight: role === 'staff' ? '600' : '400'
+                }}
+              >
+                <div style={{ fontSize: '1.5rem' }}>👔</div>
+                <div style={{ fontSize: '0.8rem', fontWeight: '600' }}>Staff</div>
+                <div style={{ fontSize: '0.6rem', color: '#64748b' }}>7 digits</div>
+                <div style={{ fontSize: '0.5rem', color: '#64748b', marginTop: '2px' }}>e.g., 4567423</div>
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setRole('casual')}
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  border: `2px solid ${role === 'casual' ? '#1e6f3f' : '#d1d5db'}`,
+                  background: role === 'casual' ? '#f0fdf4' : 'white',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  transition: 'all 0.2s',
+                  fontWeight: role === 'casual' ? '600' : '400'
+                }}
+              >
+                <div style={{ fontSize: '1.5rem' }}>🧑‍💼</div>
+                <div style={{ fontSize: '0.8rem', fontWeight: '600' }}>Casual</div>
+                <div style={{ fontSize: '0.6rem', color: '#64748b' }}>2 letters + 6 digits</div>
+                <div style={{ fontSize: '0.5rem', color: '#64748b', marginTop: '2px' }}>e.g., TC246789</div>
+              </button>
+            </div>
+          </div>
           
-          {/* Worker ID Input with Role */}
-          <WorkerIdInputWithRole
-            value={workerId}
-            onChange={setWorkerId}
-            role={role}
-            label="Worker ID"
-            placeholder={role === 'staff' ? 'Enter 7 digits' : 'Enter 2 letters + 6 digits'}
-            required={true}
-            showValidation={true}
-          />
+          {/* Worker ID Input */}
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>
+              Worker ID <span style={{ color: '#dc2626' }}>*</span>
+              {role && (
+                <span style={{ fontSize: '0.55rem', color: '#64748b', marginLeft: '8px', fontWeight: '400' }}>
+                  ({role === 'staff' ? '7 digits' : '2 letters + 6 digits'})
+                </span>
+              )}
+            </label>
+            <input 
+              type="text" 
+              value={workerId} 
+              onChange={handleWorkerIdChange}
+              placeholder={role ? (role === 'staff' ? 'Enter 7 digits' : 'Enter 2 letters + 6 digits') : 'Select worker type first'}
+              style={{ 
+                width: '100%', 
+                padding: '10px 12px', 
+                border: `2px solid ${workerId && role ? (isValid ? '#10b981' : '#dc2626') : '#d1d5db'}`,
+                borderRadius: '8px', 
+                fontSize: '0.9rem',
+                outline: 'none',
+                background: role ? 'white' : '#f1f5f9',
+                opacity: role ? 1 : 0.6,
+                cursor: role ? 'text' : 'not-allowed'
+              }} 
+              required 
+              disabled={!role}
+            />
+            {workerId && role && (
+              <div style={{ 
+                fontSize: '0.65rem', 
+                color: isValid ? '#10b981' : '#dc2626',
+                marginTop: '4px'
+              }}>
+                {isValid ? (
+                  role === 'staff' ? '✅ Valid Staff ID' : '✅ Valid Casual ID'
+                ) : (
+                  role === 'staff' ? '❌ Staff ID must be exactly 7 digits' : '❌ Casual ID must be 2 letters + 6 digits'
+                )}
+              </div>
+            )}
+            <div style={{ 
+              fontSize: '0.5rem', 
+              color: '#64748b', 
+              marginTop: '4px'
+            }}>
+              {role === 'staff' ? 'Format: 1234567' : 'Format: AB123456'}
+            </div>
+          </div>
           
           <div style={{ marginBottom: '12px' }}>
             <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>Phone Number</label>
@@ -137,16 +238,16 @@ export default function SignupPage() {
             <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm password"
               style={{ width: '100%', padding: '10px 12px', border: `1px solid ${borderColor}`, borderRadius: '8px', fontSize: '0.9rem' }} required />
           </div>
-          <button type="submit" disabled={loading || !role || !workerId} style={{ 
+          <button type="submit" disabled={loading || !role || !isValid} style={{ 
             width: '100%', 
             padding: '12px', 
-            background: (loading || !role || !workerId) ? '#6c757d' : primaryColor, 
+            background: (loading || !role || !isValid) ? '#6c757d' : primaryColor, 
             color: 'white', 
             border: 'none', 
             borderRadius: '8px', 
             fontSize: '1rem', 
             fontWeight: '600', 
-            cursor: (loading || !role || !workerId) ? 'not-allowed' : 'pointer' 
+            cursor: (loading || !role || !isValid) ? 'not-allowed' : 'pointer' 
           }}>
             {loading ? 'Creating Account...' : 'Sign Up'}
           </button>

@@ -12,6 +12,12 @@ export default function LoginPage() {
   const [role, setRole] = useState<'staff' | 'casual' | null>(null)
   const router = useRouter()
 
+  const handleWorkerIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.toUpperCase()
+    value = value.replace(/[^A-Z0-9]/g, '')
+    setWorkerId(value)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -33,6 +39,19 @@ export default function LoginPage() {
     }
   }
 
+  const isValidWorkerId = (id: string, roleType: 'staff' | 'casual' | null): boolean => {
+    if (!roleType || !id) return false
+    const clean = id.toUpperCase().trim()
+    if (roleType === 'staff') {
+      return /^\d{7}$/.test(clean)
+    } else if (roleType === 'casual') {
+      return /^[A-Z]{2}\d{6}$/.test(clean)
+    }
+    return false
+  }
+
+  const isValid = isValidWorkerId(workerId, role)
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f2f5' }}>
       <div style={{ background: 'white', padding: '40px', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px' }}>
@@ -43,7 +62,7 @@ export default function LoginPage() {
         </div>
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>Worker Type</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>Worker Type</label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <button
                 type="button"
@@ -80,31 +99,46 @@ export default function LoginPage() {
             </div>
           </div>
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>Worker ID</label>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>
+              Worker ID
+              {role && (
+                <span style={{ fontSize: '0.55rem', color: '#64748b', marginLeft: '8px', fontWeight: '400' }}>
+                  ({role === 'staff' ? '7 digits' : '2 letters + 6 digits'})
+                </span>
+              )}
+            </label>
             <input 
               type="text" 
               value={workerId} 
-              onChange={(e) => {
-                let input = e.target.value.toUpperCase().trim()
-                if (role === 'staff') {
-                  input = input.replace(/[^0-9]/g, '').slice(0, 7)
-                } else if (role === 'casual') {
-                  const letters = input.replace(/[0-9]/g, '').slice(0, 2)
-                  const numbers = input.replace(/[A-Z]/g, '').slice(0, 6)
-                  input = letters + numbers
-                }
-                setWorkerId(input)
+              onChange={handleWorkerIdChange}
+              placeholder={role ? (role === 'staff' ? 'Enter 7 digits' : 'Enter 2 letters + 6 digits') : 'Select worker type first'}
+              style={{ 
+                width: '100%', 
+                padding: '10px 12px', 
+                border: `2px solid ${workerId && role ? (isValid ? '#10b981' : '#dc2626') : '#d1d5db'}`,
+                borderRadius: '8px', 
+                fontSize: '0.9rem', 
+                outline: 'none',
+                background: role ? 'white' : '#f1f5f9',
+                opacity: role ? 1 : 0.6,
+                cursor: role ? 'text' : 'not-allowed'
               }} 
-              placeholder={role === 'staff' ? '7 digits' : '2 letters + 6 digits'}
-              style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', outline: 'none' }} 
               required 
               disabled={!role}
             />
-            <div style={{ fontSize: '0.55rem', color: '#64748b', marginTop: '4px' }}>
-              {role === 'staff' ? 'Staff: 7 digits (e.g., 4567423)' : 
-               role === 'casual' ? 'Casual: 2 letters + 6 digits (e.g., TC246789)' : 
-               'Select a worker type above'}
-            </div>
+            {workerId && role && (
+              <div style={{ 
+                fontSize: '0.65rem', 
+                color: isValid ? '#10b981' : '#dc2626',
+                marginTop: '4px'
+              }}>
+                {isValid ? (
+                  role === 'staff' ? '✅ Valid Staff ID' : '✅ Valid Casual ID'
+                ) : (
+                  role === 'staff' ? '❌ Staff ID must be exactly 7 digits' : '❌ Casual ID must be 2 letters + 6 digits'
+                )}
+              </div>
+            )}
           </div>
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>Password</label>
@@ -119,17 +153,17 @@ export default function LoginPage() {
           {error && <p style={{ color: '#dc2626', marginBottom: '12px', fontSize: '0.85rem' }}>{error}</p>}
           <button 
             type="submit" 
-            disabled={loading || !role} 
+            disabled={loading || !role || !isValid} 
             style={{ 
               width: '100%', 
               padding: '12px', 
-              background: (loading || !role) ? '#6c757d' : '#1e6f3f', 
+              background: (loading || !role || !isValid) ? '#6c757d' : '#1e6f3f', 
               color: 'white', 
               border: 'none', 
               borderRadius: '8px', 
               fontSize: '1rem', 
               fontWeight: '600', 
-              cursor: (loading || !role) ? 'not-allowed' : 'pointer' 
+              cursor: (loading || !role || !isValid) ? 'not-allowed' : 'pointer' 
             }}
           >
             {loading ? 'Signing in...' : 'Sign In'}
