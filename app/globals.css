@@ -1375,3 +1375,72 @@ body.dark-mode .profile-spinner {
     justify-content: center;
   }
 }
+
+/* ===== WORKER ID VALIDATION STYLES ===== */
+.worker-id-helper {
+  font-size: 0.55rem;
+  color: #64748b;
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.worker-id-helper .format-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 12px;
+  font-size: 0.5rem;
+  font-weight: 600;
+  background: #e2e8f0;
+  color: #475569;
+}
+
+body.dark-mode .worker-id-helper {
+  color: #94a3b8;
+}
+
+body.dark-mode .worker-id-helper .format-badge {
+  background: #334155;
+  color: #94a3b8;
+}
+
+.worker-id-helper .format-badge.staff {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+body.dark-mode .worker-id-helper .format-badge.staff {
+  background: #1e3a8a;
+  color: #93c5fd;
+}
+
+.worker-id-helper .format-badge.casual {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+body.dark-mode .worker-id-helper .format-badge.casual {
+  background: #78350f;
+  color: #fbbf24;
+}
+
+.input-error {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(220,38,38,0.1) !important;
+}
+
+body.dark-mode .input-error {
+  border-color: #f87171 !important;
+  box-shadow: 0 0 0 3px rgba(248,113,113,0.2) !important;
+}
+
+.input-success {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.1) !important;
+}
+
+body.dark-mode .input-success {
+  border-color: #34d399 !important;
+  box-shadow: 0 0 0 3px rgba(52,211,153,0.2) !important;
+}

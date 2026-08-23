@@ -18,3 +18,33 @@ export function parseCargoNumber(str: string) {
 }
 
 export const getColor = (isDark: boolean, light: string, dark: string) => isDark ? dark : light
+
+// ============================================
+// WORKER ID VALIDATION
+// ============================================
+
+export function validateWorkerId(workerId: string): { valid: boolean; type: 'staff' | 'casual' | 'invalid' } {
+  const clean = workerId.toUpperCase().trim()
+  const staffRegex = /^\d{7}$/
+  const casualRegex = /^[A-Z]{2}\d{6}$/
+  
+  if (staffRegex.test(clean)) {
+    return { valid: true, type: 'staff' }
+  }
+  if (casualRegex.test(clean)) {
+    return { valid: true, type: 'casual' }
+  }
+  return { valid: false, type: 'invalid' }
+}
+
+export function formatWorkerId(workerId: string): string {
+  return workerId.toUpperCase().trim()
+}
+
+export function getWorkerIdFormatHint(workerId: string): string {
+  const result = validateWorkerId(workerId)
+  if (!result.valid) {
+    return '❌ Invalid format. Use 7 digits or 2 letters + 6 digits'
+  }
+  return result.type === 'staff' ? '✅ Staff ID (7 digits)' : '✅ Casual ID (2 letters + 6 digits)'
+}

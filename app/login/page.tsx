@@ -1,4 +1,4 @@
-'use client'
+"use client"
 import React, { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -16,7 +16,6 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
     
-    // Auto-format: convert to uppercase and trim
     const formattedWorkerId = workerId.toUpperCase().trim()
     
     const res = await signIn('credentials', { 

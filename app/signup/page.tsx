@@ -1,4 +1,4 @@
-'use client'
+"use client"
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -33,9 +33,6 @@ export default function SignupPage() {
       return
     }
     
-    // ✅ Worker ID Validation - supports both formats
-    // Format 1: 7 digits (e.g., 4567423)
-    // Format 2: 2 letters + 6 digits (e.g., TC246789)
     const workerIdRegex1 = /^\d{7}$/
     const workerIdRegex2 = /^[A-Z]{2}\d{6}$/
     const cleanWorkerId = workerId.toUpperCase().trim()
