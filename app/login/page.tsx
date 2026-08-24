@@ -10,15 +10,16 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [role, setRole] = useState<'staff' | 'casual' | null>(null)
+  const [touched, setTouched] = useState(false)
   const router = useRouter()
 
   const isValidWorkerId = (id: string, roleType: 'staff' | 'casual' | null): boolean => {
     if (!roleType || !id) return false
-    const clean = id.toUpperCase().trim()
+    const clean = id.trim()
     if (roleType === 'staff') {
       return /^\d{7}$/.test(clean)
     } else if (roleType === 'casual') {
-      return /^[A-Z]{2}\d{6}$/.test(clean)
+      return /^[A-Za-z]{2}\d{6}$/.test(clean)
     }
     return false
   }
@@ -28,7 +29,7 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
     
-    const formattedWorkerId = workerId.toUpperCase().trim()
+    const formattedWorkerId = workerId.trim().toUpperCase()
     
     const res = await signIn('credentials', { 
       workerId: formattedWorkerId, 
@@ -60,7 +61,7 @@ export default function LoginPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <button
                 type="button"
-                onClick={() => setRole('staff')}
+                onClick={() => { setRole('staff'); setTouched(false) }}
                 style={{
                   padding: '8px 12px',
                   borderRadius: '8px',
@@ -76,7 +77,7 @@ export default function LoginPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setRole('casual')}
+                onClick={() => { setRole('casual'); setTouched(false) }}
                 style={{
                   padding: '8px 12px',
                   borderRadius: '8px',
@@ -105,15 +106,15 @@ export default function LoginPage() {
               type="text" 
               value={workerId} 
               onChange={(e) => {
-                let value = e.target.value.toUpperCase()
-                value = value.replace(/[^A-Z0-9]/g, '')
-                setWorkerId(value)
+                setWorkerId(e.target.value)
+                setTouched(true)
               }}
+              onBlur={() => setTouched(true)}
               placeholder={role ? (role === 'staff' ? 'Enter 7 digits' : 'Enter 2 letters + 6 digits') : 'Select worker type first'}
               style={{ 
                 width: '100%', 
                 padding: '10px 12px', 
-                border: `2px solid ${workerId && role ? (isValid ? '#10b981' : '#dc2626') : '#d1d5db'}`,
+                border: `2px solid ${touched && workerId && role ? (isValid ? '#10b981' : '#dc2626') : '#d1d5db'}`,
                 borderRadius: '8px', 
                 fontSize: '0.9rem', 
                 outline: 'none',
@@ -124,7 +125,7 @@ export default function LoginPage() {
               required 
               disabled={!role}
             />
-            {workerId && role && (
+            {touched && workerId && role && (
               <div style={{ 
                 fontSize: '0.65rem', 
                 color: isValid ? '#10b981' : '#dc2626',

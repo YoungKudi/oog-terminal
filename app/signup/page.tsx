@@ -14,30 +14,27 @@ export default function SignupPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
+  const [touched, setTouched] = useState(false)
   const router = useRouter()
 
-  // Validate worker ID based on role
+  // Validate worker ID based on role - case insensitive
   const isValidWorkerId = (id: string, roleType: 'staff' | 'casual' | null): boolean => {
     if (!roleType || !id) return false
-    const clean = id.toUpperCase().trim()
+    const clean = id.trim()
     if (roleType === 'staff') {
       return /^\d{7}$/.test(clean)
     } else if (roleType === 'casual') {
-      return /^[A-Z]{2}\d{6}$/.test(clean)
+      // Case insensitive - accept both uppercase and lowercase
+      return /^[A-Za-z]{2}\d{6}$/.test(clean)
     }
     return false
-  }
-
-  const getFormatHint = (roleType: 'staff' | 'casual' | null): string => {
-    if (!roleType) return 'Select a worker type'
-    if (roleType === 'staff') return '7 digits (e.g., 4567423)'
-    return '2 letters + 6 digits (e.g., TC246789)'
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setSuccess('')
+    setTouched(true)
     
     if (!email || !workerId || !password || !confirmPassword || !phone || !role) {
       setError('Please fill in all fields')
@@ -52,16 +49,16 @@ export default function SignupPage() {
       return
     }
     
-    const cleanWorkerId = workerId.toUpperCase().trim()
+    const cleanWorkerId = workerId.trim()
     let isValid = false
     let errorMsg = ''
     
     if (role === 'staff') {
       isValid = /^\d{7}$/.test(cleanWorkerId)
-      if (!isValid) errorMsg = 'Staff ID must be exactly 7 digits'
+      if (!isValid) errorMsg = 'Staff ID must be exactly 7 digits (e.g., 4567423)'
     } else if (role === 'casual') {
-      isValid = /^[A-Z]{2}\d{6}$/.test(cleanWorkerId)
-      if (!isValid) errorMsg = 'Casual ID must be 2 letters + 6 digits'
+      isValid = /^[A-Za-z]{2}\d{6}$/.test(cleanWorkerId)
+      if (!isValid) errorMsg = 'Casual ID must be 2 letters + 6 digits (e.g., TC246789)'
     }
     
     if (!isValid) {
@@ -76,7 +73,7 @@ export default function SignupPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           email, 
-          workerId: cleanWorkerId, 
+          workerId: cleanWorkerId.toUpperCase(), 
           password, 
           phone, 
           name
@@ -131,7 +128,7 @@ export default function SignupPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <button
                 type="button"
-                onClick={() => setRole('staff')}
+                onClick={() => { setRole('staff'); setTouched(false) }}
                 style={{
                   padding: '12px 16px',
                   borderRadius: '10px',
@@ -151,7 +148,7 @@ export default function SignupPage() {
               
               <button
                 type="button"
-                onClick={() => setRole('casual')}
+                onClick={() => { setRole('casual'); setTouched(false) }}
                 style={{
                   padding: '12px 16px',
                   borderRadius: '10px',
@@ -171,7 +168,7 @@ export default function SignupPage() {
             </div>
           </div>
           
-          {/* Worker ID Input - Single Field */}
+          {/* Worker ID Input - No Auto-Formatting */}
           <div style={{ marginBottom: '12px' }}>
             <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>
               Worker ID <span style={{ color: '#dc2626' }}>*</span>
@@ -185,15 +182,16 @@ export default function SignupPage() {
               type="text" 
               value={workerId} 
               onChange={(e) => {
-                let value = e.target.value.toUpperCase()
-                value = value.replace(/[^A-Z0-9]/g, '')
-                setWorkerId(value)
+                // No auto-formatting - user types freely
+                setWorkerId(e.target.value)
+                setTouched(true)
               }}
-              placeholder={role ? getFormatHint(role) : 'Select worker type first'}
+              onBlur={() => setTouched(true)}
+              placeholder={role ? (role === 'staff' ? 'Enter 7 digits' : 'Enter 2 letters + 6 digits') : 'Select worker type first'}
               style={{ 
                 width: '100%', 
                 padding: '10px 12px', 
-                border: `2px solid ${workerId && role ? (isValid ? '#10b981' : '#dc2626') : '#d1d5db'}`,
+                border: `2px solid ${touched && workerId && role ? (isValid ? '#10b981' : '#dc2626') : '#d1d5db'}`,
                 borderRadius: '8px', 
                 fontSize: '0.9rem',
                 outline: 'none',
@@ -204,7 +202,7 @@ export default function SignupPage() {
               required 
               disabled={!role}
             />
-            {workerId && role && (
+            {touched && workerId && role && (
               <div style={{ 
                 fontSize: '0.65rem', 
                 color: isValid ? '#10b981' : '#dc2626',
