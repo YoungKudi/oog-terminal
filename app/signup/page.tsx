@@ -28,11 +28,10 @@ export default function SignupPage() {
     return false
   }
 
-  const handleWorkerIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.toUpperCase()
-    // Remove spaces and special characters
-    value = value.replace(/[^A-Z0-9]/g, '')
-    setWorkerId(value)
+  const getFormatHint = (roleType: 'staff' | 'casual' | null): string => {
+    if (!roleType) return 'Select a worker type'
+    if (roleType === 'staff') return '7 digits (e.g., 4567423)'
+    return '2 letters + 6 digits (e.g., TC246789)'
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,19 +54,19 @@ export default function SignupPage() {
     
     const cleanWorkerId = workerId.toUpperCase().trim()
     let isValid = false
+    let errorMsg = ''
     
     if (role === 'staff') {
       isValid = /^\d{7}$/.test(cleanWorkerId)
-      if (!isValid) {
-        setError('Staff ID must be exactly 7 digits (e.g., 4567423)')
-        return
-      }
+      if (!isValid) errorMsg = 'Staff ID must be exactly 7 digits'
     } else if (role === 'casual') {
       isValid = /^[A-Z]{2}\d{6}$/.test(cleanWorkerId)
-      if (!isValid) {
-        setError('Casual ID must be 2 letters + 6 digits (e.g., TC246789)')
-        return
-      }
+      if (!isValid) errorMsg = 'Casual ID must be 2 letters + 6 digits'
+    }
+    
+    if (!isValid) {
+      setError(errorMsg)
+      return
     }
     
     setLoading(true)
@@ -172,7 +171,7 @@ export default function SignupPage() {
             </div>
           </div>
           
-          {/* Worker ID Input */}
+          {/* Worker ID Input - Single Field */}
           <div style={{ marginBottom: '12px' }}>
             <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>
               Worker ID <span style={{ color: '#dc2626' }}>*</span>
@@ -185,8 +184,12 @@ export default function SignupPage() {
             <input 
               type="text" 
               value={workerId} 
-              onChange={handleWorkerIdChange}
-              placeholder={role ? (role === 'staff' ? 'Enter 7 digits' : 'Enter 2 letters + 6 digits') : 'Select worker type first'}
+              onChange={(e) => {
+                let value = e.target.value.toUpperCase()
+                value = value.replace(/[^A-Z0-9]/g, '')
+                setWorkerId(value)
+              }}
+              placeholder={role ? getFormatHint(role) : 'Select worker type first'}
               style={{ 
                 width: '100%', 
                 padding: '10px 12px', 

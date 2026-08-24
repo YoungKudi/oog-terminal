@@ -12,10 +12,15 @@ export default function LoginPage() {
   const [role, setRole] = useState<'staff' | 'casual' | null>(null)
   const router = useRouter()
 
-  const handleWorkerIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.toUpperCase()
-    value = value.replace(/[^A-Z0-9]/g, '')
-    setWorkerId(value)
+  const isValidWorkerId = (id: string, roleType: 'staff' | 'casual' | null): boolean => {
+    if (!roleType || !id) return false
+    const clean = id.toUpperCase().trim()
+    if (roleType === 'staff') {
+      return /^\d{7}$/.test(clean)
+    } else if (roleType === 'casual') {
+      return /^[A-Z]{2}\d{6}$/.test(clean)
+    }
+    return false
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,17 +42,6 @@ export default function LoginPage() {
       router.push('/dashboard')
       router.refresh()
     }
-  }
-
-  const isValidWorkerId = (id: string, roleType: 'staff' | 'casual' | null): boolean => {
-    if (!roleType || !id) return false
-    const clean = id.toUpperCase().trim()
-    if (roleType === 'staff') {
-      return /^\d{7}$/.test(clean)
-    } else if (roleType === 'casual') {
-      return /^[A-Z]{2}\d{6}$/.test(clean)
-    }
-    return false
   }
 
   const isValid = isValidWorkerId(workerId, role)
@@ -110,7 +104,11 @@ export default function LoginPage() {
             <input 
               type="text" 
               value={workerId} 
-              onChange={handleWorkerIdChange}
+              onChange={(e) => {
+                let value = e.target.value.toUpperCase()
+                value = value.replace(/[^A-Z0-9]/g, '')
+                setWorkerId(value)
+              }}
               placeholder={role ? (role === 'staff' ? 'Enter 7 digits' : 'Enter 2 letters + 6 digits') : 'Select worker type first'}
               style={{ 
                 width: '100%', 
