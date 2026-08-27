@@ -1,28 +1,29 @@
-import rateLimit from 'express-rate-limit'
+// Simple in-memory rate limiter for public API
+interface RateLimitStore {
+  [ip: string]: {
+    count: number
+    resetTime: number
+  }
+}
 
-// General API rate limiter
-export const apiLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 100, // 100 requests per minute
-  message: { error: 'Too many requests, please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-})
+const store: RateLimitStore = {}
+const WINDOW_MS = 60 * 1000 // 1 minute
+const MAX_REQUESTS = 30 // 30 requests per minute
 
-// Authentication rate limiter (stricter)
-export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 login attempts per 15 minutes
-  message: { error: 'Too many login attempts, please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-})
-
-// Admin operations rate limiter
-export const adminLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 50, // 50 admin operations per hour
-  message: { error: 'Too many admin operations, please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-})
+export function rateLimit(ip: string): { limited: boolean; remaining: number } {
+  const now = Date.now()
+  
+  if (!store[ip] || store[ip].resetTime < now) {
+    store[ip] = { count: 1, resetTime: now + WINDOW_MS }
+    return { limited: false, remaining: MAX_REQUESTS - 1 }
+  }
+  
+  store[ip].count++
+  const remaining = Math.max(0, MAX_REQUESTS - store[ip].count)
+  
+  if (store[ip].count > MAX_REQUESTS) {
+    return { limited: true, remaining: 0 }
+  }
+  
+  return { limited: false, remaining }
+}
