@@ -1,5 +1,6 @@
 "use client"
 import React, { useState } from 'react'
+import Link from 'next/link'
 
 export default function PublicSearchPage() {
   const [searchInput, setSearchInput] = useState('')
@@ -11,7 +12,6 @@ export default function PublicSearchPage() {
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Parse container numbers - split by comma or newline
     const containerNumbers = searchInput
       .split(/[, \n]+/)
       .map(s => s.trim().toUpperCase())
@@ -56,154 +56,257 @@ export default function PublicSearchPage() {
     setSearched(false)
   }
 
-  // Helper to get status color
-  const getStatusColor = (found: boolean) => {
-    return found ? '#10b981' : '#ef4444'
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      handleClear()
+    }
   }
 
   return (
     <div style={{ 
-      minHeight: '100vh', 
-      background: '#f0f2f5',
+      minHeight: '100vh',
+      background: '#ffffff',
       display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px'
+      justifyContent: 'flex-start',
+      padding: '20px',
+      fontFamily: 'Arial, sans-serif'
     }}>
-      <div style={{ 
-        maxWidth: '700px', 
+      {/* Top Bar - Sign In / Sign Up */}
+      <div style={{
         width: '100%',
-        background: 'white',
-        borderRadius: '16px',
-        padding: '40px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+        maxWidth: '1200px',
+        display: 'flex',
+        justifyContent: 'flex-end',
+        padding: '12px 0',
+        gap: '16px'
       }}>
-        {/* Header */}
+        <Link 
+          href="/login" 
+          style={{
+            color: '#1a0dab',
+            fontSize: '0.85rem',
+            textDecoration: 'none',
+            padding: '8px 16px',
+            borderRadius: '4px',
+            transition: 'background 0.2s'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = '#f1f3f4'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+        >
+          Sign In
+        </Link>
+        <Link 
+          href="/signup" 
+          style={{
+            background: '#1a73e8',
+            color: 'white',
+            fontSize: '0.85rem',
+            textDecoration: 'none',
+            padding: '8px 20px',
+            borderRadius: '4px',
+            fontWeight: '500',
+            transition: 'background 0.2s'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = '#1557b0'}
+          onMouseLeave={(e) => e.currentTarget.style.background = '#1a73e8'}
+        >
+          Sign Up
+        </Link>
+      </div>
+
+      {/* Main Content */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flex: 1,
+        width: '100%',
+        maxWidth: '700px',
+        marginTop: results.length === 0 && !searched ? '5vh' : '20px'
+      }}>
+        {/* Logo / Title */}
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <div style={{ fontSize: '48px', marginBottom: '8px' }}>🔍</div>
-          <h1 style={{ 
-            fontSize: '24px', 
-            fontWeight: '700', 
-            color: '#1e293b',
-            margin: '0 0 4px 0'
+          <div style={{ fontSize: '56px', marginBottom: '4px' }}>🚢</div>
+          <h1 style={{
+            fontSize: '32px',
+            fontWeight: '300',
+            color: '#202124',
+            margin: 0,
+            letterSpacing: '-0.5px'
           }}>
-            Container Search
+            Search <span style={{ fontWeight: '700' }}>OOG</span> Stack
           </h1>
-          <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>
-            Search for containers in the yard stack
+          <p style={{
+            color: '#5f6368',
+            fontSize: '0.85rem',
+            margin: '4px 0 0 0'
+          }}>
+            Enter container numbers to check their location in the yard
           </p>
         </div>
 
-        {/* Search Form */}
-        <form onSubmit={handleSearch}>
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ 
-              display: 'block', 
-              marginBottom: '6px', 
-              fontWeight: '500', 
-              fontSize: '0.8rem', 
-              color: '#4b5563' 
-            }}>
-              Container Numbers
-            </label>
-            <textarea
+        {/* Search Form - Google Style */}
+        <form onSubmit={handleSearch} style={{ width: '100%' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            border: '1px solid #dfe1e5',
+            borderRadius: '24px',
+            padding: '8px 16px',
+            background: 'white',
+            boxShadow: '0 1px 6px rgba(32,33,36,0.08)',
+            transition: 'box-shadow 0.2s, border-color 0.2s'
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.boxShadow = '0 1px 12px rgba(32,33,36,0.15)'
+            e.currentTarget.style.borderColor = 'rgba(223,225,229,0)'
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.boxShadow = '0 1px 6px rgba(32,33,36,0.08)'
+            e.currentTarget.style.borderColor = '#dfe1e5'
+          }}
+          >
+            <span style={{ fontSize: '18px', color: '#9aa0a6', marginRight: '12px' }}>🔍</span>
+            <input
+              type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Enter one or more container numbers separated by commas&#10;e.g., MAEU1234567, TC246789, SUDU8901234"
-              rows={3}
-              style={{
-                width: '100%',
-                padding: '12px 14px',
-                border: '2px solid #d1d5db',
-                borderRadius: '10px',
-                fontSize: '0.9rem',
-                fontFamily: 'monospace',
-                resize: 'vertical',
-                outline: 'none',
-                transition: 'border-color 0.2s'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#1e6f3f'}
-              onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-            />
-          </div>
-
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              type="submit"
-              disabled={loading || !searchInput.trim()}
+              onKeyDown={handleKeyDown}
+              placeholder="Enter container numbers (e.g., MAEU1234567, TC246789)"
               style={{
                 flex: 1,
-                padding: '12px 20px',
-                background: loading || !searchInput.trim() ? '#6c757d' : '#1e6f3f',
-                color: 'white',
                 border: 'none',
-                borderRadius: '10px',
-                fontSize: '1rem',
-                fontWeight: '600',
-                cursor: loading || !searchInput.trim() ? 'not-allowed' : 'pointer',
-                transition: 'background 0.2s'
+                outline: 'none',
+                fontSize: '16px',
+                padding: '12px 0',
+                background: 'transparent',
+                color: '#202124',
+                fontFamily: 'Arial, sans-serif'
               }}
-            >
-              {loading ? 'Searching...' : '🔍 Search Containers'}
-            </button>
-            
+            />
             {searchInput && (
               <button
                 type="button"
                 onClick={handleClear}
                 style={{
-                  padding: '12px 20px',
-                  background: '#f1f5f9',
-                  color: '#64748b',
+                  background: 'none',
                   border: 'none',
-                  borderRadius: '10px',
-                  fontSize: '1rem',
-                  fontWeight: '500',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  color: '#9aa0a6',
+                  fontSize: '16px',
+                  padding: '4px 8px'
                 }}
               >
-                ✕ Clear
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Search Buttons */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '12px',
+            marginTop: '20px'
+          }}>
+            <button
+              type="submit"
+              disabled={loading || !searchInput.trim()}
+              style={{
+                padding: '10px 24px',
+                background: loading || !searchInput.trim() ? '#f1f3f4' : '#f8f9fa',
+                color: loading || !searchInput.trim() ? '#9aa0a6' : '#3c4043',
+                border: '1px solid #f8f9fa',
+                borderRadius: '4px',
+                fontSize: '14px',
+                cursor: loading || !searchInput.trim() ? 'default' : 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                if (!loading && searchInput.trim()) {
+                  e.currentTarget.style.borderColor = '#dadce0'
+                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.08)'
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#f8f9fa'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+            >
+              {loading ? 'Searching...' : '🔍 Search Containers'}
+            </button>
+            {searchInput && (
+              <button
+                type="button"
+                onClick={handleClear}
+                style={{
+                  padding: '10px 24px',
+                  background: '#f8f9fa',
+                  color: '#3c4043',
+                  border: '1px solid #f8f9fa',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#dadce0'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#f8f9fa'
+                }}
+              >
+                Clear
               </button>
             )}
           </div>
         </form>
 
+        {/* Error Message */}
         {error && (
           <div style={{
             marginTop: '16px',
-            padding: '12px 16px',
-            background: '#fee2e2',
-            color: '#dc2626',
-            borderRadius: '8px',
-            fontSize: '0.85rem'
+            padding: '10px 16px',
+            background: '#fce8e6',
+            color: '#d93025',
+            borderRadius: '4px',
+            fontSize: '0.85rem',
+            width: '100%',
+            textAlign: 'center'
           }}>
             ❌ {error}
           </div>
         )}
 
-        {/* Results */}
+        {/* Results - Google-style */}
         {searched && !loading && (
-          <div style={{ marginTop: '24px' }}>
+          <div style={{
+            marginTop: '24px',
+            width: '100%',
+            borderTop: '1px solid #dadce0',
+            paddingTop: '16px'
+          }}>
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               paddingBottom: '10px',
-              borderBottom: '2px solid #e2e8f0'
+              borderBottom: '1px solid #e8eaed'
             }}>
-              <h3 style={{ 
-                fontSize: '0.9rem', 
-                fontWeight: '600', 
-                color: '#1e293b',
-                margin: 0
-              }}>
-                📋 Results
-              </h3>
-              <span style={{ 
-                fontSize: '0.75rem', 
-                color: '#64748b'
+              <span style={{
+                fontSize: '0.85rem',
+                color: '#5f6368'
               }}>
                 {results.length} container(s) found
+              </span>
+              <span style={{
+                fontSize: '0.75rem',
+                color: '#9aa0a6'
+              }}>
+                {results.filter(r => r.found).length} in stack
               </span>
             </div>
 
@@ -211,17 +314,17 @@ export default function PublicSearchPage() {
               {results.length === 0 ? (
                 <div style={{
                   textAlign: 'center',
-                  padding: '30px 20px',
-                  color: '#64748b'
+                  padding: '40px 20px',
+                  color: '#5f6368'
                 }}>
-                  <div style={{ fontSize: '36px', marginBottom: '8px' }}>📭</div>
-                  <p style={{ margin: 0 }}>No containers found</p>
+                  <div style={{ fontSize: '40px', marginBottom: '8px' }}>📭</div>
+                  <p style={{ margin: 0, fontSize: '0.95rem' }}>No containers found</p>
                   <p style={{ fontSize: '0.8rem', margin: '4px 0 0 0' }}>
                     Check the container numbers and try again
                   </p>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   {results.map((result, index) => (
                     <div
                       key={index}
@@ -229,25 +332,25 @@ export default function PublicSearchPage() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        padding: '10px 14px',
-                        background: result.found ? '#f0fdf4' : '#fef2f2',
+                        padding: '12px 16px',
+                        background: result.found ? '#f1f8e9' : '#fce8e6',
                         borderRadius: '8px',
-                        border: `1px solid ${result.found ? '#86efac' : '#fca5a5'}`
+                        borderLeft: `4px solid ${result.found ? '#34a853' : '#d93025'}`
                       }}
                     >
                       <div>
                         <span style={{
                           fontFamily: 'monospace',
                           fontWeight: '600',
-                          fontSize: '0.85rem',
-                          color: '#1e293b'
+                          fontSize: '0.9rem',
+                          color: '#202124'
                         }}>
                           {result.containerNumber}
                         </span>
                         {result.found && result.container && (
                           <div style={{ 
                             fontSize: '0.7rem', 
-                            color: '#64748b',
+                            color: '#5f6368',
                             marginTop: '2px'
                           }}>
                             📍 {result.container.position} | {result.container.equipment}
@@ -265,12 +368,12 @@ export default function PublicSearchPage() {
                           width: '8px',
                           height: '8px',
                           borderRadius: '50%',
-                          background: result.found ? '#10b981' : '#ef4444'
+                          background: result.found ? '#34a853' : '#d93025'
                         }} />
                         <span style={{
                           fontSize: '0.7rem',
-                          fontWeight: '600',
-                          color: result.found ? '#10b981' : '#ef4444'
+                          fontWeight: '500',
+                          color: result.found ? '#1e7e34' : '#d93025'
                         }}>
                           {result.found ? 'In Stack' : 'Not Found'}
                         </span>
@@ -282,18 +385,20 @@ export default function PublicSearchPage() {
             </div>
           </div>
         )}
+      </div>
 
-        {/* Footer */}
-        <div style={{
-          marginTop: '30px',
-          paddingTop: '16px',
-          borderTop: '1px solid #e2e8f0',
-          textAlign: 'center',
-          fontSize: '0.65rem',
-          color: '#94a3b8'
-        }}>
-          Developed by <strong>O'Bour Dev</strong> © 2026
-        </div>
+      {/* Footer */}
+      <div style={{
+        marginTop: 'auto',
+        padding: '16px 0',
+        textAlign: 'center',
+        fontSize: '0.65rem',
+        color: '#9aa0a6',
+        borderTop: '1px solid #e8eaed',
+        width: '100%',
+        maxWidth: '1200px'
+      }}>
+        Developed by <strong>O'Bour Dev</strong> © 2026
       </div>
     </div>
   )

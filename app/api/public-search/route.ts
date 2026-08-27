@@ -20,14 +20,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No container numbers provided' }, { status: 400 })
     }
     
-    // Limit number of containers per request to prevent abuse
+    // Limit to 50 containers per request
     if (containerNumbers.length > 50) {
       return NextResponse.json({ 
         error: 'Maximum 50 containers per request' 
       }, { status: 400 })
     }
     
-    // Clean and validate container numbers
     const cleanNumbers = containerNumbers
       .map((num: string) => num.trim().toUpperCase())
       .filter((num: string) => num.length > 0)
@@ -36,7 +35,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid container numbers' }, { status: 400 })
     }
     
-    // Query Supabase for all matching containers in the stack
+    // Query only the Container table (Stack/Tallies)
     const { data, error } = await supabase
       .from('Container')
       .select('containerNumber, position, equipment, size, type, auxCargo, receivedDate')
@@ -47,13 +46,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Database error' }, { status: 500 })
     }
     
-    // Create a map of found containers
     const foundMap = new Map()
     data?.forEach((container: any) => {
       foundMap.set(container.containerNumber, container)
     })
     
-    // Build results for each requested container
     const results = cleanNumbers.map((containerNumber: string) => {
       const container = foundMap.get(containerNumber)
       return {
