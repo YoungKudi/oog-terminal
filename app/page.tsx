@@ -156,7 +156,7 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Search Form - Google Style */}
+        {/* Search Form */}
         <form onSubmit={handleSearch} style={{ width: '100%' }}>
           <div style={{
             display: 'flex',
@@ -213,7 +213,6 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* Search Buttons */}
           <div style={{
             display: 'flex',
             justifyContent: 'center',
@@ -256,7 +255,6 @@ export default function HomePage() {
                   color: '#3c4043',
                   border: '1px solid #f8f9fa',
                   borderRadius: '4px',
-                  fontSize: '14px',
                   cursor: 'pointer',
                   transition: 'all 0.2s'
                 }}
@@ -273,7 +271,6 @@ export default function HomePage() {
           </div>
         </form>
 
-        {/* Error Message */}
         {error && (
           <div style={{
             marginTop: '16px',
@@ -289,7 +286,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Results - Google-style */}
+        {/* Results */}
         {searched && !loading && (
           <div style={{
             marginTop: '24px',
