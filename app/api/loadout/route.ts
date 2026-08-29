@@ -32,9 +32,22 @@ export async function POST(req: Request) {
   }
   
   const { 
-    containerNumber, size, type, equipment, vessel, arrivalDate, 
-    unstuffedDate, deliveryDate, location, content, truckPlate, 
-    agentContact, boxesLoaded, devanningType, remarks 
+    containerNumber, 
+    size, 
+    type, 
+    equipment, 
+    vessel, 
+    arrivalDate, 
+    unstuffedDate, 
+    deliveryDate, 
+    location, 
+    content, 
+    truckPlate, 
+    agentContact, 
+    boxesLoaded, 
+    devanningType, 
+    remarks,
+    isDouble
   } = body
   
   // Check if container is in unstuffed
@@ -52,6 +65,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Container not found in unstuffed list' }, { status: 400 })
   }
   
+  // Insert into LoadoutRecord
   const { data, error } = await supabase
     .from('LoadoutRecord')
     .insert({
@@ -65,11 +79,12 @@ export async function POST(req: Request) {
       deliveryDate: deliveryDate || null,
       location: location || '',
       content: content || '',
-      truckPlate,
+      truckPlate: truckPlate || '',
       agentContact: agentContact || '',
       boxesLoaded: parseInt(boxesLoaded) || 0,
       devanningType: devanningType || '',
       remarks: remarks || '',
+      isDouble: isDouble || false,
       userId: userId
     })
     .select()
@@ -86,6 +101,7 @@ export async function POST(req: Request) {
     .delete()
     .eq('containerNumber', containerNumber.toUpperCase().trim())
   
+  // Log activity
   await supabase
     .from('ActivityLog')
     .insert({
