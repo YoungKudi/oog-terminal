@@ -101,12 +101,31 @@ export default function DashboardPage() {
   }, [])
 
   useEffect(() => {
+    // Remove Ship Yard from localStorage if present
+    const savedLocs = localStorage.getItem('oog_locations')
+    if (savedLocs) {
+      try {
+        const parsed = JSON.parse(savedLocs)
+        const filtered = parsed.filter((loc: any) => loc.name !== 'Ship Yard')
+        if (filtered.length !== parsed.length) {
+          localStorage.setItem('oog_locations', JSON.stringify(filtered))
+          setLocations(filtered)
+        } else {
+          setLocations(parsed)
+        }
+      } catch (e) {
+        setLocations(DEFAULT_LOCATIONS)
+      }
+    } else {
+      setLocations(DEFAULT_LOCATIONS)
+    }
+
     const allPos = []
     for (const loc of locations) {
       if (loc.positions) allPos.push(...loc.positions)
     }
     setAllPositions(allPos.sort())
-  }, [locations])
+  }, [])
 
   useEffect(() => {
     const scans = localStorage.getItem('oog_scans')
@@ -114,6 +133,14 @@ export default function DashboardPage() {
     const savedShifts = localStorage.getItem('oog_shifts')
     if (savedShifts) setShiftData(JSON.parse(savedShifts))
   }, [])
+
+  useEffect(() => {
+    const allPos = []
+    for (const loc of locations) {
+      if (loc.positions) allPos.push(...loc.positions)
+    }
+    setAllPositions(allPos.sort())
+  }, [locations])
 
   if (loading || status === 'loading') {
     return (
@@ -244,7 +271,6 @@ export default function DashboardPage() {
               overflowY: 'auto'
             }}
           >
-            {/* PROFILE LINK - Added at the top */}
             <Link 
               href="/dashboard/profile" 
               onClick={() => setDropdownOpen(false)}
@@ -404,7 +430,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* TABS CONTENT - Same as before */}
+      {/* TABS CONTENT */}
       <div className="tab-content active" id="queue-tab">
         <DailyTally 
           locations={locations} 

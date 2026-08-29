@@ -1,7 +1,6 @@
 export const EQUIPMENT_LIST = [
   'Other',
   'Excavator', 
-  '2x Excavator', 
   'General Goods', 
   'Boxed Cargo', 
   'Cone Crusher',
@@ -48,15 +47,6 @@ export const DEFAULT_LOCATIONS = [
     columns: 2, 
     rows: 11, 
     positions: ['L1','L2','L3','L4','L5','L6','L7','L8','L9','L10','L11','R1','R2','R3','R4','R5','R6','R7','R8','R9','R10','R11','M'] 
-  },
-  { 
-    id: 'loc_2', 
-    name: 'Ship Yard', 
-    type: 'grid', 
-    prefix: 'SY', 
-    columns: 1, 
-    rows: 15, 
-    positions: ['SY1','SY2','SY3','SY4','SY5','SY6','SY7','SY8','SY9','SY10','SY11','SY12','SY13','SY14','SY15'] 
   },
   { 
     id: 'loc_3', 
