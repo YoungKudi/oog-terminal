@@ -17,12 +17,12 @@ import ReceivalsTab from './components/ReceivalsTab'
 import TalliesTab from './components/TalliesTab'
 import DevanningTab from './components/DevanningTab'
 import UnstuffedTab from './components/UnstuffedTab'
+import ClearanceTab from './components/ClearanceTab'
 import EvacuationTab from './components/EvacuationTab'
 import LocationsTab from './components/LocationsTab'
 import ContactsTab from './components/ContactsTab'
 import BackupTab from './components/BackupTab'
 import ReportsTab from './components/ReportsTab'
-import ClearanceTab from './components/ClearanceTab'
 import DevanningWizard from './components/DevanningWizard'
 
 // Import modals
@@ -40,6 +40,24 @@ import { DailyTally } from '@/components/common/DailyTally'
 import { FloatingButtons } from '@/components/common/FloatingButtons'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import Link from 'next/link'
+
+// Tab IDs
+const MAIN_TABS = [
+  { id: 'queue', icon: '📥', label: 'Queue' },
+  { id: 'receivals', icon: '📦', label: 'Receivals' },
+  { id: 'tallies', icon: '📋', label: 'Tallies' },
+  { id: 'devanning', icon: '🔧', label: 'Devanning' },
+  { id: 'unstuffed', icon: '✅', label: 'Unstuffed' },
+  { id: 'clearance', icon: '🚚', label: 'Clearance' }
+]
+
+const DROPDOWN_TABS = [
+  { id: 'evacuation', icon: '🚚', label: 'Evacuation & Boxes' },
+  { id: 'locations', icon: '📍', label: 'Locations' },
+  { id: 'contacts', icon: '👤', label: 'Equipment Contacts' },
+  { id: 'backup', icon: '💾', label: 'Backup & Activity' },
+  { id: 'reports', icon: '📄', label: 'Reports' }
+]
 
 export default function DashboardPage() {
   const { data: session, status } = useSession()
@@ -74,7 +92,6 @@ export default function DashboardPage() {
   const [wizardContainer, setWizardContainer] = useState(null)
 
   // Clearance state
-  const [showClearanceTab, setShowClearanceTab] = useState(false)
   const [clearanceContainers, setClearanceContainers] = useState<any[]>([])
 
   // Modal states
@@ -140,42 +157,26 @@ export default function DashboardPage() {
     if (savedShifts) setShiftData(JSON.parse(savedShifts))
   }, [])
 
-  // ============================================
-  // FIX: Proper tab switching with content display
-  // ============================================
   const switchToTab = (tabId: string) => {
     setActiveTab(tabId)
     setDropdownOpen(false)
-    
-    // Hide all tab contents
-    document.querySelectorAll('.tab-content').forEach(el => {
-      el.classList.remove('active')
-    })
-    
-    // Show the selected tab content
-    const tabContent = document.getElementById(tabId + '-tab')
-    if (tabContent) {
-      tabContent.classList.add('active')
-    }
-    
-    // Update tab buttons
-    document.querySelectorAll('.tab-button').forEach(b => {
-      b.classList.remove('active')
-    })
-    const tabButton = document.querySelector(`.tab-button[data-tab="${tabId}"]`)
-    if (tabButton) {
-      tabButton.classList.add('active')
-    }
   }
 
   const handleClearanceBack = () => {
-    setShowClearanceTab(false)
     switchToTab('unstuffed')
   }
 
-  // Handle tab click
-  const handleTabClick = (tabId: string) => {
-    switchToTab(tabId)
+  const getTabCount = (tabId: string) => {
+    switch(tabId) {
+      case 'queue': return tabCounts.queue
+      case 'receivals': return tabCounts.receivals
+      case 'tallies': return tabCounts.tallies
+      case 'devanning': return tabCounts.devanning
+      case 'unstuffed': return tabCounts.unstuffed
+      case 'clearance': return clearanceContainers.length
+      case 'evacuation': return tabCounts.evacuation
+      default: return 0
+    }
   }
 
   if (loading || status === 'loading') {
@@ -200,43 +201,7 @@ export default function DashboardPage() {
   const dayName = days[now.getDay()]
   const dateStr = `${day}/${month}/${year} ${dayName}`
 
-  const tabs = [
-    { id: 'queue', icon: '📥', label: 'Queue', count: tabCounts.queue },
-    { id: 'receivals', icon: '📦', label: 'Receivals', count: tabCounts.receivals },
-    { id: 'tallies', icon: '📋', label: 'Tallies', count: tabCounts.tallies },
-    { id: 'devanning', icon: '🔧', label: 'Devanning', count: tabCounts.devanning },
-    { id: 'unstuffed', icon: '✅', label: 'Unstuffed', count: tabCounts.unstuffed }
-  ]
-
-  // If clearance tab is active, show it
-  if (showClearanceTab) {
-    return (
-      <div className="app-container">
-        <div className="app-header">
-          <div className="logo-area">
-            <h1>
-              <span style={{ display: 'inline-flex', marginRight: '8px' }}>
-                <Icons.Dashboard size={20} color="white" />
-              </span>
-              OOG Terminal
-            </h1>
-          </div>
-          <div className="header-actions">
-            <span style={{fontSize:'0.75rem',opacity:0.8}}>👤 {session.user?.userId}</span>
-            <button className="btn" onClick={toggleDarkMode} style={{background:'rgba(255,255,255,0.2)',padding:'2px 10px'}}>{isDarkMode ? '☀️' : '🌙'}</button>
-          </div>
-        </div>
-        <ClearanceTab
-          clearanceContainers={clearanceContainers}
-          setClearanceContainers={setClearanceContainers}
-          isDarkMode={isDarkMode}
-          showToast={showToast}
-          fetchAllData={fetchAllData}
-          onBack={handleClearanceBack}
-        />
-      </div>
-    )
-  }
+  const isActive = (tabId: string) => activeTab === tabId
 
   return (
     <div className="app-container">
@@ -257,14 +222,27 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* TAB BAR */}
-      <div className="tab-bar" style={{ overflow: 'visible', position: 'relative', zIndex: 10 }}>
-        {tabs.map(t => (
+      {/* TAB BAR - 6 Main Tabs + Hamburger Dropdown */}
+      <div className="tab-bar" style={{ 
+        display: 'flex', 
+        alignItems: 'center',
+        background: isDarkMode ? '#111827' : 'white',
+        padding: '6px 8px',
+        borderBottom: `1px solid ${isDarkMode ? '#1f2937' : '#e2e8f0'}`,
+        overflow: 'visible',
+        position: 'relative',
+        zIndex: 10,
+        flexShrink: 0,
+        minHeight: '52px',
+        gap: '2px'
+      }}>
+        {/* Main Tabs - 6 tabs */}
+        {MAIN_TABS.map(t => (
           <button
             key={t.id}
             className={`tab-button ${activeTab === t.id ? 'active' : ''}`}
             data-tab={t.id}
-            onClick={() => handleTabClick(t.id)}
+            onClick={() => switchToTab(t.id)}
             style={{
               flex: '1 0 auto',
               padding: '6px 4px',
@@ -295,40 +273,47 @@ export default function DashboardPage() {
               flexWrap: 'wrap',
               justifyContent: 'center'
             }}>
-              <span style={{ 
-                fontSize: window.innerWidth < 480 ? '1rem' : '1.1rem',
-                lineHeight: 1
-              }}>{t.icon}</span>
+              <span style={{ fontSize: window.innerWidth < 480 ? '1rem' : '1.1rem' }}>{t.icon}</span>
               <span style={{ 
                 fontSize: window.innerWidth < 480 ? '0.45rem' : '0.55rem',
-                marginTop: '0px',
                 display: window.innerWidth < 480 ? 'none' : 'inline'
               }}>{t.label}</span>
-              {t.count > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '-2px',
-                    right: '-4px',
-                    width: '10px',
-                    height: '10px',
-                    background: '#ef4444',
-                    borderRadius: '50%',
-                    boxShadow: '0 0 0 2px ' + (isDarkMode ? '#111827' : 'white'),
-                    animation: 'pulse-dot 1.5s ease-in-out infinite',
-                  }}
-                />
+              {getTabCount(t.id) > 0 && t.id !== 'clearance' && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-2px',
+                  right: '-4px',
+                  width: '10px',
+                  height: '10px',
+                  background: '#ef4444',
+                  borderRadius: '50%',
+                  boxShadow: `0 0 0 2px ${isDarkMode ? '#111827' : 'white'}`,
+                  animation: 'pulse-dot 1.5s ease-in-out infinite',
+                }} />
+              )}
+              {t.id === 'clearance' && clearanceContainers.length > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-6px',
+                  background: '#ef4444',
+                  color: 'white',
+                  borderRadius: '50%',
+                  fontSize: '0.5rem',
+                  fontWeight: '700',
+                  padding: '1px 5px',
+                  minWidth: '16px',
+                  textAlign: 'center',
+                  boxShadow: `0 0 0 2px ${isDarkMode ? '#111827' : 'white'}`,
+                }}>
+                  {clearanceContainers.length}
+                </span>
               )}
             </div>
-            <style>{`
-              @keyframes pulse-dot {
-                0%, 100% { opacity: 1; transform: scale(1); }
-                50% { opacity: 0.7; transform: scale(0.9); }
-              }
-            `}</style>
           </button>
         ))}
-        
+
+        {/* Hamburger Menu (Three Dash Lines) */}
         <div className="dropdown-container" ref={dropdownRef} style={{ position: 'relative', zIndex: 100 }}>
           <button 
             ref={dropdownButtonRef}
@@ -341,22 +326,41 @@ export default function DashboardPage() {
               border: 'none',
               cursor: 'pointer',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
-              gap: '4px',
-              fontWeight: '600',
-              fontSize: '0.65rem',
-              color: isDarkMode ? '#94a3b8' : '#5b6e8c',
+              justifyContent: 'center',
+              gap: '2px',
+              width: '36px',
+              height: '36px',
               transition: 'all 0.2s'
             }}
           >
-            <span style={{ fontSize: '1.1rem' }}>⚙️</span>
-            <span>More</span>
             <span style={{ 
-              fontSize: '0.7rem', 
-              transform: dropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s'
-            }}>▼</span>
+              display: 'block',
+              width: '18px',
+              height: '2px',
+              background: isDarkMode ? '#94a3b8' : '#5b6e8c',
+              borderRadius: '2px',
+              transition: 'all 0.2s'
+            }} />
+            <span style={{ 
+              display: 'block',
+              width: '18px',
+              height: '2px',
+              background: isDarkMode ? '#94a3b8' : '#5b6e8c',
+              borderRadius: '2px',
+              transition: 'all 0.2s'
+            }} />
+            <span style={{ 
+              display: 'block',
+              width: '18px',
+              height: '2px',
+              background: isDarkMode ? '#94a3b8' : '#5b6e8c',
+              borderRadius: '2px',
+              transition: 'all 0.2s'
+            }} />
           </button>
+          
           <div 
             className={`dropdown-menu ${dropdownOpen ? 'show' : ''}`}
             style={{
@@ -401,111 +405,31 @@ export default function DashboardPage() {
               User Profile
             </Link>
 
-            <a 
-              onClick={() => { switchToTab('evacuation'); setDropdownOpen(false) }} 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                color: isDarkMode ? '#e2e8f0' : '#1e293b',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ fontSize: '1rem' }}>🚚</span>
-              Evacuation & Boxes ({tabCounts.evacuation})
-            </a>
-            <a 
-              onClick={() => { switchToTab('locations'); setDropdownOpen(false) }} 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                color: isDarkMode ? '#e2e8f0' : '#1e293b',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ fontSize: '1rem' }}>📍</span>
-              Locations
-            </a>
-            <a 
-              onClick={() => { switchToTab('contacts'); setDropdownOpen(false) }} 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                color: isDarkMode ? '#e2e8f0' : '#1e293b',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ fontSize: '1rem' }}>👤</span>
-              Equipment Contacts
-            </a>
-            <a 
-              onClick={() => { switchToTab('backup'); setDropdownOpen(false) }} 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                color: isDarkMode ? '#e2e8f0' : '#1e293b',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ fontSize: '1rem' }}>💾</span>
-              Backup & Activity
-            </a>
-            <a 
-              onClick={() => { switchToTab('reports'); setDropdownOpen(false) }} 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                color: isDarkMode ? '#e2e8f0' : '#1e293b',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ fontSize: '1rem' }}>📄</span>
-              Reports
-            </a>
+            {DROPDOWN_TABS.map(t => (
+              <a 
+                key={t.id}
+                onClick={() => { switchToTab(t.id); setDropdownOpen(false) }} 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  textDecoration: 'none',
+                  color: isDarkMode ? '#e2e8f0' : '#1e293b',
+                  fontSize: '0.75rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  borderRadius: '4px',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <span style={{ fontSize: '1rem' }}>{t.icon}</span>
+                {t.label} {getTabCount(t.id) > 0 && `(${getTabCount(t.id)})`}
+              </a>
+            ))}
+            
             <div className="dropdown-divider" style={{
               borderTop: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
               margin: '4px 0'
@@ -535,7 +459,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* TABS CONTENT - All tab contents visible but controlled by active class */}
+      {/* TABS CONTENT */}
       <div className={`tab-content ${activeTab === 'queue' ? 'active' : ''}`} id="queue-tab">
         <DailyTally 
           locations={locations} 
@@ -611,10 +535,21 @@ export default function DashboardPage() {
           setShowContainerDetailModal={setShowContainerDetailModal}
           setShowLoadoutModal={setShowLoadoutModal}
           setShowScannerModal={setShowScannerModal}
-          setShowClearanceTab={setShowClearanceTab}
           setClearanceContainer={(container: any) => {
             setClearanceContainers(prev => [...prev, container])
+            switchToTab('clearance')
           }}
+        />
+      </div>
+
+      <div className={`tab-content ${activeTab === 'clearance' ? 'active' : ''}`} id="clearance-tab">
+        <ClearanceTab
+          clearanceContainers={clearanceContainers}
+          setClearanceContainers={setClearanceContainers}
+          isDarkMode={isDarkMode}
+          showToast={showToast}
+          fetchAllData={fetchAllData}
+          onBack={() => switchToTab('unstuffed')}
         />
       </div>
 

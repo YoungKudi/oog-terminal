@@ -74,7 +74,6 @@ export default function ClearanceTab({
 
         if (res.ok) {
           successCount++
-          // Remove from UnstuffedContainer
           await fetch('/api/unstuffed', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
@@ -132,7 +131,7 @@ export default function ClearanceTab({
             cursor: 'pointer',
             color: getColor(isDarkMode, '#1e293b', '#e2e8f0')
           }}>
-            ← Back
+            ← Back to Unstuffed
           </button>
         </div>
       </div>

@@ -15,7 +15,6 @@ interface UnstuffedTabProps {
   setShowContainerDetailModal: (show: boolean) => void
   setShowLoadoutModal: (show: boolean) => void
   setShowScannerModal: (show: boolean) => void
-  setShowClearanceTab: (show: boolean) => void
   setClearanceContainer: (container: any) => void
 }
 
@@ -32,15 +31,11 @@ export default function UnstuffedTab({
   setShowContainerDetailModal,
   setShowLoadoutModal,
   setShowScannerModal,
-  setShowClearanceTab,
   setClearanceContainer
 }: UnstuffedTabProps) {
   const [searchTerm, setSearchTerm] = React.useState('')
 
-  // Calculate total equipment units (including 2X)
   const totalUnits = unstuffedContainers.reduce((sum, c) => sum + (c.isDouble ? 2 : 1), 0)
-  
-  // Calculate excavator units
   const excavatorUnits = unstuffedContainers
     .filter(c => c.equipment === 'Excavator' || c.equipment === '2x Excavator')
     .reduce((sum, c) => sum + (c.isDouble ? 2 : 1), 0)
@@ -102,7 +97,6 @@ export default function UnstuffedTab({
 
   const handleLoad = (container: any) => {
     setClearanceContainer(container)
-    setShowClearanceTab(true)
   }
 
   return (
@@ -129,7 +123,6 @@ export default function UnstuffedTab({
         </div>
       </div>
       <div className="card-body" style={{padding:'10px 14px'}}>
-        {/* Summary stats */}
         <div style={{display:'flex', gap:'16px', marginBottom:'10px', flexWrap:'wrap'}}>
           <div style={{fontSize:'0.75rem', color: textColor}}>
             📊 Total Units: <strong>{totalUnits}</strong>
@@ -209,7 +202,6 @@ export default function UnstuffedTab({
                       <span style={{fontSize:'0.55rem',color:'#64748b'}}>×{units}</span>
                     </div>
                     <div style={{display:'flex',gap:'4px',flexWrap:'wrap'}}>
-                      {/* LOAD BUTTON - Removes clearance and scan, adds Load */}
                       <button className="btn-primary btn-sm" onClick={(e) => { 
                         e.stopPropagation(); 
                         handleLoad(u)
