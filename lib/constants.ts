@@ -1,9 +1,28 @@
 export const EQUIPMENT_LIST = [
-  'Excavator', '2x Excavator', 'General Goods', 'Boxed Cargo', 'Cone Crusher',
-  'Surface Drill Rig', 'Dump Truck', 'Fork Lift', 'Reach Stacker', 'Earthmover Tyres',
-  'Grader', 'Compact Roller', 'Excavator Drill Rig', 'Bulldozer', 'Truck Head',
-  'Drilling Rig', 'Bus', 'Wheel Loader', 'Asphalt Paver', 'Backhoe',
-  '3 Tonner', '16 Tonner', '32 Tonner'
+  'Other',
+  'Excavator', 
+  '2x Excavator', 
+  'General Goods', 
+  'Boxed Cargo', 
+  'Cone Crusher',
+  'Surface Drill Rig', 
+  'Dump Truck', 
+  'Fork Lift', 
+  'Reach Stacker', 
+  'Earthmover Tyres',
+  'Grader', 
+  'Compact Roller', 
+  'Excavator Drill Rig', 
+  'Bulldozer', 
+  'Truck Head',
+  'Drilling Rig', 
+  'Bus', 
+  'Wheel Loader', 
+  'Asphalt Paver', 
+  'Backhoe',
+  '3 Tonner', 
+  '16 Tonner', 
+  '32 Tonner'
 ]
 
 export const AUX_CARGO_TYPES = ['Boxes', 'Pallets', 'Barrel', 'Bundle', 'Units', 'Pieces']

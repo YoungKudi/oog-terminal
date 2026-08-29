@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { EQUIPMENT_LIST, AUX_CARGO_TYPES } from '@/lib/constants'
 import { getColor } from '@/lib/utils'
 
@@ -15,13 +15,28 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
   const [containerNumber, setContainerNumber] = useState('')
   const [position, setPosition] = useState('')
   const [size, setSize] = useState('40')
-  const [type, setType] = useState('')
+  const [type, setType] = useState('FR') // Default: Flat Rack
   const [equipment, setEquipment] = useState('')
   const [auxCargoQty, setAuxCargoQty] = useState(0)
   const [auxCargoType, setAuxCargoType] = useState('units')
   const [remarks, setRemarks] = useState('')
   const [loading, setLoading] = useState(false)
+  const [equipmentList, setEquipmentList] = useState<string[]>(EQUIPMENT_LIST)
+  const [showNewEquipment, setShowNewEquipment] = useState(false)
+  const [newEquipment, setNewEquipment] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Load custom equipment from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('oog_custom_equipment')
+    if (saved) {
+      const customList = JSON.parse(saved)
+      const merged = [...EQUIPMENT_LIST, ...customList]
+      // Remove duplicates
+      const unique = [...new Set(merged)]
+      setEquipmentList(unique)
+    }
+  }, [])
 
   const sortedPositions = [...allPositions].sort((a, b) => {
     if (a.startsWith('L') && !b.startsWith('L')) return -1
@@ -37,9 +52,33 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
 
   const handleContainerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
-    // Only allow letters and numbers, preserve case
     const cleaned = value.replace(/[^A-Za-z0-9]/g, '')
     setContainerNumber(cleaned)
+  }
+
+  const handleAddEquipment = () => {
+    if (!newEquipment.trim()) {
+      showToast('❌ Please enter equipment name')
+      return
+    }
+    
+    const trimmed = newEquipment.trim()
+    if (equipmentList.includes(trimmed)) {
+      showToast('❌ Equipment already exists')
+      return
+    }
+    
+    const updatedList = [...equipmentList, trimmed]
+    setEquipmentList(updatedList)
+    setEquipment(trimmed)
+    
+    // Save to localStorage
+    const customItems = updatedList.filter(item => !EQUIPMENT_LIST.includes(item))
+    localStorage.setItem('oog_custom_equipment', JSON.stringify(customItems))
+    
+    setShowNewEquipment(false)
+    setNewEquipment('')
+    showToast(`✅ "${trimmed}" added to equipment list`)
   }
 
   const handleSubmit = async () => {
@@ -124,7 +163,6 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
           <div className="form-group" style={{marginBottom:'8px'}}>
             <label style={{color: mutedColor, fontSize:'0.6rem', fontWeight:'600', textTransform:'uppercase', display:'block', marginBottom:'2px'}}>Type</label>
             <select value={type} onChange={(e) => setType(e.target.value)} style={{padding:'6px 8px',borderRadius:'10px',border:'1px solid #cfdfed',fontSize:'0.75rem',width:'100%',background: inputBg, color: inputText}}>
-              <option value="">Select</option>
               <option value="FR">Flat Rack</option>
               <option value="OT">Open Top</option>
             </select>
@@ -132,11 +170,84 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
         </div>
         <div className="form-group" style={{marginBottom:'8px'}}>
           <label style={{color: mutedColor, fontSize:'0.6rem', fontWeight:'600', textTransform:'uppercase', display:'block', marginBottom:'2px'}}>Equipment</label>
-          <select value={equipment} onChange={(e) => setEquipment(e.target.value)} style={{padding:'6px 8px',borderRadius:'10px',border:'1px solid #cfdfed',fontSize:'0.75rem',width:'100%',background: inputBg, color: inputText}}>
-            <option value="">Select Equipment</option>
-            {EQUIPMENT_LIST.map(e => <option key={e} value={e}>{e}</option>)}
-          </select>
+          <div style={{display:'flex', gap:'6px'}}>
+            <select value={equipment} onChange={(e) => setEquipment(e.target.value)} style={{flex:1, padding:'6px 8px',borderRadius:'10px',border:'1px solid #cfdfed',fontSize:'0.75rem',width:'100%',background: inputBg, color: inputText}}>
+              <option value="">Select Equipment</option>
+              {equipmentList.map(e => <option key={e} value={e}>{e}</option>)}
+            </select>
+            <button 
+              type="button"
+              onClick={() => setShowNewEquipment(!showNewEquipment)}
+              style={{
+                padding:'4px 10px',
+                borderRadius:'10px',
+                border:'1px solid #cfdfed',
+                background: '#1e6f3f',
+                color: 'white',
+                fontSize:'0.7rem',
+                cursor:'pointer',
+                whiteSpace:'nowrap'
+              }}
+            >
+              +
+            </button>
+          </div>
         </div>
+        
+        {/* New Equipment Input */}
+        {showNewEquipment && (
+          <div style={{marginBottom:'8px', padding:'8px', background: getColor(isDarkMode, '#f1f5f9', '#0f172a'), borderRadius:'8px'}}>
+            <div style={{display:'flex', gap:'6px'}}>
+              <input 
+                type="text" 
+                value={newEquipment} 
+                onChange={(e) => setNewEquipment(e.target.value)}
+                placeholder="Enter new equipment type"
+                style={{flex:1, padding:'6px 8px',borderRadius:'8px',border:'1px solid #cfdfed',fontSize:'0.75rem',background: inputBg, color: inputText}}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleAddEquipment()
+                  }
+                }}
+              />
+              <button 
+                type="button"
+                onClick={handleAddEquipment}
+                style={{
+                  padding:'4px 12px',
+                  borderRadius:'8px',
+                  border:'none',
+                  background: '#10b981',
+                  color: 'white',
+                  fontSize:'0.7rem',
+                  cursor:'pointer'
+                }}
+              >
+                Add
+              </button>
+              <button 
+                type="button"
+                onClick={() => { setShowNewEquipment(false); setNewEquipment('') }}
+                style={{
+                  padding:'4px 10px',
+                  borderRadius:'8px',
+                  border:'none',
+                  background: '#dc2626',
+                  color: 'white',
+                  fontSize:'0.7rem',
+                  cursor:'pointer'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{fontSize:'0.55rem', color: mutedColor, marginTop:'4px'}}>
+              Press Enter or click Add to save
+            </div>
+          </div>
+        )}
+        
         <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:'8px'}}>
           <div className="form-group" style={{marginBottom:'8px'}}>
             <label style={{color: mutedColor, fontSize:'0.6rem', fontWeight:'600', textTransform:'uppercase', display:'block', marginBottom:'2px'}}>Aux Cargo Qty</label>
