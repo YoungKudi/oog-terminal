@@ -1,16 +1,24 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/db'
+import { getSupabase } from '@/lib/db'
 import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: Request) {
-  // Get client IP for rate limiting
   const ip = req.headers.get('x-forwarded-for') || 'unknown'
-  const { limited, remaining } = rateLimit(ip)
+  const rateLimitResult = rateLimit(ip, true)
   
-  if (limited) {
+  if (rateLimitResult.limited) {
     return NextResponse.json({ 
-      error: 'Too many requests. Please try again later.' 
+      error: rateLimitResult.blocked 
+        ? `Too many requests. Please try again in ${rateLimitResult.blockRemaining} seconds.`
+        : 'Rate limit exceeded. Please wait a moment.'
     }, { status: 429 })
+  }
+  
+  const supabase = getSupabase()
+  if (!supabase) {
+    return NextResponse.json({ 
+      error: 'Service temporarily unavailable' 
+    }, { status: 503 })
   }
   
   try {
@@ -18,13 +26,6 @@ export async function POST(req: Request) {
     
     if (!containerNumbers || !Array.isArray(containerNumbers) || containerNumbers.length === 0) {
       return NextResponse.json({ error: 'No container numbers provided' }, { status: 400 })
-    }
-    
-    // Limit to 50 containers per request
-    if (containerNumbers.length > 50) {
-      return NextResponse.json({ 
-        error: 'Maximum 50 containers per request' 
-      }, { status: 400 })
     }
     
     const cleanNumbers = containerNumbers
@@ -35,7 +36,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid container numbers' }, { status: 400 })
     }
     
-    // Query only the Container table (Stack/Tallies)
     const { data, error } = await supabase
       .from('Container')
       .select('containerNumber, position, equipment, size, type, auxCargo, receivedDate')
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     
     if (error) {
       console.error('Database error:', error)
-      return NextResponse.json({ error: 'Database error' }, { status: 500 })
+      return NextResponse.json({ error: 'Service temporarily unavailable' }, { status: 500 })
     }
     
     const foundMap = new Map()
@@ -64,11 +64,11 @@ export async function POST(req: Request) {
       results,
       totalFound: results.filter(r => r.found).length,
       totalSearched: results.length,
-      rateLimit: { remaining }
+      rateLimit: { remaining: rateLimitResult.remaining }
     })
     
   } catch (error) {
     console.error('Search error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Service temporarily unavailable' }, { status: 500 })
   }
 }

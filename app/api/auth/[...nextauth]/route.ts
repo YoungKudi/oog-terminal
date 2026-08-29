@@ -1,7 +1,8 @@
 import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import { supabase } from '@/lib/db'
+import { getSupabase } from '@/lib/db'
 import bcrypt from 'bcryptjs'
+import { logAudit, getClientInfo } from '@/lib/audit'
 
 export const authOptions = {
   providers: [
@@ -11,7 +12,13 @@ export const authOptions = {
         workerId: { label: 'Worker ID', type: 'text' },
         password: { label: 'Password', type: 'password' }
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
+        const supabase = getSupabase()
+        if (!supabase) {
+          console.error('❌ Supabase not configured')
+          return null
+        }
+
         if (!credentials?.workerId || !credentials?.password) {
           console.log('❌ Missing credentials')
           return null
@@ -19,7 +26,7 @@ export const authOptions = {
 
         try {
           console.log('🔍 Looking for user:', credentials.workerId.toUpperCase().trim())
-          
+
           const { data: users, error } = await supabase
             .from('User')
             .select('*')
@@ -30,10 +37,15 @@ export const authOptions = {
             return null
           }
 
-          console.log('📊 Found users:', users?.length || 0)
-
           if (!users || users.length === 0) {
             console.log('❌ No user found with ID:', credentials.workerId)
+            const clientInfo = getClientInfo(req)
+            await logAudit({
+              action: 'LOGIN_FAILED',
+              details: { workerId: credentials.workerId, reason: 'User not found' },
+              ipAddress: clientInfo.ipAddress,
+              userAgent: clientInfo.userAgent
+            })
             return null
           }
 
@@ -48,7 +60,26 @@ export const authOptions = {
           const isValid = await bcrypt.compare(credentials.password, user.password)
           console.log('🔐 Password valid:', isValid)
 
-          if (!isValid) return null
+          if (!isValid) {
+            const clientInfo = getClientInfo(req)
+            await logAudit({
+              action: 'LOGIN_FAILED',
+              details: { workerId: credentials.workerId, reason: 'Invalid password' },
+              ipAddress: clientInfo.ipAddress,
+              userAgent: clientInfo.userAgent
+            })
+            return null
+          }
+
+          // Log successful login
+          const clientInfo = getClientInfo(req)
+          await logAudit({
+            action: 'LOGIN_SUCCESS',
+            userId: user.id,
+            details: { workerId: user.userId, role: user.role },
+            ipAddress: clientInfo.ipAddress,
+            userAgent: clientInfo.userAgent
+          })
 
           return {
             id: user.id,
@@ -67,7 +98,7 @@ export const authOptions = {
   ],
   session: {
     strategy: 'jwt' as const,
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: parseInt(process.env.SESSION_TIMEOUT_MINUTES || '30') * 60,
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -78,6 +109,7 @@ export const authOptions = {
         token.name = user.name
         token.email = user.email
         token.phone = user.phone
+        token.iat = Math.floor(Date.now() / 1000)
       }
       return token
     },
@@ -98,7 +130,7 @@ export const authOptions = {
     error: '/login',
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: true, // Enable debug logging
+  debug: true,
 }
 
 const handler = NextAuth(authOptions)
