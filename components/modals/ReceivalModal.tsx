@@ -15,8 +15,9 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
   const [containerNumber, setContainerNumber] = useState('')
   const [position, setPosition] = useState('')
   const [size, setSize] = useState('40')
-  const [type, setType] = useState('FR') // Default: Flat Rack
+  const [type, setType] = useState('FR')
   const [equipment, setEquipment] = useState('')
+  const [isDouble, setIsDouble] = useState(false)
   const [auxCargoQty, setAuxCargoQty] = useState(0)
   const [auxCargoType, setAuxCargoType] = useState('units')
   const [remarks, setRemarks] = useState('')
@@ -32,7 +33,6 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
     if (saved) {
       const customList = JSON.parse(saved)
       const merged = [...EQUIPMENT_LIST, ...customList]
-      // Remove duplicates
       const unique = [...new Set(merged)]
       setEquipmentList(unique)
     }
@@ -72,7 +72,6 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
     setEquipmentList(updatedList)
     setEquipment(trimmed)
     
-    // Save to localStorage
     const customItems = updatedList.filter(item => !EQUIPMENT_LIST.includes(item))
     localStorage.setItem('oog_custom_equipment', JSON.stringify(customItems))
     
@@ -94,19 +93,28 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
     }
     setLoading(true)
     try {
+      // If double, add "2x" prefix to equipment for display
+      const displayEquipment = isDouble ? `2x ${equipment}` : equipment
       const auxCargo = auxCargoQty > 0 ? `${auxCargoQty} ${auxCargoType}` : ''
+      
       const res = await fetch('/api/containers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           containerNumber: upperContainerNumber,
-          position, size, type, equipment,
-          auxCargo, auxCargoType, auxCargoQuantity: auxCargoQty,
+          position, 
+          size, 
+          type, 
+          equipment: displayEquipment,
+          isDouble: isDouble,
+          auxCargo, 
+          auxCargoType, 
+          auxCargoQuantity: auxCargoQty,
           remarks
         })
       })
       if (res.ok) {
-        showToast('✅ Container added')
+        showToast(`✅ Container added${isDouble ? ' (2x)' : ''}`)
         onSave()
         onClose()
       } else {
@@ -130,6 +138,7 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
     <div className="modal" style={{display:'flex', position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)', justifyContent:'center', alignItems:'center', zIndex:1000}}>
       <div className="modal-content" style={{background: bgColor, color: textColor, borderRadius:'24px', padding:'18px', maxWidth:'440px', width:'92%', maxHeight:'80vh', overflowY:'auto', border: `1px solid ${borderColor}`}}>
         <h3 style={{color: textColor, marginBottom:'10px'}}>📦 New Container</h3>
+        
         <div className="form-group" style={{marginBottom:'8px'}}>
           <label style={{color: mutedColor, fontSize:'0.6rem', fontWeight:'600', textTransform:'uppercase', display:'block', marginBottom:'2px'}}>Container Number (4 letters + 7 digits)</label>
           <input 
@@ -145,6 +154,7 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
             <span>{containerNumber ? containerNumber.toUpperCase() : ''}</span>
           </div>
         </div>
+        
         <div className="form-group" style={{marginBottom:'8px'}}>
           <label style={{color: mutedColor, fontSize:'0.6rem', fontWeight:'600', textTransform:'uppercase', display:'block', marginBottom:'2px'}}>Position</label>
           <select value={position} onChange={(e) => setPosition(e.target.value)} style={{padding:'6px 8px',borderRadius:'10px',border:'1px solid #cfdfed',fontSize:'0.75rem',width:'100%',background: inputBg, color: inputText}}>
@@ -152,6 +162,7 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
             {sortedPositions.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         </div>
+        
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
           <div className="form-group" style={{marginBottom:'8px'}}>
             <label style={{color: mutedColor, fontSize:'0.6rem', fontWeight:'600', textTransform:'uppercase', display:'block', marginBottom:'2px'}}>Size</label>
@@ -168,9 +179,11 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
             </select>
           </div>
         </div>
+        
+        {/* Equipment with 2X Button */}
         <div className="form-group" style={{marginBottom:'8px'}}>
           <label style={{color: mutedColor, fontSize:'0.6rem', fontWeight:'600', textTransform:'uppercase', display:'block', marginBottom:'2px'}}>Equipment</label>
-          <div style={{display:'flex', gap:'6px'}}>
+          <div style={{display:'flex', gap:'6px', alignItems:'center'}}>
             <select value={equipment} onChange={(e) => setEquipment(e.target.value)} style={{flex:1, padding:'6px 8px',borderRadius:'10px',border:'1px solid #cfdfed',fontSize:'0.75rem',width:'100%',background: inputBg, color: inputText}}>
               <option value="">Select Equipment</option>
               {equipmentList.map(e => <option key={e} value={e}>{e}</option>)}
@@ -191,7 +204,32 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
             >
               +
             </button>
+            {/* 2X BUTTON - This is what you're looking for */}
+            <button 
+              type="button"
+              onClick={() => setIsDouble(!isDouble)}
+              style={{
+                padding:'4px 12px',
+                borderRadius:'10px',
+                border: isDouble ? '2px solid #1e6f3f' : '1px solid #cfdfed',
+                background: isDouble ? '#1e6f3f' : 'transparent',
+                color: isDouble ? 'white' : textColor,
+                fontSize:'0.75rem',
+                fontWeight: isDouble ? '700' : '400',
+                cursor:'pointer',
+                whiteSpace:'nowrap',
+                minWidth:'40px',
+                transition: 'all 0.2s'
+              }}
+            >
+              2X
+            </button>
           </div>
+          {isDouble && (
+            <div style={{fontSize:'0.6rem', color: '#f59e0b', marginTop:'4px'}}>
+              ⚡ 2X mode: This container counts as 2 units
+            </div>
+          )}
         </div>
         
         {/* New Equipment Input */}
@@ -242,9 +280,6 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
                 ✕
               </button>
             </div>
-            <div style={{fontSize:'0.55rem', color: mutedColor, marginTop:'4px'}}>
-              Press Enter or click Add to save
-            </div>
           </div>
         )}
         
@@ -260,13 +295,15 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
             </select>
           </div>
         </div>
+        
         <div className="form-group" style={{marginBottom:'8px'}}>
           <label style={{color: mutedColor, fontSize:'0.6rem', fontWeight:'600', textTransform:'uppercase', display:'block', marginBottom:'2px'}}>Remarks</label>
           <input type="text" value={remarks} onChange={(e) => setRemarks(e.target.value)} style={{padding:'6px 8px',borderRadius:'10px',border:'1px solid #cfdfed',fontSize:'0.75rem',width:'100%',background: inputBg, color: inputText}} />
         </div>
+        
         <div style={{display:'flex',gap:'8px',marginTop:'12px'}}>
-          <button className="btn btn-primary" onClick={handleSubmit} disabled={loading} style={{background:'#1e6f3f',color:'white',border:'none',borderRadius:'40px',padding:'5px 12px',fontWeight:'600',fontSize:'0.7rem',cursor: loading ? 'not-allowed' : 'pointer', flex:1}}>
-            {loading ? 'Adding...' : '✅ Add'}
+          <button className="btn btn-primary" onClick={handleSubmit} disabled={loading || !equipment} style={{background:'#1e6f3f',color:'white',border:'none',borderRadius:'40px',padding:'5px 12px',fontWeight:'600',fontSize:'0.7rem',cursor: loading ? 'not-allowed' : 'pointer', flex:1}}>
+            {loading ? 'Adding...' : `✅ Add${isDouble ? ' 2X' : ''}`}
           </button>
           <button className="btn btn-outline" onClick={onClose} style={{
             background: getColor(isDarkMode, 'white', '#1e293b'),
