@@ -123,19 +123,6 @@ export default function DashboardPage() {
     } else {
       setLocations(DEFAULT_LOCATIONS)
     }
-
-    const allPos = []
-    for (const loc of locations) {
-      if (loc.positions) allPos.push(...loc.positions)
-    }
-    setAllPositions(allPos.sort())
-  }, [])
-
-  useEffect(() => {
-    const scans = localStorage.getItem('oog_scans')
-    if (scans) setScannedDocuments(JSON.parse(scans))
-    const savedShifts = localStorage.getItem('oog_shifts')
-    if (savedShifts) setShiftData(JSON.parse(savedShifts))
   }, [])
 
   useEffect(() => {
@@ -146,15 +133,49 @@ export default function DashboardPage() {
     setAllPositions(allPos.sort())
   }, [locations])
 
-  const handleClearanceBack = () => {
-    setShowClearanceTab(false)
-    setActiveTab('unstuffed')
-    switchToTab('unstuffed')
-  }
+  useEffect(() => {
+    const scans = localStorage.getItem('oog_scans')
+    if (scans) setScannedDocuments(JSON.parse(scans))
+    const savedShifts = localStorage.getItem('oog_shifts')
+    if (savedShifts) setShiftData(JSON.parse(savedShifts))
+  }, [])
 
+  // ============================================
+  // FIX: Proper tab switching with content display
+  // ============================================
   const switchToTab = (tabId: string) => {
     setActiveTab(tabId)
     setDropdownOpen(false)
+    
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(el => {
+      el.classList.remove('active')
+    })
+    
+    // Show the selected tab content
+    const tabContent = document.getElementById(tabId + '-tab')
+    if (tabContent) {
+      tabContent.classList.add('active')
+    }
+    
+    // Update tab buttons
+    document.querySelectorAll('.tab-button').forEach(b => {
+      b.classList.remove('active')
+    })
+    const tabButton = document.querySelector(`.tab-button[data-tab="${tabId}"]`)
+    if (tabButton) {
+      tabButton.classList.add('active')
+    }
+  }
+
+  const handleClearanceBack = () => {
+    setShowClearanceTab(false)
+    switchToTab('unstuffed')
+  }
+
+  // Handle tab click
+  const handleTabClick = (tabId: string) => {
+    switchToTab(tabId)
   }
 
   if (loading || status === 'loading') {
@@ -239,16 +260,75 @@ export default function DashboardPage() {
       {/* TAB BAR */}
       <div className="tab-bar" style={{ overflow: 'visible', position: 'relative', zIndex: 10 }}>
         {tabs.map(t => (
-          <TabWithCount
+          <button
             key={t.id}
-            icon={t.icon}
-            label={t.label}
-            count={t.count}
-            isActive={activeTab === t.id}
-            onClick={() => switchToTab(t.id)}
-            isDarkMode={isDarkMode}
-          />
+            className={`tab-button ${activeTab === t.id ? 'active' : ''}`}
+            data-tab={t.id}
+            onClick={() => handleTabClick(t.id)}
+            style={{
+              flex: '1 0 auto',
+              padding: '6px 4px',
+              background: 'transparent',
+              border: 'none',
+              fontWeight: '600',
+              fontSize: window.innerWidth < 480 ? '0.5rem' : '0.6rem',
+              color: activeTab === t.id ? (isDarkMode ? '#8b5cf6' : '#1e6f3f') : (isDarkMode ? '#94a3b8' : '#5b6e8c'),
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '1px',
+              borderRadius: '8px',
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap',
+              minWidth: '36px',
+              position: 'relative',
+              borderBottom: activeTab === t.id ? (isDarkMode ? '2px solid #8b5cf6' : '2px solid #1e6f3f') : '2px solid transparent',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '2px',
+              position: 'relative',
+              flexWrap: 'wrap',
+              justifyContent: 'center'
+            }}>
+              <span style={{ 
+                fontSize: window.innerWidth < 480 ? '1rem' : '1.1rem',
+                lineHeight: 1
+              }}>{t.icon}</span>
+              <span style={{ 
+                fontSize: window.innerWidth < 480 ? '0.45rem' : '0.55rem',
+                marginTop: '0px',
+                display: window.innerWidth < 480 ? 'none' : 'inline'
+              }}>{t.label}</span>
+              {t.count > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-2px',
+                    right: '-4px',
+                    width: '10px',
+                    height: '10px',
+                    background: '#ef4444',
+                    borderRadius: '50%',
+                    boxShadow: '0 0 0 2px ' + (isDarkMode ? '#111827' : 'white'),
+                    animation: 'pulse-dot 1.5s ease-in-out infinite',
+                  }}
+                />
+              )}
+            </div>
+            <style>{`
+              @keyframes pulse-dot {
+                0%, 100% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.7; transform: scale(0.9); }
+              }
+            `}</style>
+          </button>
         ))}
+        
         <div className="dropdown-container" ref={dropdownRef} style={{ position: 'relative', zIndex: 100 }}>
           <button 
             ref={dropdownButtonRef}
@@ -455,8 +535,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* TABS CONTENT */}
-      <div className="tab-content active" id="queue-tab">
+      {/* TABS CONTENT - All tab contents visible but controlled by active class */}
+      <div className={`tab-content ${activeTab === 'queue' ? 'active' : ''}`} id="queue-tab">
         <DailyTally 
           locations={locations} 
           containers={containers} 
@@ -478,7 +558,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="tab-content" id="receivals-tab">
+      <div className={`tab-content ${activeTab === 'receivals' ? 'active' : ''}`} id="receivals-tab">
         <ReceivalsTab 
           containers={containers}
           isDarkMode={isDarkMode}
@@ -489,7 +569,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="tab-content" id="tallies-tab">
+      <div className={`tab-content ${activeTab === 'tallies' ? 'active' : ''}`} id="tallies-tab">
         <TalliesTab 
           containers={containers}
           locations={locations}
@@ -504,7 +584,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="tab-content" id="devanning-tab">
+      <div className={`tab-content ${activeTab === 'devanning' ? 'active' : ''}`} id="devanning-tab">
         <DevanningTab 
           devanningQueue={devanningQueue}
           isDarkMode={isDarkMode}
@@ -517,7 +597,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="tab-content" id="unstuffed-tab">
+      <div className={`tab-content ${activeTab === 'unstuffed' ? 'active' : ''}`} id="unstuffed-tab">
         <UnstuffedTab 
           unstuffedContainers={unstuffedContainers}
           isDarkMode={isDarkMode}
@@ -533,12 +613,12 @@ export default function DashboardPage() {
           setShowScannerModal={setShowScannerModal}
           setShowClearanceTab={setShowClearanceTab}
           setClearanceContainer={(container: any) => {
-            setClearanceContainers([...clearanceContainers, container])
+            setClearanceContainers(prev => [...prev, container])
           }}
         />
       </div>
 
-      <div className="tab-content" id="evacuation-tab">
+      <div className={`tab-content ${activeTab === 'evacuation' ? 'active' : ''}`} id="evacuation-tab">
         <EvacuationTab 
           evacuationRecords={evacuationRecords}
           isDarkMode={isDarkMode}
@@ -547,7 +627,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="tab-content" id="locations-tab">
+      <div className={`tab-content ${activeTab === 'locations' ? 'active' : ''}`} id="locations-tab">
         <LocationsTab 
           locations={locations}
           containers={containers}
@@ -558,7 +638,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="tab-content" id="contacts-tab">
+      <div className={`tab-content ${activeTab === 'contacts' ? 'active' : ''}`} id="contacts-tab">
         <ContactsTab 
           shiftData={shiftData}
           setShiftData={setShiftData}
@@ -568,7 +648,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="tab-content" id="backup-tab">
+      <div className={`tab-content ${activeTab === 'backup' ? 'active' : ''}`} id="backup-tab">
         <BackupTab 
           containers={containers}
           importQueue={importQueue}
@@ -585,7 +665,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="tab-content" id="reports-tab">
+      <div className={`tab-content ${activeTab === 'reports' ? 'active' : ''}`} id="reports-tab">
         <ReportsTab 
           loadingRecords={loadingRecords}
           isDarkMode={isDarkMode}
