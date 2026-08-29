@@ -21,10 +21,13 @@ export interface AuditLogEntry {
 }
 
 export async function logAudit(entry: AuditLogEntry) {
-  const supabase = getSupabase()
-  if (!supabase) return
-
   try {
+    const supabase = getSupabase()
+    if (!supabase) {
+      console.warn('⚠️ Supabase not available, audit log skipped')
+      return
+    }
+
     const { error } = await supabase
       .from('ActivityLog')
       .insert({
@@ -38,10 +41,10 @@ export async function logAudit(entry: AuditLogEntry) {
       })
     
     if (error) {
-      console.error('Failed to log audit:', error)
+      console.warn('⚠️ Audit log failed:', error.message)
     }
   } catch (error) {
-    console.error('Audit log error:', error)
+    console.warn('⚠️ Audit log error:', error)
   }
 }
 
