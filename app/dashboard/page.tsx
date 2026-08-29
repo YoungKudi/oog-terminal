@@ -22,6 +22,7 @@ import LocationsTab from './components/LocationsTab'
 import ContactsTab from './components/ContactsTab'
 import BackupTab from './components/BackupTab'
 import ReportsTab from './components/ReportsTab'
+import ClearanceTab from './components/ClearanceTab'
 import DevanningWizard from './components/DevanningWizard'
 
 // Import modals
@@ -72,6 +73,10 @@ export default function DashboardPage() {
   const [showWizard, setShowWizard] = useState(false)
   const [wizardContainer, setWizardContainer] = useState(null)
 
+  // Clearance state
+  const [showClearanceTab, setShowClearanceTab] = useState(false)
+  const [clearanceContainers, setClearanceContainers] = useState<any[]>([])
+
   // Modal states
   const [showReceivalModal, setShowReceivalModal] = useState(false)
   const [showDevanningModal, setShowDevanningModal] = useState(false)
@@ -101,7 +106,6 @@ export default function DashboardPage() {
   }, [])
 
   useEffect(() => {
-    // Remove Ship Yard from localStorage if present
     const savedLocs = localStorage.getItem('oog_locations')
     if (savedLocs) {
       try {
@@ -142,6 +146,17 @@ export default function DashboardPage() {
     setAllPositions(allPos.sort())
   }, [locations])
 
+  const handleClearanceBack = () => {
+    setShowClearanceTab(false)
+    setActiveTab('unstuffed')
+    switchToTab('unstuffed')
+  }
+
+  const switchToTab = (tabId: string) => {
+    setActiveTab(tabId)
+    setDropdownOpen(false)
+  }
+
   if (loading || status === 'loading') {
     return (
       <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',flexDirection:'column',gap:'16px',background:isDarkMode?'#0a0e17':'#f5f7fb'}}>
@@ -153,26 +168,6 @@ export default function DashboardPage() {
   }
 
   if (!session) return null
-
-  const switchToTab = (tabId: string) => {
-    setActiveTab(tabId)
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
-    const tabContent = document.getElementById(tabId + '-tab')
-    if (tabContent) tabContent.classList.add('active')
-    document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
-    const tabButton = document.querySelector(`.tab-button[data-tab="${tabId}"]`)
-    if (tabButton) tabButton.classList.add('active')
-    setDropdownOpen(false)
-  }
-
-  const handleTabClick = (tab: string) => {
-    switchToTab(tab)
-  }
-
-  const toggleDropdown = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    setDropdownOpen(!dropdownOpen)
-  }
 
   const now = new Date()
   const hour = now.getHours()
@@ -191,6 +186,36 @@ export default function DashboardPage() {
     { id: 'devanning', icon: '🔧', label: 'Devanning', count: tabCounts.devanning },
     { id: 'unstuffed', icon: '✅', label: 'Unstuffed', count: tabCounts.unstuffed }
   ]
+
+  // If clearance tab is active, show it
+  if (showClearanceTab) {
+    return (
+      <div className="app-container">
+        <div className="app-header">
+          <div className="logo-area">
+            <h1>
+              <span style={{ display: 'inline-flex', marginRight: '8px' }}>
+                <Icons.Dashboard size={20} color="white" />
+              </span>
+              OOG Terminal
+            </h1>
+          </div>
+          <div className="header-actions">
+            <span style={{fontSize:'0.75rem',opacity:0.8}}>👤 {session.user?.userId}</span>
+            <button className="btn" onClick={toggleDarkMode} style={{background:'rgba(255,255,255,0.2)',padding:'2px 10px'}}>{isDarkMode ? '☀️' : '🌙'}</button>
+          </div>
+        </div>
+        <ClearanceTab
+          clearanceContainers={clearanceContainers}
+          setClearanceContainers={setClearanceContainers}
+          isDarkMode={isDarkMode}
+          showToast={showToast}
+          fetchAllData={fetchAllData}
+          onBack={handleClearanceBack}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="app-container">
@@ -220,7 +245,7 @@ export default function DashboardPage() {
             label={t.label}
             count={t.count}
             isActive={activeTab === t.id}
-            onClick={() => handleTabClick(t.id)}
+            onClick={() => switchToTab(t.id)}
             isDarkMode={isDarkMode}
           />
         ))}
@@ -228,7 +253,7 @@ export default function DashboardPage() {
           <button 
             ref={dropdownButtonRef}
             className="dropdown-btn" 
-            onClick={toggleDropdown}
+            onClick={() => setDropdownOpen(!dropdownOpen)}
             style={{
               background: dropdownOpen ? 'rgba(0,0,0,0.05)' : 'transparent',
               borderRadius: '8px',
@@ -297,7 +322,7 @@ export default function DashboardPage() {
             </Link>
 
             <a 
-              onClick={() => switchToTab('evacuation')} 
+              onClick={() => { switchToTab('evacuation'); setDropdownOpen(false) }} 
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -318,7 +343,7 @@ export default function DashboardPage() {
               Evacuation & Boxes ({tabCounts.evacuation})
             </a>
             <a 
-              onClick={() => switchToTab('locations')} 
+              onClick={() => { switchToTab('locations'); setDropdownOpen(false) }} 
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -339,7 +364,7 @@ export default function DashboardPage() {
               Locations
             </a>
             <a 
-              onClick={() => switchToTab('contacts')} 
+              onClick={() => { switchToTab('contacts'); setDropdownOpen(false) }} 
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -360,7 +385,7 @@ export default function DashboardPage() {
               Equipment Contacts
             </a>
             <a 
-              onClick={() => switchToTab('backup')} 
+              onClick={() => { switchToTab('backup'); setDropdownOpen(false) }} 
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -381,7 +406,7 @@ export default function DashboardPage() {
               Backup & Activity
             </a>
             <a 
-              onClick={() => switchToTab('reports')} 
+              onClick={() => { switchToTab('reports'); setDropdownOpen(false) }} 
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -506,6 +531,10 @@ export default function DashboardPage() {
           setShowContainerDetailModal={setShowContainerDetailModal}
           setShowLoadoutModal={setShowLoadoutModal}
           setShowScannerModal={setShowScannerModal}
+          setShowClearanceTab={setShowClearanceTab}
+          setClearanceContainer={(container: any) => {
+            setClearanceContainers([...clearanceContainers, container])
+          }}
         />
       </div>
 

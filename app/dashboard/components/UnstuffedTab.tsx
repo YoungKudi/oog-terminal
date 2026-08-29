@@ -15,6 +15,8 @@ interface UnstuffedTabProps {
   setShowContainerDetailModal: (show: boolean) => void
   setShowLoadoutModal: (show: boolean) => void
   setShowScannerModal: (show: boolean) => void
+  setShowClearanceTab: (show: boolean) => void
+  setClearanceContainer: (container: any) => void
 }
 
 export default function UnstuffedTab({
@@ -29,7 +31,9 @@ export default function UnstuffedTab({
   setSelectedContainer,
   setShowContainerDetailModal,
   setShowLoadoutModal,
-  setShowScannerModal
+  setShowScannerModal,
+  setShowClearanceTab,
+  setClearanceContainer
 }: UnstuffedTabProps) {
   const [searchTerm, setSearchTerm] = React.useState('')
 
@@ -94,6 +98,11 @@ export default function UnstuffedTab({
     setEvacuationSelectionMode(!evacuationSelectionMode)
     if (!evacuationSelectionMode) showToast('☑️ Click a container to select for evacuation')
     else showToast('🔴 Selection mode cancelled')
+  }
+
+  const handleLoad = (container: any) => {
+    setClearanceContainer(container)
+    setShowClearanceTab(true)
   }
 
   return (
@@ -200,17 +209,13 @@ export default function UnstuffedTab({
                       <span style={{fontSize:'0.55rem',color:'#64748b'}}>×{units}</span>
                     </div>
                     <div style={{display:'flex',gap:'4px',flexWrap:'wrap'}}>
-                      <button className="btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); setSelectedContainer(u); setShowLoadoutModal(true) }} style={{background:'#1e6f3f',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>📋 Clearance</button>
-                      <button className="btn-outline btn-sm" onClick={(e) => { e.stopPropagation(); setSelectedContainer(u); setShowScannerModal(true) }} style={{
-                        background: btnBg,
-                        border: `1.5px solid ${getColor(isDarkMode, '#cbd5e1', '#475569')}`,
-                        borderRadius: '40px',
-                        padding: '2px 8px',
-                        fontWeight: '600',
-                        fontSize: '0.6rem',
-                        cursor: 'pointer',
-                        color: btnText
-                      }}>📷 Scan</button>
+                      {/* LOAD BUTTON - Removes clearance and scan, adds Load */}
+                      <button className="btn-primary btn-sm" onClick={(e) => { 
+                        e.stopPropagation(); 
+                        handleLoad(u)
+                      }} style={{background:'#1e6f3f',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>
+                        📋 Load
+                      </button>
                     </div>
                   </div>
                   {u.vessel && <div style={{fontSize:'0.6rem',color: mutedColor}}>🚢 Vessel: {u.vessel} | Arrival: {u.arrivalDate || ''}</div>}
