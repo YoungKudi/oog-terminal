@@ -33,6 +33,14 @@ export default function UnstuffedTab({
 }: UnstuffedTabProps) {
   const [searchTerm, setSearchTerm] = React.useState('')
 
+  // Calculate total equipment units (including 2X)
+  const totalUnits = unstuffedContainers.reduce((sum, c) => sum + (c.isDouble ? 2 : 1), 0)
+  
+  // Calculate excavator units
+  const excavatorUnits = unstuffedContainers
+    .filter(c => c.equipment === 'Excavator' || c.equipment === '2x Excavator')
+    .reduce((sum, c) => sum + (c.isDouble ? 2 : 1), 0)
+
   const textColor = getColor(isDarkMode, '#1e293b', '#e2e8f0')
   const mutedColor = getColor(isDarkMode, '#64748b', '#94a3b8')
   const cardBg = getColor(isDarkMode, 'white', '#111827')
@@ -91,7 +99,7 @@ export default function UnstuffedTab({
   return (
     <div className="card" style={{background: cardBg, borderRadius:'16px', marginBottom:'14px', border: `1px solid ${borderColor}`}}>
       <div className="list-header" style={{background: getColor(isDarkMode, '#fefce8', '#0f172a'), borderRadius:'16px 16px 0 0', padding:'8px 14px', borderBottom: `2px solid ${getColor(isDarkMode, '#eab308', '#8b5cf6')}`, display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'6px', color: getColor(isDarkMode, '#1e293b', '#f1f5f9')}}>
-        <span>✅ Unstuffed Containers</span>
+        <span>✅ Unstuffed ({totalUnits} units)</span>
         <div style={{display:'flex',gap:'4px',flexWrap:'wrap'}}>
           <button className="btn-warning btn-sm" onClick={processEvacuation} style={{background:'#f59e0b',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>🚚 Evacuate Selected</button>
           <button className="btn-outline btn-sm" onClick={toggleEvacuationMode} style={{
@@ -112,6 +120,19 @@ export default function UnstuffedTab({
         </div>
       </div>
       <div className="card-body" style={{padding:'10px 14px'}}>
+        {/* Summary stats */}
+        <div style={{display:'flex', gap:'16px', marginBottom:'10px', flexWrap:'wrap'}}>
+          <div style={{fontSize:'0.75rem', color: textColor}}>
+            📊 Total Units: <strong>{totalUnits}</strong>
+          </div>
+          <div style={{fontSize:'0.75rem', color: textColor}}>
+            🚜 Excavators: <strong>{excavatorUnits}</strong>
+          </div>
+          <div style={{fontSize:'0.75rem', color: textColor}}>
+            📦 Containers: <strong>{unstuffedContainers.length}</strong>
+          </div>
+        </div>
+
         <div className="search-box" style={{display:'flex',gap:'6px',marginBottom:'10px',flexWrap:'wrap',alignItems:'center'}}>
           <input 
             type="text" 
@@ -148,6 +169,8 @@ export default function UnstuffedTab({
             unstuffedContainers.map((u: any) => {
               const isSelected = u.containerNumber === selectedEvacContainer
               const isExcavator = u.equipment === 'Excavator' || u.equipment === '2x Excavator'
+              const units = u.isDouble ? 2 : 1
+              
               return (
                 <div 
                   key={u.id} 
@@ -167,8 +190,14 @@ export default function UnstuffedTab({
                       {evacuationSelectionMode && <input type="radio" name="evacSelect" value={u.containerNumber} checked={isSelected} onChange={() => setSelectedEvacContainer(u.containerNumber)} style={{width:'auto'}} onClick={(e) => e.stopPropagation()} />}
                       <strong style={{fontSize:'0.8rem',color: textColor}}>{u.containerNumber}</strong>
                       <span style={{fontSize:'0.6rem',color: mutedColor}}>{u.position} | {u.equipment}</span>
-                      <span className="devanning-type-badge" style={{background: getColor(isDarkMode, '#dbeafe', '#1e3a8a'), color: getColor(isDarkMode, '#1e40af', '#bfdbfe'), padding:'2px 10px', borderRadius:'20px', fontSize:'0.6rem', fontWeight:'600'}}>{u.devanningType?.replace('_',' ').toUpperCase() || 'UNSTUFFING'}</span>
+                      {u.isDouble && (
+                        <span style={{fontSize:'0.55rem',color:'#f59e0b',fontWeight:'600'}}>2X</span>
+                      )}
+                      <span className="devanning-type-badge" style={{background: getColor(isDarkMode, '#dbeafe', '#1e3a8a'), color: getColor(isDarkMode, '#1e40af', '#bfdbfe'), padding:'2px 10px', borderRadius:'20px', fontSize:'0.6rem', fontWeight:'600'}}>
+                        {u.devanningType?.replace('_',' ').toUpperCase() || 'UNSTUFFING'}
+                      </span>
                       {isExcavator && <span style={{fontSize:'0.6rem',color:'#f59e0b'}}>🚜</span>}
+                      <span style={{fontSize:'0.55rem',color:'#64748b'}}>×{units}</span>
                     </div>
                     <div style={{display:'flex',gap:'4px',flexWrap:'wrap'}}>
                       <button className="btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); setSelectedContainer(u); setShowLoadoutModal(true) }} style={{background:'#1e6f3f',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>📋 Clearance</button>

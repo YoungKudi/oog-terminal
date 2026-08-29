@@ -19,31 +19,74 @@ export function DailyTally({ locations, containers, isDarkMode, greeting, dateSt
       <div>
         {locations.map(loc => {
           const locContainers = containers.filter(c => loc.positions?.includes(c.position))
-          const stuffed = locContainers.filter(c => c.equipment !== 'Unstuffed' && c.equipment !== '')
-          const unstuffed = locContainers.filter(c => c.equipment === 'Unstuffed' || c.equipment === '')
-          const excavators = stuffed.filter(c => c.equipment === 'Excavator' || c.equipment === '2x Excavator')
-          const nonExcavators = stuffed.filter(c => c.equipment !== 'Excavator' && c.equipment !== '2x Excavator')
+          
+          // Count equipment units (not containers)
+          // Each container has equipment, and isDouble means 2 units
+          const stuffedUnits = locContainers
+            .filter(c => c.equipment !== 'Unstuffed' && c.equipment !== '')
+            .reduce((sum, c) => sum + (c.isDouble ? 2 : 1), 0)
+          
+          const unstuffedUnits = locContainers
+            .filter(c => c.equipment === 'Unstuffed' || c.equipment === '')
+            .reduce((sum, c) => sum + (c.isDouble ? 2 : 1), 0)
+          
+          // Count equipment types (including 2X)
+          const excavatorUnits = locContainers
+            .filter(c => c.equipment === 'Excavator' || c.equipment === '2x Excavator')
+            .reduce((sum, c) => sum + (c.isDouble ? 2 : 1), 0)
+          
+          const nonExcavatorUnits = locContainers
+            .filter(c => c.equipment !== 'Excavator' && c.equipment !== '2x Excavator' && c.equipment !== 'Unstuffed' && c.equipment !== '')
+            .reduce((sum, c) => sum + (c.isDouble ? 2 : 1), 0)
+          
+          // Count total equipment units (for display)
+          const totalUnits = stuffedUnits + unstuffedUnits
+          
           const boxes = locContainers.reduce((sum, c) => sum + parseCargoNumber(c.auxCargo), 0)
+          
           return (
             <div key={loc.id} className="section">
               <div className="section-title" style={{color: getColor(isDarkMode, '#1e293b', '#e2e8f0')}}>📍 {loc.name}</div>
-              <div className="row" style={{color: getColor(isDarkMode, '#64748b', '#94a3b8'),display:'flex',justifyContent:'space-between',padding:'1px 0',fontSize:'0.8rem'}}><span>Stuffed</span><span>{stuffed.length}</span></div>
+              <div className="row" style={{color: getColor(isDarkMode, '#64748b', '#94a3b8'),display:'flex',justifyContent:'space-between',padding:'1px 0',fontSize:'0.8rem'}}>
+                <span>Stuffed Units</span>
+                <span>{stuffedUnits}</span>
+              </div>
               {loc.type === 'grid' && (
                 <>
-                  <div className="row" style={{color: getColor(isDarkMode, '#64748b', '#94a3b8'),display:'flex',justifyContent:'space-between',padding:'1px 0 1px 16px',fontSize:'0.75rem'}}><span>Excavators</span><span>{excavators.length}</span></div>
-                  <div className="row" style={{color: getColor(isDarkMode, '#64748b', '#94a3b8'),display:'flex',justifyContent:'space-between',padding:'1px 0 1px 16px',fontSize:'0.75rem'}}><span>Non-excavators</span><span>{nonExcavators.length}</span></div>
+                  <div className="row" style={{color: getColor(isDarkMode, '#64748b', '#94a3b8'),display:'flex',justifyContent:'space-between',padding:'1px 0 1px 16px',fontSize:'0.75rem'}}>
+                    <span>Excavators</span>
+                    <span>{excavatorUnits}</span>
+                  </div>
+                  <div className="row" style={{color: getColor(isDarkMode, '#64748b', '#94a3b8'),display:'flex',justifyContent:'space-between',padding:'1px 0 1px 16px',fontSize:'0.75rem'}}>
+                    <span>Non-excavators</span>
+                    <span>{nonExcavatorUnits}</span>
+                  </div>
                 </>
               )}
-              <div className="row" style={{color: getColor(isDarkMode, '#64748b', '#94a3b8'),display:'flex',justifyContent:'space-between',padding:'1px 0',fontSize:'0.8rem'}}><span>Unstuffed</span><span>{unstuffed.length}</span></div>
+              <div className="row" style={{color: getColor(isDarkMode, '#64748b', '#94a3b8'),display:'flex',justifyContent:'space-between',padding:'1px 0',fontSize:'0.8rem'}}>
+                <span>Unstuffed Units</span>
+                <span>{unstuffedUnits}</span>
+              </div>
               {loc.type === 'row' && (
-                <div className="row" style={{color: getColor(isDarkMode, '#64748b', '#94a3b8'),display:'flex',justifyContent:'space-between',padding:'1px 0 1px 16px',fontSize:'0.75rem'}}><span>Boxes</span><span>{boxes}</span></div>
+                <div className="row" style={{color: getColor(isDarkMode, '#64748b', '#94a3b8'),display:'flex',justifyContent:'space-between',padding:'1px 0 1px 16px',fontSize:'0.75rem'}}>
+                  <span>Boxes</span>
+                  <span>{boxes}</span>
+                </div>
               )}
+              <div className="row" style={{color: getColor(isDarkMode, '#64748b', '#94a3b8'),display:'flex',justifyContent:'space-between',padding:'1px 0 1px 16px',fontSize:'0.65rem',borderTop:`1px solid ${getColor(isDarkMode, '#e2e8f0', '#334155')}`,marginTop:'2px',paddingTop:'2px'}}>
+                <span>Total Units</span>
+                <span style={{fontWeight:'600'}}>{totalUnits}</span>
+              </div>
             </div>
           )
         })}
         <div className="total-row" style={{borderTop:`1px solid ${getColor(isDarkMode, '#e2e8f0', '#334155')}`,marginTop:'6px',paddingTop:'6px',fontWeight:'700',fontSize:'0.9rem',display:'flex',justifyContent:'space-between',color: getColor(isDarkMode, '#1e293b', '#e2e8f0')}}>
-          <span>STACK (Total Stuffed)</span>
-          <span>{containers.filter(c => c.equipment !== 'Unstuffed' && c.equipment !== '').length}</span>
+          <span>STACK (Total Stuffed Units)</span>
+          <span>
+            {containers
+              .filter(c => c.equipment !== 'Unstuffed' && c.equipment !== '')
+              .reduce((sum, c) => sum + (c.isDouble ? 2 : 1), 0)}
+          </span>
         </div>
       </div>
     </div>

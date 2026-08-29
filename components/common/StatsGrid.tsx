@@ -10,15 +10,26 @@ interface StatsGridProps {
 }
 
 export function StatsGrid({ containers, importQueue, devanningQueue, isDarkMode }: StatsGridProps) {
-  const total = containers.length
-  const excavators = containers.filter(c => c.equipment === 'Excavator' || c.equipment === '2x Excavator').length
+  // Count equipment units (not containers)
+  const totalUnits = containers.reduce((sum, c) => {
+    const count = c.isDouble ? 2 : 1
+    return sum + count
+  }, 0)
+  
+  // Count excavator units including 2x
+  const excavatorUnits = containers.reduce((sum, c) => {
+    const isExcavator = c.equipment === 'Excavator' || c.equipment === '2x Excavator'
+    const count = c.isDouble ? 2 : 1
+    return sum + (isExcavator ? count : 0)
+  }, 0)
+  
   const cargo = containers.reduce((s, c) => s + parseCargoNumber(c.auxCargo), 0)
   const devanning = devanningQueue.length
   const queue = importQueue.length
 
   const stats = [
-    { label: '📊 Stack', value: total },
-    { label: '🚜 Excavators', value: excavators },
+    { label: '📊 Stack', value: totalUnits },
+    { label: '🚜 Excavators', value: excavatorUnits },
     { label: '📦 Cargo', value: cargo },
     { label: '⏳ Devanning', value: devanning },
     { label: '📥 Queue', value: queue }
