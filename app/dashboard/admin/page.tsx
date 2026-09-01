@@ -2,82 +2,357 @@
 import React, { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { getColor } from '@/lib/utils'
+import { useDarkMode } from '@/hooks/useDarkMode'
+import { useToast } from '@/hooks/useToast'
 
-export default function AdminPage() {
-  const { data: session } = useSession()
+export default function AdminUsersPage() {
+  const { data: session, status } = useSession()
   const router = useRouter()
-  const [users, setUsers] = useState([])
+  const { isDarkMode } = useDarkMode()
+  const { showToast } = useToast()
+  const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [newUser, setNewUser] = useState({ name: '', email: '', userId: '', phone: '', role: 'user' })
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'denied'>('pending')
+  const [selectedUser, setSelectedUser] = useState<any>(null)
+  const [showDenyModal, setShowDenyModal] = useState(false)
+  const [denyReason, setDenyReason] = useState('')
 
   useEffect(() => {
-    if (session?.user?.role !== 'officer') { router.push('/dashboard'); return }
+    if (status === 'unauthenticated') {
+      router.push('/login')
+      return
+    }
+    if (session?.user?.role !== 'officer') {
+      router.push('/dashboard')
+      return
+    }
     fetchUsers()
-  }, [session, router])
+  }, [session, status, router])
 
   const fetchUsers = async () => {
-    const res = await fetch('/api/users')
-    if (res.ok) { const data = await res.json(); setUsers(data); setLoading(false) }
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/users')
+      if (res.ok) {
+        const data = await res.json()
+        setUsers(data)
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+    }
+    setLoading(false)
   }
 
-  const handleAddUser = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newUser) })
-    if (res.ok) { setShowAddForm(false); setNewUser({ name: '', email: '', userId: '', phone: '', role: 'user' }); fetchUsers() } 
-    else { const data = await res.json(); alert(data.error || 'Failed') }
+  const handleApprove = async (userId: string) => {
+    if (!confirm('Approve this user?')) return
+    
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action: 'approve' })
+      })
+      if (res.ok) {
+        showToast('✅ User approved successfully')
+        fetchUsers()
+      } else {
+        const data = await res.json()
+        showToast('❌ ' + (data.error || 'Failed to approve user'))
+      }
+    } catch (error) {
+      showToast('❌ Network error')
+    }
   }
 
-  const handleResetPassword = async (userId: string) => {
-    if (!confirm('Reset password to default (password123)?')) return
-    const res = await fetch(`/api/users/${userId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ resetPassword: true }) })
-    if (res.ok) { fetchUsers(); alert('Password reset to: password123') }
+  const handleDeny = async () => {
+    if (!selectedUser) return
+    if (!denyReason.trim()) {
+      showToast('❌ Please provide a reason')
+      return
+    }
+    
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: selectedUser.id, 
+          action: 'deny',
+          reason: denyReason 
+        })
+      })
+      if (res.ok) {
+        showToast('✅ User denied')
+        setShowDenyModal(false)
+        setDenyReason('')
+        setSelectedUser(null)
+        fetchUsers()
+      } else {
+        const data = await res.json()
+        showToast('❌ ' + (data.error || 'Failed to deny user'))
+      }
+    } catch (error) {
+      showToast('❌ Network error')
+    }
   }
 
-  if (session?.user?.role !== 'officer') return <div style={{padding:'20px'}}>Access denied</div>
+  const filteredUsers = users.filter(user => {
+    if (filter === 'pending') return user.approved === false && !user.rejectionReason
+    if (filter === 'approved') return user.approved === true
+    if (filter === 'denied') return user.rejectionReason
+    return true
+  })
+
+  const textColor = getColor(isDarkMode, '#1e293b', '#e2e8f0')
+  const mutedColor = getColor(isDarkMode, '#64748b', '#94a3b8')
+  const cardBg = getColor(isDarkMode, 'white', '#111827')
+  const borderColor = getColor(isDarkMode, '#eef2f6', '#1f2937')
+
+  if (status === 'loading' || loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <div style={{ width: '40px', height: '40px', border: '4px solid #e2e8f0', borderTop: '4px solid #1e6f3f', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+      </div>
+    )
+  }
+
+  if (session?.user?.role !== 'officer') {
+    return <div style={{ padding: '20px', color: '#dc2626' }}>Access denied. Officers only.</div>
+  }
+
+  const pendingCount = users.filter(u => u.approved === false && !u.rejectionReason).length
 
   return (
-    <div style={{padding:'20px',maxWidth:'800px',margin:'0 auto'}}>
-      <div style={{display:'flex',alignItems:'center',gap:'12px',marginBottom:'20px'}}>
-        <button onClick={() => router.push('/dashboard')} style={{background:'none',border:'none',cursor:'pointer',fontSize:'1.2rem'}}>←</button>
-        <h2 style={{fontSize:'1.2rem'}}>👑 Admin Panel</h2>
-        <button className="btn btn-primary btn-sm" style={{marginLeft:'auto'}} onClick={() => setShowAddForm(!showAddForm)}>
-          {showAddForm ? '✕ Cancel' : '+ Add User'}
-        </button>
-      </div>
-      {showAddForm && <div className="card" style={{marginBottom:'16px'}}>
-        <div className="card-header">Add New User</div>
-        <div className="card-body">
-          <form onSubmit={handleAddUser}>
-            <div className="form-group"><label>Full Name</label><input type="text" value={newUser.name} onChange={(e) => setNewUser({...newUser, name: e.target.value})} required /></div>
-            <div className="form-group"><label>Email</label><input type="email" value={newUser.email} onChange={(e) => setNewUser({...newUser, email: e.target.value})} required /></div>
-            <div className="form-group"><label>Worker ID</label><input type="text" value={newUser.userId} onChange={(e) => setNewUser({...newUser, userId: e.target.value.toUpperCase().trim()})} required placeholder="e.g., TC250709" /></div>
-            <div className="form-group"><label>Phone</label><input type="tel" value={newUser.phone} onChange={(e) => setNewUser({...newUser, phone: e.target.value})} required placeholder="0209679230" /></div>
-            <div className="form-group"><label>Role</label><select value={newUser.role} onChange={(e) => setNewUser({...newUser, role: e.target.value})}><option value="user">User</option><option value="officer">Officer</option></select></div>
-            <button type="submit" className="btn btn-primary">✅ Create User</button>
-          </form>
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+        <div>
+          <h2 style={{ color: textColor, fontSize: '1.2rem', margin: 0 }}>👑 User Management</h2>
+          <p style={{ color: mutedColor, fontSize: '0.7rem', margin: '4px 0 0 0' }}>
+            {pendingCount} pending approvals
+          </p>
         </div>
-      </div>}
-      <div className="card">
-        <div className="card-header">All Users ({users.length})</div>
-        <div className="card-body">
-          {loading ? <p>Loading...</p> : users.map((u: any) => (
-            <div key={u.id} className="container-item-list" style={{cursor:'default'}}>
-              <div className="flex-between">
-                <div><strong>{u.name}</strong> <span style={{color:'#64748b',fontSize:'0.75rem'}}>ID: {u.userId}</span></div>
-                <div style={{display:'flex',gap:'4px',flexWrap:'wrap'}}>
-                  <span className="badge">{u.role}</span>
-                  <button className="btn-outline btn-sm" onClick={() => handleResetPassword(u.id)}>🔄 Reset Password</button>
-                </div>
-              </div>
-              <div style={{fontSize:'0.65rem',color:'#64748b'}}>{u.email} | {u.phone}</div>
-            </div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {['pending', 'approved', 'denied', 'all'].map(f => (
+            <button
+              key={f}
+              onClick={() => setFilter(f as any)}
+              style={{
+                padding: '4px 12px',
+                borderRadius: '20px',
+                border: filter === f ? '2px solid #1e6f3f' : '1px solid #d1d5db',
+                background: filter === f ? '#f0fdf4' : 'transparent',
+                color: filter === f ? '#1e6f3f' : mutedColor,
+                fontWeight: filter === f ? '600' : '400',
+                fontSize: '0.7rem',
+                cursor: 'pointer',
+                textTransform: 'capitalize'
+              }}
+            >
+              {f} {f === 'pending' && pendingCount > 0 && `(${pendingCount})`}
+            </button>
           ))}
         </div>
       </div>
-      <div style={{textAlign:'center',fontSize:'0.65rem',color:'#94a3b8',padding:'12px 0',borderTop:'1px solid #e2e8f0',marginTop:'16px'}}>
-        Developed by <strong>O'Bour Dev</strong> © 2026
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {filteredUsers.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: mutedColor }}>
+            <div style={{ fontSize: '40px', marginBottom: '8px' }}>📭</div>
+            <p>No {filter} users found</p>
+          </div>
+        ) : (
+          filteredUsers.map(user => (
+            <div
+              key={user.id}
+              style={{
+                background: cardBg,
+                border: `1px solid ${borderColor}`,
+                borderRadius: '12px',
+                padding: '12px 16px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '8px'
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <strong style={{ color: textColor, fontSize: '0.9rem' }}>{user.name}</strong>
+                  <span style={{ fontSize: '0.65rem', color: mutedColor }}>ID: {user.userId}</span>
+                  {user.approved ? (
+                    <span style={{ fontSize: '0.55rem', background: '#10b981', color: 'white', padding: '1px 10px', borderRadius: '12px' }}>✅ Approved</span>
+                  ) : user.rejectionReason ? (
+                    <span style={{ fontSize: '0.55rem', background: '#dc2626', color: 'white', padding: '1px 10px', borderRadius: '12px' }}>❌ Denied</span>
+                  ) : (
+                    <span style={{ fontSize: '0.55rem', background: '#f59e0b', color: 'white', padding: '1px 10px', borderRadius: '12px' }}>⏳ Pending</span>
+                  )}
+                </div>
+                <div style={{ fontSize: '0.65rem', color: mutedColor, marginTop: '2px' }}>
+                  {user.email} • {user.phone || 'No phone'} • Role: {user.role}
+                </div>
+                {user.rejectionReason && (
+                  <div style={{ fontSize: '0.6rem', color: '#dc2626', marginTop: '2px' }}>
+                    Reason: {user.rejectionReason}
+                  </div>
+                )}
+                {user.createdAt && (
+                  <div style={{ fontSize: '0.55rem', color: mutedColor, marginTop: '2px' }}>
+                    Registered: {new Date(user.createdAt).toLocaleDateString()}
+                  </div>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                {!user.approved && !user.rejectionReason && (
+                  <>
+                    <button
+                      onClick={() => handleApprove(user.id)}
+                      style={{
+                        padding: '4px 12px',
+                        borderRadius: '20px',
+                        border: 'none',
+                        background: '#10b981',
+                        color: 'white',
+                        fontSize: '0.65rem',
+                        cursor: 'pointer',
+                        fontWeight: '600'
+                      }}
+                    >
+                      ✅ Approve
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedUser(user)
+                        setShowDenyModal(true)
+                      }}
+                      style={{
+                        padding: '4px 12px',
+                        borderRadius: '20px',
+                        border: 'none',
+                        background: '#dc2626',
+                        color: 'white',
+                        fontSize: '0.65rem',
+                        cursor: 'pointer',
+                        fontWeight: '600'
+                      }}
+                    >
+                      ❌ Deny
+                    </button>
+                  </>
+                )}
+                {user.approved && (
+                  <button
+                    onClick={() => {
+                      // Reset password or other actions
+                      showToast('🔑 Password reset coming soon')
+                    }}
+                    style={{
+                      padding: '4px 12px',
+                      borderRadius: '20px',
+                      border: '1px solid #d1d5db',
+                      background: 'transparent',
+                      color: mutedColor,
+                      fontSize: '0.65rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🔄 Reset Password
+                  </button>
+                )}
+              </div>
+            </div>
+          ))
+        )}
       </div>
+
+      {/* Deny Modal */}
+      {showDenyModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: cardBg,
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '400px',
+            width: '90%',
+            border: `1px solid ${borderColor}`
+          }}>
+            <h3 style={{ color: textColor, marginBottom: '4px' }}>❌ Deny User</h3>
+            <p style={{ color: mutedColor, fontSize: '0.8rem', marginBottom: '16px' }}>
+              User: <strong>{selectedUser?.name}</strong> ({selectedUser?.userId})
+            </p>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ color: mutedColor, fontSize: '0.7rem', display: 'block', marginBottom: '4px' }}>
+                Reason for denial *
+              </label>
+              <textarea
+                value={denyReason}
+                onChange={(e) => setDenyReason(e.target.value)}
+                placeholder="Provide a reason for denying this user..."
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: `1px solid ${borderColor}`,
+                  fontSize: '0.75rem',
+                  background: getColor(isDarkMode, 'white', '#0a0e17'),
+                  color: textColor,
+                  minHeight: '80px',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={handleDeny}
+                style={{
+                  flex: 1,
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#dc2626',
+                  color: 'white',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  fontWeight: '600'
+                }}
+              >
+                Deny
+              </button>
+              <button
+                onClick={() => {
+                  setShowDenyModal(false)
+                  setDenyReason('')
+                  setSelectedUser(null)
+                }}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  border: `1px solid ${borderColor}`,
+                  background: 'transparent',
+                  color: mutedColor,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

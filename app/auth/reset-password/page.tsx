@@ -1,14 +1,12 @@
 'use client'
 import React, { useState } from 'react'
-import { supabase } from '@/lib/db'
 import Link from 'next/link'
 
-export default function ResetPasswordPage() {
+export default function ResetPasswordRequestPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -17,16 +15,21 @@ export default function ResetPasswordPage() {
     setMessage('')
     
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://oog-terminal.vercel.app/auth/update-password',
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
       })
+      const data = await response.json()
       
-      if (error) throw error
-      
-      setSuccess(true)
-      setMessage('✅ Password reset link sent to your email!')
-    } catch (err: any) {
-      setError(err.message || 'Failed to send reset link')
+      if (response.ok) {
+        setMessage('✅ Reset link sent to your email!')
+        setEmail('')
+      } else {
+        setError(data.error || 'Failed to send reset link')
+      }
+    } catch (err) {
+      setError('Network error. Please try again.')
     }
     setLoading(false)
   }
@@ -58,11 +61,11 @@ export default function ResetPasswordPage() {
           
           <button 
             type="submit" 
-            disabled={loading || success}
+            disabled={loading}
             style={{ 
               width: '100%', 
               padding: '12px', 
-              background: loading ? '#6c757d' : (success ? '#10b981' : '#1e6f3f'), 
+              background: loading ? '#6c757d' : '#1e6f3f', 
               color: 'white', 
               border: 'none', 
               borderRadius: '8px', 
@@ -71,7 +74,7 @@ export default function ResetPasswordPage() {
               cursor: loading ? 'not-allowed' : 'pointer' 
             }}
           >
-            {loading ? 'Sending...' : (success ? '✅ Sent!' : 'Send Reset Link')}
+            {loading ? 'Sending...' : 'Send Reset Link'}
           </button>
         </form>
         

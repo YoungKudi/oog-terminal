@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/db'
 import bcrypt from 'bcryptjs'
+import { sendEmail, getEmailTemplate, renderTemplate } from '@/lib/email'
 
 export async function POST(req: Request) {
   try {
@@ -11,7 +12,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // ✅ Worker ID Validation - supports both formats
     const workerIdRegex1 = /^\d{7}$/
     const workerIdRegex2 = /^[A-Z]{2}\d{6}$/
     const cleanWorkerId = workerId.toUpperCase().trim()
@@ -54,6 +54,7 @@ export async function POST(req: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
+    // Insert user with pending approval
     const { data: newUser, error: insertError } = await supabase
       .from('User')
       .insert({
@@ -62,7 +63,8 @@ export async function POST(req: Request) {
         userId: cleanWorkerId,
         phone: phone,
         password: hashedPassword,
-        role: 'user'
+        role: 'user',
+        approved: false // Requires admin approval
       })
       .select('id, name, email, userId, phone, role')
       .single()
@@ -72,7 +74,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, user: newUser }, { status: 201 })
+    // Send welcome email
+    try {
+      const template = await getEmailTemplate('welcome')
+      if (template) {
+        const html = renderTemplate(template.html, {
+          name: name || workerId,
+          userId: cleanWorkerId
+        })
+        await sendEmail({
+          to: email,
+          subject: template.subject,
+          html: html
+        })
+      }
+    } catch (emailError) {
+      console.error('Failed to send welcome email:', emailError)
+      // Don't fail signup if email fails
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      user: newUser,
+      message: 'Account created! Please wait for admin approval.',
+      pendingApproval: true 
+    }, { status: 201 })
   } catch (error: any) {
     console.error('Signup error:', error.message)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

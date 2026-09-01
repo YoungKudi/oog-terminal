@@ -1,7 +1,7 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 export default function LoginPage() {
@@ -9,22 +9,41 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [pendingApproval, setPendingApproval] = useState(false)
+  const [accountDenied, setAccountDenied] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    // Check for registration success message
+    if (searchParams.get('registered') === 'true') {
+      setPendingApproval(true)
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setPendingApproval(false)
+    setAccountDenied(false)
     
-    const res = await signIn('credentials', {
+    const result = await signIn('credentials', {
       workerId: workerId.toUpperCase().trim(),
       password,
       redirect: false,
     })
     
     setLoading(false)
-    if (res?.error) {
-      setError('Invalid Worker ID or password')
+    
+    if (result?.error) {
+      if (result.error === 'Pending approval') {
+        setPendingApproval(true)
+      } else if (result.error === 'Account denied') {
+        setAccountDenied(true)
+      } else {
+        setError('Invalid Worker ID or password')
+      }
     } else {
       router.push('/dashboard')
       router.refresh()
@@ -39,6 +58,37 @@ export default function LoginPage() {
           <h1 style={{ marginTop: '8px', fontSize: '24px', fontWeight: '700' }}>OOG Terminal</h1>
           <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Sign in with your Worker ID</p>
         </div>
+
+        {pendingApproval && (
+          <div style={{ 
+            background: '#fef3c7', 
+            color: '#92400e', 
+            padding: '12px 16px', 
+            borderRadius: '8px', 
+            marginBottom: '16px',
+            fontSize: '0.85rem',
+            textAlign: 'center'
+          }}>
+            ⏳ Your account is pending approval.<br />
+            <span style={{ fontSize: '0.75rem' }}>You will be notified via email once approved.</span>
+          </div>
+        )}
+
+        {accountDenied && (
+          <div style={{ 
+            background: '#fee2e2', 
+            color: '#991b1b', 
+            padding: '12px 16px', 
+            borderRadius: '8px', 
+            marginBottom: '16px',
+            fontSize: '0.85rem',
+            textAlign: 'center'
+          }}>
+            ❌ Your account has been denied.<br />
+            <span style={{ fontSize: '0.75rem' }}>Please contact support for assistance.</span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>Worker ID</label>
@@ -81,9 +131,10 @@ export default function LoginPage() {
           </button>
         </form>
         <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '0.85rem' }}>
-          <Link href="/signup" style={{ color: '#1e6f3f', textDecoration: 'underline' }}>
-            Don't have an account? Sign up
-          </Link>
+          <Link href="/signup" style={{ color: '#1e6f3f', textDecoration: 'underline' }}>Don't have an account? Sign up</Link>
+        </div>
+        <div style={{ marginTop: "8px", textAlign: "center", fontSize: "0.8rem" }}>
+          <Link href="/auth/reset-password" style={{ color: "#64748b", textDecoration: "underline" }}>Forgot Password?</Link>
         </div>
         <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.65rem', color: '#94a3b8', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
           Developed by <strong>O'Bour Dev</strong> © 2026

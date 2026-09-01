@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
+import { sendEmail, getEmailTemplate, renderTemplate } from '@/lib/email'
 
 export async function POST(req: Request) {
   try {
@@ -12,14 +13,14 @@ export async function POST(req: Request) {
     }
 
     // Find user by email
-    const { data: users, error: findError } = await supabase
+    const { data: user, error: findError } = await supabase
       .from('User')
-      .select('id, email, userId')
+      .select('id, email, userId, name')
       .eq('email', email.toLowerCase().trim())
       .single()
 
-    if (findError || !users) {
-      // Don't reveal if user exists or not (security)
+    if (findError || !user) {
+      // Don't reveal if user exists (security)
       return NextResponse.json({ 
         success: true, 
         message: 'If an account exists, a reset link has been sent' 
@@ -38,30 +39,36 @@ export async function POST(req: Request) {
         resetToken: resetToken,
         resetExpires: resetExpires.toISOString()
       })
-      .eq('id', users.id)
+      .eq('id', user.id)
 
     if (updateError) {
       console.error('Error saving reset token:', updateError)
       return NextResponse.json({ error: 'Failed to generate reset link' }, { status: 500 })
     }
 
-    // In production, send email with reset link
-    // For now, return the reset link (in development)
-    const resetLink = `${process.env.NEXTAUTH_URL}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`
-    
-    // Log the reset request
-    await supabase
-      .from('ActivityLog')
-      .insert({
-        action: 'PASSWORD_RESET_REQUESTED',
-        details: `Password reset requested for ${email}`,
-        userId: users.id
-      })
+    // Send reset email
+    try {
+      const template = await getEmailTemplate('password_reset')
+      if (template) {
+        const resetUrl = `${process.env.NEXTAUTH_URL}/auth/update-password?token=${resetToken}&email=${encodeURIComponent(email)}`
+        const html = renderTemplate(template.html, {
+          name: user.name || user.userId,
+          resetUrl: resetUrl
+        })
+        await sendEmail({
+          to: email,
+          subject: template.subject,
+          html: html
+        })
+      }
+    } catch (emailError) {
+      console.error('Failed to send reset email:', emailError)
+      // Still return success to prevent email enumeration
+    }
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Reset link sent to your email',
-      resetLink: process.env.NODE_ENV === 'development' ? resetLink : undefined
+      message: 'Reset link sent to your email' 
     })
   } catch (error: any) {
     console.error('Password reset error:', error)
@@ -82,19 +89,19 @@ export async function PUT(req: Request) {
     }
 
     // Find user with matching token
-    const { data: users, error: findError } = await supabase
+    const { data: user, error: findError } = await supabase
       .from('User')
       .select('id, email, resetToken, resetExpires')
       .eq('email', email.toLowerCase().trim())
       .eq('resetToken', token)
       .single()
 
-    if (findError || !users) {
+    if (findError || !user) {
       return NextResponse.json({ error: 'Invalid or expired reset link' }, { status: 400 })
     }
 
     // Check if token expired
-    const resetExpires = new Date(users.resetExpires)
+    const resetExpires = new Date(user.resetExpires)
     if (resetExpires < new Date()) {
       return NextResponse.json({ error: 'Reset link has expired' }, { status: 400 })
     }
@@ -111,21 +118,12 @@ export async function PUT(req: Request) {
         resetExpires: null,
         updatedAt: new Date().toISOString()
       })
-      .eq('id', users.id)
+      .eq('id', user.id)
 
     if (updateError) {
       console.error('Error updating password:', updateError)
       return NextResponse.json({ error: 'Failed to reset password' }, { status: 500 })
     }
-
-    // Log the reset
-    await supabase
-      .from('ActivityLog')
-      .insert({
-        action: 'PASSWORD_RESET_COMPLETED',
-        details: `Password reset completed for ${email}`,
-        userId: users.id
-      })
 
     return NextResponse.json({ success: true, message: 'Password reset successfully' })
   } catch (error: any) {

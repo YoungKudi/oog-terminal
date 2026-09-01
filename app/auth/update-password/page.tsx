@@ -1,54 +1,63 @@
 'use client'
 import React, { useState, useEffect } from 'react'
-import { supabase } from '@/lib/db'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 export default function UpdatePasswordPage() {
-  const [password, setPassword] = useState('')
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
-  const router = useRouter()
+  const [token, setToken] = useState('')
+  const [email, setEmail] = useState('')
 
   useEffect(() => {
-    // Check if we have a session (user clicked the reset link)
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
-        setError('Invalid or expired reset link. Please request a new one.')
-      }
-    })
-  }, [])
+    const tokenParam = searchParams.get('token')
+    const emailParam = searchParams.get('email')
+    if (tokenParam) setToken(tokenParam)
+    if (emailParam) setEmail(emailParam)
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (password !== confirmPassword) {
+    setError('')
+    setMessage('')
+
+    if (!newPassword || !confirmPassword) {
+      setError('Please fill in all fields')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
       setError('Passwords do not match')
       return
     }
-    if (password.length < 6) {
+
+    if (newPassword.length < 6) {
       setError('Password must be at least 6 characters')
       return
     }
 
     setLoading(true)
-    setError('')
-    setMessage('')
-
     try {
-      const { error } = await supabase.auth.updateUser({ password })
-      if (error) throw error
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, email, newPassword })
+      })
+      const data = await response.json()
       
-      setSuccess(true)
-      setMessage('✅ Password updated successfully! Redirecting to login...')
-      
-      setTimeout(() => {
-        router.push('/login')
-      }, 2000)
-    } catch (err: any) {
-      setError(err.message || 'Failed to update password')
+      if (response.ok) {
+        setMessage('✅ Password reset successfully! Redirecting to login...')
+        setTimeout(() => router.push('/login'), 2000)
+      } else {
+        setError(data.error || 'Failed to reset password')
+      }
+    } catch (err) {
+      setError('Network error. Please try again.')
     }
     setLoading(false)
   }
@@ -70,8 +79,8 @@ export default function UpdatePasswordPage() {
             <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '0.75rem', color: '#4b5563' }}>New Password</label>
             <input 
               type="password" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
+              value={newPassword} 
+              onChange={(e) => setNewPassword(e.target.value)} 
               placeholder="Min 6 characters"
               style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', outline: 'none' }} 
               required 
@@ -93,20 +102,20 @@ export default function UpdatePasswordPage() {
           
           <button 
             type="submit" 
-            disabled={loading || success}
+            disabled={loading || !token || !email}
             style={{ 
               width: '100%', 
               padding: '12px', 
-              background: loading ? '#6c757d' : (success ? '#10b981' : '#1e6f3f'), 
+              background: loading || !token || !email ? '#6c757d' : '#1e6f3f', 
               color: 'white', 
               border: 'none', 
               borderRadius: '8px', 
               fontSize: '1rem', 
               fontWeight: '600', 
-              cursor: loading ? 'not-allowed' : 'pointer' 
+              cursor: loading || !token || !email ? 'not-allowed' : 'pointer' 
             }}
           >
-            {loading ? 'Updating...' : (success ? '✅ Updated!' : 'Update Password')}
+            {loading ? 'Resetting...' : 'Reset Password'}
           </button>
         </form>
         
