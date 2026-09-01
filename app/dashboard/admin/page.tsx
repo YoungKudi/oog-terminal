@@ -8,34 +8,46 @@ export default function AdminPage() {
   const router = useRouter()
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('pending')
+  const [error, setError] = useState('')
   const [processing, setProcessing] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<any>(null)
-  const [showDenyModal, setShowDenyModal] = useState(false)
-  const [denyReason, setDenyReason] = useState('')
 
   useEffect(() => {
+    console.log('🔍 Admin page - Session:', session)
+    console.log('🔍 Admin page - Status:', status)
+    
     if (status === 'unauthenticated') {
+      console.log('🔴 Not authenticated, redirecting to login')
       router.push('/login')
       return
     }
+    
     if (session?.user?.role !== 'officer') {
+      console.log('🔴 Not officer, current role:', session?.user?.role)
       router.push('/dashboard')
       return
     }
+    
     fetchUsers()
-  }, [session, status, router])
+  }, [session, status])
 
   const fetchUsers = async () => {
+    console.log('📡 Fetching users...')
     setLoading(true)
+    setError('')
     try {
       const res = await fetch('/api/admin/users')
+      console.log('📡 Response status:', res.status)
+      const data = await res.json()
+      console.log('📡 Users data:', data)
+      
       if (res.ok) {
-        const data = await res.json()
         setUsers(data)
+      } else {
+        setError(data.error || 'Failed to fetch users')
       }
-    } catch (error) {
-      console.error('Error fetching users:', error)
+    } catch (err: any) {
+      console.error('❌ Fetch error:', err)
+      setError('Network error: ' + err.message)
     }
     setLoading(false)
   }
@@ -49,21 +61,24 @@ export default function AdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, action: 'approve' })
       })
+      const data = await res.json()
+      console.log('Approve response:', data)
       if (res.ok) {
-        alert('✅ User approved successfully')
+        alert('✅ User approved successfully!')
         fetchUsers()
       } else {
-        const data = await res.json()
         alert('❌ ' + (data.error || 'Failed to approve'))
       }
-    } catch (error) {
+    } catch (err) {
       alert('❌ Network error')
     }
     setProcessing(false)
   }
 
-  const handleDeny = async () => {
-    if (!selectedUser || !denyReason.trim()) {
+  const handleDeny = async (userId: string) => {
+    const reason = prompt('Enter reason for denial:')
+    if (reason === null) return
+    if (!reason.trim()) {
       alert('Please provide a reason')
       return
     }
@@ -73,88 +88,111 @@ export default function AdminPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          userId: selectedUser.id, 
-          action: 'deny',
-          reason: denyReason 
+          userId, 
+          action: 'deny', 
+          reason: reason.trim() 
         })
       })
+      const data = await res.json()
+      console.log('Deny response:', data)
       if (res.ok) {
-        alert('✅ User denied')
-        setShowDenyModal(false)
-        setDenyReason('')
-        setSelectedUser(null)
+        alert('✅ User denied!')
         fetchUsers()
       } else {
-        const data = await res.json()
         alert('❌ ' + (data.error || 'Failed to deny'))
       }
-    } catch (error) {
+    } catch (err) {
       alert('❌ Network error')
     }
     setProcessing(false)
   }
 
+  // Show loading state
   if (status === 'loading' || loading) {
-    return <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>
+    return (
+      <div style={{ padding: '40px', textAlign: 'center' }}>
+        <div>Loading...</div>
+      </div>
+    )
   }
 
+  // Show if not authenticated
+  if (status === 'unauthenticated') {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center' }}>
+        <p>Please log in to access admin panel.</p>
+        <button onClick={() => router.push('/login')}>Go to Login</button>
+      </div>
+    )
+  }
+
+  // Show if not officer
   if (session?.user?.role !== 'officer') {
-    return <div style={{ padding: '20px', color: 'red' }}>Access denied. Officers only.</div>
+    return (
+      <div style={{ padding: '40px', textAlign: 'center', color: 'red' }}>
+        <p>Access denied. Officers only.</p>
+        <p>Your role: {session?.user?.role || 'none'}</p>
+        <button onClick={() => router.push('/dashboard')}>Back to Dashboard</button>
+      </div>
+    )
   }
 
-  const filteredUsers = users.filter(user => {
-    if (filter === 'pending') return user.approved === false && !user.rejectionReason
-    if (filter === 'approved') return user.approved === true
-    if (filter === 'denied') return user.rejectionReason
-    return true
-  })
-
-  const pendingCount = users.filter(u => u.approved === false && !u.rejectionReason).length
+  const pendingUsers = users.filter((u: any) => u.approved === false && !u.rejectionReason)
+  const approvedUsers = users.filter((u: any) => u.approved === true)
+  const deniedUsers = users.filter((u: any) => u.rejectionReason)
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>👑 User Management</h2>
-        <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-          {pendingCount} pending approvals
-        </span>
+    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1>👑 Admin Panel</h1>
+        <button 
+          onClick={fetchUsers}
+          style={{
+            padding: '6px 16px',
+            borderRadius: '8px',
+            border: '1px solid #d1d5db',
+            background: 'white',
+            cursor: 'pointer'
+          }}
+        >
+          🔄 Refresh
+        </button>
+      </div>
+      
+      <div style={{ margin: '20px 0', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+        <div style={{ background: '#fef3c7', padding: '8px 16px', borderRadius: '8px' }}>
+          ⏳ Pending: {pendingUsers.length}
+        </div>
+        <div style={{ background: '#d1fae5', padding: '8px 16px', borderRadius: '8px' }}>
+          ✅ Approved: {approvedUsers.length}
+        </div>
+        <div style={{ background: '#fee2e2', padding: '8px 16px', borderRadius: '8px' }}>
+          ❌ Denied: {deniedUsers.length}
+        </div>
+        <div style={{ background: '#e2e8f0', padding: '8px 16px', borderRadius: '8px' }}>
+          📊 Total: {users.length}
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-        {['pending', 'approved', 'denied', 'all'].map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            style={{
-              padding: '6px 16px',
-              borderRadius: '20px',
-              border: filter === f ? '2px solid #1e6f3f' : '1px solid #d1d5db',
-              background: filter === f ? '#f0fdf4' : 'transparent',
-              color: filter === f ? '#1e6f3f' : '#64748b',
-              fontWeight: filter === f ? '600' : '400',
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              textTransform: 'capitalize'
-            }}
-          >
-            {f} {f === 'pending' && pendingCount > 0 && `(${pendingCount})`}
-          </button>
-        ))}
-      </div>
+      {error && (
+        <div style={{ background: '#fee2e2', color: '#dc2626', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
+          Error: {error}
+        </div>
+      )}
 
-      {filteredUsers.length === 0 ? (
+      {users.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-          <p>No {filter} users found</p>
+          No users found in database.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {filteredUsers.map(user => (
+          {users.map((user: any) => (
             <div
               key={user.id}
               style={{
                 background: 'white',
                 border: '1px solid #e2e8f0',
-                borderRadius: '12px',
+                borderRadius: '8px',
                 padding: '16px',
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -164,28 +202,30 @@ export default function AdminPage() {
               }}
             >
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong>{user.name}</strong>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <strong>{user.name || 'No name'}</strong>
                   <span style={{ fontSize: '0.75rem', color: '#64748b' }}>ID: {user.userId}</span>
-                  {user.approved ? (
-                    <span style={{ fontSize: '0.65rem', background: '#10b981', color: 'white', padding: '2px 12px', borderRadius: '12px' }}>✅ Approved</span>
-                  ) : user.rejectionReason ? (
-                    <span style={{ fontSize: '0.65rem', background: '#dc2626', color: 'white', padding: '2px 12px', borderRadius: '12px' }}>❌ Denied</span>
-                  ) : (
-                    <span style={{ fontSize: '0.65rem', background: '#f59e0b', color: 'white', padding: '2px 12px', borderRadius: '12px' }}>⏳ Pending</span>
+                  {user.approved === true && (
+                    <span style={{ fontSize: '0.6rem', background: '#10b981', color: 'white', padding: '2px 10px', borderRadius: '12px' }}>✅ Approved</span>
+                  )}
+                  {user.approved === false && user.rejectionReason && (
+                    <span style={{ fontSize: '0.6rem', background: '#dc2626', color: 'white', padding: '2px 10px', borderRadius: '12px' }}>❌ Denied</span>
+                  )}
+                  {user.approved === false && !user.rejectionReason && (
+                    <span style={{ fontSize: '0.6rem', background: '#f59e0b', color: 'white', padding: '2px 10px', borderRadius: '12px' }}>⏳ Pending</span>
                   )}
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
-                  {user.email} • {user.phone || 'No phone'} • Role: {user.role}
+                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '4px' }}>
+                  {user.email} • Role: {user.role}
                 </div>
                 {user.rejectionReason && (
-                  <div style={{ fontSize: '0.7rem', color: '#dc2626', marginTop: '4px' }}>
+                  <div style={{ fontSize: '0.65rem', color: '#dc2626', marginTop: '4px' }}>
                     Reason: {user.rejectionReason}
                   </div>
                 )}
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                {!user.approved && !user.rejectionReason && (
+                {user.approved === false && !user.rejectionReason && (
                   <>
                     <button
                       onClick={() => handleApprove(user.id)}
@@ -196,27 +236,27 @@ export default function AdminPage() {
                         border: 'none',
                         background: '#10b981',
                         color: 'white',
-                        fontSize: '0.75rem',
+                        fontSize: '0.7rem',
                         cursor: processing ? 'not-allowed' : 'pointer',
-                        fontWeight: '600'
+                        fontWeight: '600',
+                        opacity: processing ? 0.6 : 1
                       }}
                     >
                       ✅ Approve
                     </button>
                     <button
-                      onClick={() => {
-                        setSelectedUser(user)
-                        setShowDenyModal(true)
-                      }}
+                      onClick={() => handleDeny(user.id)}
+                      disabled={processing}
                       style={{
                         padding: '6px 16px',
                         borderRadius: '20px',
                         border: 'none',
                         background: '#dc2626',
                         color: 'white',
-                        fontSize: '0.75rem',
-                        cursor: 'pointer',
-                        fontWeight: '600'
+                        fontSize: '0.7rem',
+                        cursor: processing ? 'not-allowed' : 'pointer',
+                        fontWeight: '600',
+                        opacity: processing ? 0.6 : 1
                       }}
                     >
                       ❌ Deny
@@ -226,90 +266,6 @@ export default function AdminPage() {
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Deny Modal */}
-      {showDenyModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            maxWidth: '400px',
-            width: '90%'
-          }}>
-            <h3>❌ Deny User</h3>
-            <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '16px' }}>
-              User: <strong>{selectedUser?.name}</strong> ({selectedUser?.userId})
-            </p>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ color: '#4b5563', fontSize: '0.75rem', display: 'block', marginBottom: '4px' }}>
-                Reason for denial *
-              </label>
-              <textarea
-                value={denyReason}
-                onChange={(e) => setDenyReason(e.target.value)}
-                placeholder="Provide a reason for denying this user..."
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #d1d5db',
-                  fontSize: '0.75rem',
-                  minHeight: '80px',
-                  resize: 'vertical'
-                }}
-              />
-            </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={handleDeny}
-                style={{
-                  flex: 1,
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: '#dc2626',
-                  color: 'white',
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
-                  fontWeight: '600'
-                }}
-              >
-                Deny
-              </button>
-              <button
-                onClick={() => {
-                  setShowDenyModal(false)
-                  setDenyReason('')
-                  setSelectedUser(null)
-                }}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  border: '1px solid #d1d5db',
-                  background: 'transparent',
-                  color: '#64748b',
-                  fontSize: '0.8rem',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

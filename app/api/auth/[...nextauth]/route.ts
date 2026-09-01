@@ -2,7 +2,6 @@ import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { getSupabase } from '@/lib/db'
 import bcrypt from 'bcryptjs'
-import { logAudit, getClientInfo } from '@/lib/audit'
 
 export const authOptions = {
   providers: [
@@ -12,7 +11,7 @@ export const authOptions = {
         workerId: { label: 'Worker ID', type: 'text' },
         password: { label: 'Password', type: 'password' }
       },
-      async authorize(credentials, req) {
+      async authorize(credentials) {
         const supabase = getSupabase()
         if (!supabase) {
           console.error('❌ Supabase not configured')
@@ -38,28 +37,18 @@ export const authOptions = {
           }
 
           if (!users || users.length === 0) {
-            console.log('❌ No user found with ID:', credentials.workerId)
+            console.log('❌ No user found')
             return null
           }
 
           const user = users[0]
-          console.log('👤 User found:', user.userId)
+          console.log('👤 User found:', user.userId, 'Role:', user.role, 'Approved:', user.approved)
 
-          // Check if user is approved
-          if (user.approved === false) {
-            console.log('❌ User not approved:', user.userId)
-            const clientInfo = getClientInfo(req)
-            await logAudit({
-              action: 'LOGIN_FAILED',
-              details: { 
-                workerId: user.userId, 
-                reason: user.rejectionReason ? 'Account denied' : 'Pending approval' 
-              },
-              ipAddress: clientInfo.ipAddress,
-              userAgent: clientInfo.userAgent
-            })
-            
-            // Return specific error message
+          // Allow login if:
+          // 1. User is approved (for regular users)
+          // 2. OR user is an officer (admin)
+          if (!user.approved && user.role !== 'officer') {
+            console.log('❌ User not approved and not officer')
             if (user.rejectionReason) {
               throw new Error('Account denied')
             } else {
@@ -76,25 +65,11 @@ export const authOptions = {
           console.log('🔐 Password valid:', isValid)
 
           if (!isValid) {
-            const clientInfo = getClientInfo(req)
-            await logAudit({
-              action: 'LOGIN_FAILED',
-              details: { workerId: credentials.workerId, reason: 'Invalid password' },
-              ipAddress: clientInfo.ipAddress,
-              userAgent: clientInfo.userAgent
-            })
+            console.log('❌ Invalid password')
             return null
           }
 
-          // Log successful login
-          const clientInfo = getClientInfo(req)
-          await logAudit({
-            action: 'LOGIN_SUCCESS',
-            userId: user.id,
-            details: { workerId: user.userId, role: user.role },
-            ipAddress: clientInfo.ipAddress,
-            userAgent: clientInfo.userAgent
-          })
+          console.log('✅ Login successful for:', user.userId)
 
           return {
             id: user.id,
@@ -106,7 +81,6 @@ export const authOptions = {
           }
         } catch (error: any) {
           console.error('❌ Auth error:', error.message)
-          // Pass through specific errors
           if (error.message === 'Pending approval' || error.message === 'Account denied') {
             throw error
           }
