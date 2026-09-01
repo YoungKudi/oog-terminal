@@ -57,3 +57,5 @@ export function DashboardNavigation() {
     </nav>
   )
 }
+// Add this to the navItems array
+{ name: '👑 Admin Panel', href: '/dashboard/admin' },

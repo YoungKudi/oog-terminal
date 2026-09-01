@@ -2,22 +2,17 @@
 import React, { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { getColor } from '@/lib/utils'
-import { useDarkMode } from '@/hooks/useDarkMode'
-import { useToast } from '@/hooks/useToast'
 
-export default function AdminUsersPage() {
+export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const { isDarkMode } = useDarkMode()
-  const { showToast } = useToast()
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'denied'>('pending')
+  const [filter, setFilter] = useState('pending')
+  const [processing, setProcessing] = useState(false)
   const [selectedUser, setSelectedUser] = useState<any>(null)
   const [showDenyModal, setShowDenyModal] = useState(false)
   const [denyReason, setDenyReason] = useState('')
-  const [processing, setProcessing] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -46,39 +41,33 @@ export default function AdminUsersPage() {
   }
 
   const handleApprove = async (userId: string) => {
-    if (!confirm('Approve this user? They will be able to login immediately.')) return
+    if (!confirm('Approve this user?')) return
     setProcessing(true)
-    
     try {
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, action: 'approve' })
       })
-      const data = await res.json()
-      
       if (res.ok) {
-        showToast('✅ User approved successfully')
-        setUsers(prev => prev.map(u => 
-          u.id === userId ? { ...u, approved: true, rejectionReason: null } : u
-        ))
+        alert('✅ User approved successfully')
+        fetchUsers()
       } else {
-        showToast('❌ ' + (data.error || 'Failed to approve user'))
+        const data = await res.json()
+        alert('❌ ' + (data.error || 'Failed to approve'))
       }
     } catch (error) {
-      showToast('❌ Network error')
+      alert('❌ Network error')
     }
     setProcessing(false)
   }
 
   const handleDeny = async () => {
-    if (!selectedUser) return
-    if (!denyReason.trim()) {
-      showToast('❌ Please provide a reason')
+    if (!selectedUser || !denyReason.trim()) {
+      alert('Please provide a reason')
       return
     }
     setProcessing(true)
-    
     try {
       const res = await fetch('/api/admin/users', {
         method: 'POST',
@@ -89,23 +78,28 @@ export default function AdminUsersPage() {
           reason: denyReason 
         })
       })
-      const data = await res.json()
-      
       if (res.ok) {
-        showToast('✅ User denied')
-        setUsers(prev => prev.map(u => 
-          u.id === selectedUser.id ? { ...u, approved: false, rejectionReason: denyReason } : u
-        ))
+        alert('✅ User denied')
         setShowDenyModal(false)
         setDenyReason('')
         setSelectedUser(null)
+        fetchUsers()
       } else {
-        showToast('❌ ' + (data.error || 'Failed to deny user'))
+        const data = await res.json()
+        alert('❌ ' + (data.error || 'Failed to deny'))
       }
     } catch (error) {
-      showToast('❌ Network error')
+      alert('❌ Network error')
     }
     setProcessing(false)
+  }
+
+  if (status === 'loading' || loading) {
+    return <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>
+  }
+
+  if (session?.user?.role !== 'officer') {
+    return <div style={{ padding: '20px', color: 'red' }}>Access denied. Officers only.</div>
   }
 
   const filteredUsers = users.filter(user => {
@@ -115,122 +109,96 @@ export default function AdminUsersPage() {
     return true
   })
 
-  const textColor = getColor(isDarkMode, '#1e293b', '#e2e8f0')
-  const mutedColor = getColor(isDarkMode, '#64748b', '#94a3b8')
-  const cardBg = getColor(isDarkMode, 'white', '#111827')
-  const borderColor = getColor(isDarkMode, '#eef2f6', '#1f2937')
-
-  if (status === 'loading' || loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <div style={{ width: '40px', height: '40px', border: '4px solid #e2e8f0', borderTop: '4px solid #1e6f3f', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-      </div>
-    )
-  }
-
-  if (session?.user?.role !== 'officer') {
-    return <div style={{ padding: '20px', color: '#dc2626' }}>Access denied. Officers only.</div>
-  }
-
   const pendingCount = users.filter(u => u.approved === false && !u.rejectionReason).length
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '16px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h2 style={{ color: textColor, fontSize: '1.2rem', margin: 0 }}>👑 User Management</h2>
-          <p style={{ color: mutedColor, fontSize: '0.7rem', margin: '4px 0 0 0' }}>
-            {pendingCount} pending approvals • {users.filter(u => u.approved).length} approved
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {['pending', 'approved', 'denied', 'all'].map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f as any)}
-              style={{
-                padding: '4px 12px',
-                borderRadius: '20px',
-                border: filter === f ? '2px solid #1e6f3f' : '1px solid #d1d5db',
-                background: filter === f ? '#f0fdf4' : 'transparent',
-                color: filter === f ? '#1e6f3f' : mutedColor,
-                fontWeight: filter === f ? '600' : '400',
-                fontSize: '0.7rem',
-                cursor: 'pointer',
-                textTransform: 'capitalize'
-              }}
-            >
-              {f} {f === 'pending' && pendingCount > 0 && `(${pendingCount})`}
-            </button>
-          ))}
-        </div>
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2>👑 User Management</h2>
+        <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+          {pendingCount} pending approvals
+        </span>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {filteredUsers.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: mutedColor }}>
-            <div style={{ fontSize: '40px', marginBottom: '8px' }}>📭</div>
-            <p>No {filter} users found</p>
-          </div>
-        ) : (
-          filteredUsers.map(user => (
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        {['pending', 'approved', 'denied', 'all'].map(f => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            style={{
+              padding: '6px 16px',
+              borderRadius: '20px',
+              border: filter === f ? '2px solid #1e6f3f' : '1px solid #d1d5db',
+              background: filter === f ? '#f0fdf4' : 'transparent',
+              color: filter === f ? '#1e6f3f' : '#64748b',
+              fontWeight: filter === f ? '600' : '400',
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              textTransform: 'capitalize'
+            }}
+          >
+            {f} {f === 'pending' && pendingCount > 0 && `(${pendingCount})`}
+          </button>
+        ))}
+      </div>
+
+      {filteredUsers.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+          <p>No {filter} users found</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {filteredUsers.map(user => (
             <div
               key={user.id}
               style={{
-                background: cardBg,
-                border: `1px solid ${borderColor}`,
+                background: 'white',
+                border: '1px solid #e2e8f0',
                 borderRadius: '12px',
-                padding: '12px 16px',
+                padding: '16px',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 flexWrap: 'wrap',
-                gap: '8px',
-                opacity: user.rejectionReason ? 0.6 : 1
+                gap: '8px'
               }}
             >
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <strong style={{ color: textColor, fontSize: '0.9rem' }}>{user.name}</strong>
-                  <span style={{ fontSize: '0.65rem', color: mutedColor }}>ID: {user.userId}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong>{user.name}</strong>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>ID: {user.userId}</span>
                   {user.approved ? (
-                    <span style={{ fontSize: '0.55rem', background: '#10b981', color: 'white', padding: '1px 10px', borderRadius: '12px' }}>✅ Approved</span>
+                    <span style={{ fontSize: '0.65rem', background: '#10b981', color: 'white', padding: '2px 12px', borderRadius: '12px' }}>✅ Approved</span>
                   ) : user.rejectionReason ? (
-                    <span style={{ fontSize: '0.55rem', background: '#dc2626', color: 'white', padding: '1px 10px', borderRadius: '12px' }}>❌ Denied</span>
+                    <span style={{ fontSize: '0.65rem', background: '#dc2626', color: 'white', padding: '2px 12px', borderRadius: '12px' }}>❌ Denied</span>
                   ) : (
-                    <span style={{ fontSize: '0.55rem', background: '#f59e0b', color: 'white', padding: '1px 10px', borderRadius: '12px' }}>⏳ Pending</span>
+                    <span style={{ fontSize: '0.65rem', background: '#f59e0b', color: 'white', padding: '2px 12px', borderRadius: '12px' }}>⏳ Pending</span>
                   )}
                 </div>
-                <div style={{ fontSize: '0.65rem', color: mutedColor, marginTop: '2px' }}>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
                   {user.email} • {user.phone || 'No phone'} • Role: {user.role}
                 </div>
                 {user.rejectionReason && (
-                  <div style={{ fontSize: '0.6rem', color: '#dc2626', marginTop: '2px' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#dc2626', marginTop: '4px' }}>
                     Reason: {user.rejectionReason}
                   </div>
                 )}
-                {user.createdAt && (
-                  <div style={{ fontSize: '0.55rem', color: mutedColor, marginTop: '2px' }}>
-                    Registered: {new Date(user.createdAt).toLocaleDateString()}
-                  </div>
-                )}
               </div>
-              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
                 {!user.approved && !user.rejectionReason && (
                   <>
                     <button
                       onClick={() => handleApprove(user.id)}
                       disabled={processing}
                       style={{
-                        padding: '4px 12px',
+                        padding: '6px 16px',
                         borderRadius: '20px',
                         border: 'none',
                         background: '#10b981',
                         color: 'white',
-                        fontSize: '0.65rem',
+                        fontSize: '0.75rem',
                         cursor: processing ? 'not-allowed' : 'pointer',
-                        fontWeight: '600',
-                        opacity: processing ? 0.6 : 1
+                        fontWeight: '600'
                       }}
                     >
                       ✅ Approve
@@ -240,47 +208,26 @@ export default function AdminUsersPage() {
                         setSelectedUser(user)
                         setShowDenyModal(true)
                       }}
-                      disabled={processing}
                       style={{
-                        padding: '4px 12px',
+                        padding: '6px 16px',
                         borderRadius: '20px',
                         border: 'none',
                         background: '#dc2626',
                         color: 'white',
-                        fontSize: '0.65rem',
-                        cursor: processing ? 'not-allowed' : 'pointer',
-                        fontWeight: '600',
-                        opacity: processing ? 0.6 : 1
+                        fontSize: '0.75rem',
+                        cursor: 'pointer',
+                        fontWeight: '600'
                       }}
                     >
                       ❌ Deny
                     </button>
                   </>
                 )}
-                {user.approved && (
-                  <button
-                    onClick={() => {
-                      // Reset password functionality
-                      showToast('🔑 Password reset feature coming soon')
-                    }}
-                    style={{
-                      padding: '4px 12px',
-                      borderRadius: '20px',
-                      border: '1px solid #d1d5db',
-                      background: 'transparent',
-                      color: mutedColor,
-                      fontSize: '0.65rem',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    🔄 Reset Password
-                  </button>
-                )}
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Deny Modal */}
       {showDenyModal && (
@@ -291,26 +238,24 @@ export default function AdminUsersPage() {
           right: 0,
           bottom: 0,
           background: 'rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(4px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000
         }}>
           <div style={{
-            background: cardBg,
+            background: 'white',
             borderRadius: '16px',
             padding: '24px',
             maxWidth: '400px',
-            width: '90%',
-            border: `1px solid ${borderColor}`
+            width: '90%'
           }}>
-            <h3 style={{ color: textColor, marginBottom: '4px' }}>❌ Deny User</h3>
-            <p style={{ color: mutedColor, fontSize: '0.8rem', marginBottom: '16px' }}>
+            <h3>❌ Deny User</h3>
+            <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '16px' }}>
               User: <strong>{selectedUser?.name}</strong> ({selectedUser?.userId})
             </p>
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ color: mutedColor, fontSize: '0.7rem', display: 'block', marginBottom: '4px' }}>
+              <label style={{ color: '#4b5563', fontSize: '0.75rem', display: 'block', marginBottom: '4px' }}>
                 Reason for denial *
               </label>
               <textarea
@@ -321,10 +266,8 @@ export default function AdminUsersPage() {
                   width: '100%',
                   padding: '8px 12px',
                   borderRadius: '8px',
-                  border: `1px solid ${borderColor}`,
+                  border: '1px solid #d1d5db',
                   fontSize: '0.75rem',
-                  background: getColor(isDarkMode, 'white', '#0a0e17'),
-                  color: textColor,
                   minHeight: '80px',
                   resize: 'vertical'
                 }}
@@ -333,7 +276,6 @@ export default function AdminUsersPage() {
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 onClick={handleDeny}
-                disabled={processing}
                 style={{
                   flex: 1,
                   padding: '8px 16px',
@@ -342,12 +284,11 @@ export default function AdminUsersPage() {
                   background: '#dc2626',
                   color: 'white',
                   fontSize: '0.8rem',
-                  cursor: processing ? 'not-allowed' : 'pointer',
-                  fontWeight: '600',
-                  opacity: processing ? 0.6 : 1
+                  cursor: 'pointer',
+                  fontWeight: '600'
                 }}
               >
-                {processing ? 'Processing...' : 'Deny'}
+                Deny
               </button>
               <button
                 onClick={() => {
@@ -358,9 +299,9 @@ export default function AdminUsersPage() {
                 style={{
                   padding: '8px 16px',
                   borderRadius: '8px',
-                  border: `1px solid ${borderColor}`,
+                  border: '1px solid #d1d5db',
                   background: 'transparent',
-                  color: mutedColor,
+                  color: '#64748b',
                   fontSize: '0.8rem',
                   cursor: 'pointer'
                 }}
