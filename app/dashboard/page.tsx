@@ -10,6 +10,7 @@ import { DEFAULT_LOCATIONS, DEFAULT_SHIFT } from '@/lib/constants'
 import { getColor } from '@/lib/utils'
 import { Icons } from '@/components/icons/Icons'
 import { TabWithCount } from '@/components/common/TabWithCount'
+import Link from 'next/link'
 
 // Import all tab components
 import QueueTab from './components/QueueTab'
@@ -17,12 +18,12 @@ import ReceivalsTab from './components/ReceivalsTab'
 import TalliesTab from './components/TalliesTab'
 import DevanningTab from './components/DevanningTab'
 import UnstuffedTab from './components/UnstuffedTab'
-import ClearanceTab from './components/ClearanceTab'
 import EvacuationTab from './components/EvacuationTab'
 import LocationsTab from './components/LocationsTab'
 import ContactsTab from './components/ContactsTab'
 import BackupTab from './components/BackupTab'
 import ReportsTab from './components/ReportsTab'
+import ClearanceTab from './components/ClearanceTab'
 import DevanningWizard from './components/DevanningWizard'
 
 // Import modals
@@ -39,25 +40,6 @@ import { StatsGrid } from '@/components/common/StatsGrid'
 import { DailyTally } from '@/components/common/DailyTally'
 import { FloatingButtons } from '@/components/common/FloatingButtons'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
-import Link from 'next/link'
-
-// Tab IDs
-const MAIN_TABS = [
-  { id: 'queue', icon: '📥', label: 'Queue' },
-  { id: 'receivals', icon: '📦', label: 'Receivals' },
-  { id: 'tallies', icon: '📋', label: 'Tallies' },
-  { id: 'devanning', icon: '🔧', label: 'Devanning' },
-  { id: 'unstuffed', icon: '✅', label: 'Unstuffed' },
-  { id: 'clearance', icon: '📋', label: 'Clearance' }
-]
-
-const DROPDOWN_TABS = [
-  { id: 'evacuation', icon: '🚚', label: 'Evacuation & Boxes' },
-  { id: 'locations', icon: '📍', label: 'Locations' },
-  { id: 'contacts', icon: '👤', label: 'Equipment Contacts' },
-  { id: 'backup', icon: '💾', label: 'Backup & Activity' },
-  { id: 'reports', icon: '📄', label: 'Reports' }
-]
 
 export default function DashboardPage() {
   const { data: session, status } = useSession()
@@ -90,6 +72,10 @@ export default function DashboardPage() {
   const [evacuationSelectionMode, setEvacuationSelectionMode] = useState(false)
   const [showWizard, setShowWizard] = useState(false)
   const [wizardContainer, setWizardContainer] = useState(null)
+
+  // Clearance state
+  const [showClearanceTab, setShowClearanceTab] = useState(false)
+  const [clearanceContainers, setClearanceContainers] = useState<any[]>([])
 
   // Modal states
   const [showReceivalModal, setShowReceivalModal] = useState(false)
@@ -159,6 +145,11 @@ export default function DashboardPage() {
     setDropdownOpen(false)
   }
 
+  const handleClearanceBack = () => {
+    setShowClearanceTab(false)
+    switchToTab('unstuffed')
+  }
+
   const getTabCount = (tabId: string) => {
     switch(tabId) {
       case 'queue': return tabCounts.queue
@@ -166,15 +157,10 @@ export default function DashboardPage() {
       case 'tallies': return tabCounts.tallies
       case 'devanning': return tabCounts.devanning
       case 'unstuffed': return tabCounts.unstuffed
-      case 'clearance': return 0 // Will be fetched from API
+      case 'clearance': return clearanceContainers.length
       case 'evacuation': return tabCounts.evacuation
       default: return 0
     }
-  }
-
-  const handleClearanceProcessed = () => {
-    fetchAllData()
-    switchToTab('clearance')
   }
 
   if (loading || status === 'loading') {
@@ -198,6 +184,25 @@ export default function DashboardPage() {
   const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
   const dayName = days[now.getDay()]
   const dateStr = `${day}/${month}/${year} ${dayName}`
+
+  const tabs = [
+    { id: 'queue', icon: '📥', label: 'Queue' },
+    { id: 'receivals', icon: '📦', label: 'Receivals' },
+    { id: 'tallies', icon: '📋', label: 'Tallies' },
+    { id: 'devanning', icon: '🔧', label: 'Devanning' },
+    { id: 'unstuffed', icon: '✅', label: 'Unstuffed' },
+    { id: 'clearance', icon: '📋', label: 'Clearance' }
+  ]
+
+  const dropdownTabs = [
+    { id: 'evacuation', icon: '🚚', label: 'Evacuation & Boxes' },
+    { id: 'locations', icon: '📍', label: 'Locations' },
+    { id: 'contacts', icon: '👤', label: 'Equipment Contacts' },
+    { id: 'backup', icon: '💾', label: 'Backup & Activity' },
+    { id: 'reports', icon: '📄', label: 'Reports' }
+  ]
+
+  const isOfficer = session?.user?.role === 'officer'
 
   return (
     <div className="app-container">
@@ -232,7 +237,7 @@ export default function DashboardPage() {
         minHeight: '52px',
         gap: '2px'
       }}>
-        {MAIN_TABS.map(t => (
+        {tabs.map(t => (
           <button
             key={t.id}
             className={`tab-button ${activeTab === t.id ? 'active' : ''}`}
@@ -273,7 +278,7 @@ export default function DashboardPage() {
                 fontSize: window.innerWidth < 480 ? '0.45rem' : '0.55rem',
                 display: window.innerWidth < 480 ? 'none' : 'inline'
               }}>{t.label}</span>
-              {getTabCount(t.id) > 0 && t.id !== 'clearance' && (
+              {getTabCount(t.id) > 0 && (
                 <span style={{
                   position: 'absolute',
                   top: '-2px',
@@ -290,7 +295,7 @@ export default function DashboardPage() {
           </button>
         ))}
 
-        {/* Hamburger Menu */}
+        {/* Dropdown Menu */}
         <div className="dropdown-container" ref={dropdownRef} style={{ position: 'relative', zIndex: 100 }}>
           <button 
             ref={dropdownButtonRef}
@@ -357,6 +362,7 @@ export default function DashboardPage() {
               overflowY: 'auto'
             }}
           >
+            {/* Profile Link */}
             <Link 
               href="/dashboard/profile" 
               onClick={() => setDropdownOpen(false)}
@@ -382,7 +388,35 @@ export default function DashboardPage() {
               User Profile
             </Link>
 
-            {DROPDOWN_TABS.map(t => (
+            {/* Admin Panel Link - Only for officers */}
+            {isOfficer && (
+              <Link 
+                href="/dashboard/admin" 
+                onClick={() => setDropdownOpen(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  textDecoration: 'none',
+                  color: isDarkMode ? '#e2e8f0' : '#1e293b',
+                  fontSize: '0.75rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  borderRadius: '4px',
+                  transition: 'background 0.2s',
+                  borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                  marginBottom: '4px'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <span style={{ fontSize: '1rem' }}>👑</span>
+                Admin Panel
+              </Link>
+            )}
+
+            {dropdownTabs.map(t => (
               <a 
                 key={t.id}
                 onClick={() => { switchToTab(t.id); setDropdownOpen(false) }} 
@@ -512,15 +546,22 @@ export default function DashboardPage() {
           setShowContainerDetailModal={setShowContainerDetailModal}
           setShowLoadoutModal={setShowLoadoutModal}
           setShowScannerModal={setShowScannerModal}
-          onClearanceProcessed={handleClearanceProcessed}
+          setShowClearanceTab={setShowClearanceTab}
+          setClearanceContainer={(container: any) => {
+            setClearanceContainers(prev => [...prev, container])
+            switchToTab('clearance')
+          }}
         />
       </div>
 
       <div className={`tab-content ${activeTab === 'clearance' ? 'active' : ''}`} id="clearance-tab">
         <ClearanceTab
+          clearanceContainers={clearanceContainers}
+          setClearanceContainers={setClearanceContainers}
           isDarkMode={isDarkMode}
           showToast={showToast}
           fetchAllData={fetchAllData}
+          onBack={() => switchToTab('unstuffed')}
         />
       </div>
 

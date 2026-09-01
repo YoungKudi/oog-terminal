@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function AdminPage() {
   const { data: session, status } = useSession()
@@ -16,13 +17,11 @@ export default function AdminPage() {
     console.log('🔍 Admin page - Status:', status)
     
     if (status === 'unauthenticated') {
-      console.log('🔴 Not authenticated, redirecting to login')
       router.push('/login')
       return
     }
     
     if (session?.user?.role !== 'officer') {
-      console.log('🔴 Not officer, current role:', session?.user?.role)
       router.push('/dashboard')
       return
     }
@@ -31,12 +30,10 @@ export default function AdminPage() {
   }, [session, status])
 
   const fetchUsers = async () => {
-    console.log('📡 Fetching users...')
     setLoading(true)
     setError('')
     try {
       const res = await fetch('/api/admin/users')
-      console.log('📡 Response status:', res.status)
       const data = await res.json()
       console.log('📡 Users data:', data)
       
@@ -62,12 +59,11 @@ export default function AdminPage() {
         body: JSON.stringify({ userId, action: 'approve' })
       })
       const data = await res.json()
-      console.log('Approve response:', data)
       if (res.ok) {
-        alert('✅ User approved successfully!')
+        alert('✅ User approved!')
         fetchUsers()
       } else {
-        alert('❌ ' + (data.error || 'Failed to approve'))
+        alert('❌ ' + (data.error || 'Failed'))
       }
     } catch (err) {
       alert('❌ Network error')
@@ -94,12 +90,11 @@ export default function AdminPage() {
         })
       })
       const data = await res.json()
-      console.log('Deny response:', data)
       if (res.ok) {
         alert('✅ User denied!')
         fetchUsers()
       } else {
-        alert('❌ ' + (data.error || 'Failed to deny'))
+        alert('❌ ' + (data.error || 'Failed'))
       }
     } catch (err) {
       alert('❌ Network error')
@@ -107,7 +102,6 @@ export default function AdminPage() {
     setProcessing(false)
   }
 
-  // Show loading state
   if (status === 'loading' || loading) {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
@@ -116,23 +110,21 @@ export default function AdminPage() {
     )
   }
 
-  // Show if not authenticated
   if (status === 'unauthenticated') {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
         <p>Please log in to access admin panel.</p>
-        <button onClick={() => router.push('/login')}>Go to Login</button>
+        <Link href="/login" style={{ color: '#1e6f3f', textDecoration: 'underline' }}>Go to Login</Link>
       </div>
     )
   }
 
-  // Show if not officer
   if (session?.user?.role !== 'officer') {
     return (
       <div style={{ padding: '40px', textAlign: 'center', color: 'red' }}>
         <p>Access denied. Officers only.</p>
         <p>Your role: {session?.user?.role || 'none'}</p>
-        <button onClick={() => router.push('/dashboard')}>Back to Dashboard</button>
+        <Link href="/dashboard" style={{ color: '#1e6f3f', textDecoration: 'underline' }}>Back to Dashboard</Link>
       </div>
     )
   }
@@ -143,20 +135,25 @@ export default function AdminPage() {
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>👑 Admin Panel</h1>
-        <button 
-          onClick={fetchUsers}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div>
+          <h1 style={{ fontSize: '1.5rem' }}>👑 Admin Panel</h1>
+          <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Manage user approvals</p>
+        </div>
+        <Link 
+          href="/dashboard" 
           style={{
             padding: '6px 16px',
             borderRadius: '8px',
             border: '1px solid #d1d5db',
             background: 'white',
-            cursor: 'pointer'
+            textDecoration: 'none',
+            color: '#1e293b',
+            fontSize: '0.8rem'
           }}
         >
-          🔄 Refresh
-        </button>
+          ← Back
+        </Link>
       </div>
       
       <div style={{ margin: '20px 0', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
@@ -172,6 +169,18 @@ export default function AdminPage() {
         <div style={{ background: '#e2e8f0', padding: '8px 16px', borderRadius: '8px' }}>
           📊 Total: {users.length}
         </div>
+        <button 
+          onClick={fetchUsers}
+          style={{
+            padding: '6px 16px',
+            borderRadius: '8px',
+            border: '1px solid #d1d5db',
+            background: 'white',
+            cursor: 'pointer'
+          }}
+        >
+          🔄 Refresh
+        </button>
       </div>
 
       {error && (
