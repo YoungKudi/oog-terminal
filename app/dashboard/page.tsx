@@ -9,7 +9,6 @@ import { useTabCounts } from '@/hooks/useTabCounts'
 import { DEFAULT_LOCATIONS, DEFAULT_SHIFT } from '@/lib/constants'
 import { getColor } from '@/lib/utils'
 import { Icons } from '@/components/icons/Icons'
-import { TabWithCount } from '@/components/common/TabWithCount'
 import Link from 'next/link'
 
 // Import all tab components
@@ -18,12 +17,12 @@ import ReceivalsTab from './components/ReceivalsTab'
 import TalliesTab from './components/TalliesTab'
 import DevanningTab from './components/DevanningTab'
 import UnstuffedTab from './components/UnstuffedTab'
+import ClearanceTab from './components/ClearanceTab'
 import EvacuationTab from './components/EvacuationTab'
 import LocationsTab from './components/LocationsTab'
 import ContactsTab from './components/ContactsTab'
 import BackupTab from './components/BackupTab'
 import ReportsTab from './components/ReportsTab'
-import ClearanceTab from './components/ClearanceTab'
 import DevanningWizard from './components/DevanningWizard'
 
 // Import modals
@@ -40,6 +39,24 @@ import { StatsGrid } from '@/components/common/StatsGrid'
 import { DailyTally } from '@/components/common/DailyTally'
 import { FloatingButtons } from '@/components/common/FloatingButtons'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
+
+// Tab IDs
+const MAIN_TABS = [
+  { id: 'queue', icon: '📥', label: 'Queue' },
+  { id: 'receivals', icon: '📦', label: 'Receivals' },
+  { id: 'tallies', icon: '📋', label: 'Tallies' },
+  { id: 'devanning', icon: '🔧', label: 'Devanning' },
+  { id: 'unstuffed', icon: '✅', label: 'Unstuffed' },
+  { id: 'clearance', icon: '📋', label: 'Clearance' }
+]
+
+const DROPDOWN_TABS = [
+  { id: 'evacuation', icon: '🚚', label: 'Evacuation & Boxes' },
+  { id: 'locations', icon: '📍', label: 'Locations' },
+  { id: 'contacts', icon: '👤', label: 'Equipment Contacts' },
+  { id: 'backup', icon: '💾', label: 'Backup & Activity' },
+  { id: 'reports', icon: '📄', label: 'Reports' }
+]
 
 export default function DashboardPage() {
   const { data: session, status } = useSession()
@@ -74,7 +91,6 @@ export default function DashboardPage() {
   const [wizardContainer, setWizardContainer] = useState(null)
 
   // Clearance state
-  const [showClearanceTab, setShowClearanceTab] = useState(false)
   const [clearanceContainers, setClearanceContainers] = useState<any[]>([])
 
   // Modal states
@@ -143,11 +159,19 @@ export default function DashboardPage() {
   const switchToTab = (tabId: string) => {
     setActiveTab(tabId)
     setDropdownOpen(false)
+    // Update tab content visibility
+    document.querySelectorAll('.tab-content').forEach(el => {
+      el.classList.remove('active')
+    })
+    const tabContent = document.getElementById(tabId + '-tab')
+    if (tabContent) {
+      tabContent.classList.add('active')
+    }
   }
 
-  const handleClearanceBack = () => {
-    setShowClearanceTab(false)
-    switchToTab('unstuffed')
+  const handleClearanceProcessed = () => {
+    fetchAllData()
+    switchToTab('clearance')
   }
 
   const getTabCount = (tabId: string) => {
@@ -157,7 +181,7 @@ export default function DashboardPage() {
       case 'tallies': return tabCounts.tallies
       case 'devanning': return tabCounts.devanning
       case 'unstuffed': return tabCounts.unstuffed
-      case 'clearance': return clearanceContainers.length
+      case 'clearance': return 0
       case 'evacuation': return tabCounts.evacuation
       default: return 0
     }
@@ -185,24 +209,16 @@ export default function DashboardPage() {
   const dayName = days[now.getDay()]
   const dateStr = `${day}/${month}/${year} ${dayName}`
 
-  const tabs = [
-    { id: 'queue', icon: '📥', label: 'Queue' },
-    { id: 'receivals', icon: '📦', label: 'Receivals' },
-    { id: 'tallies', icon: '📋', label: 'Tallies' },
-    { id: 'devanning', icon: '🔧', label: 'Devanning' },
-    { id: 'unstuffed', icon: '✅', label: 'Unstuffed' },
-    { id: 'clearance', icon: '📋', label: 'Clearance' }
-  ]
-
-  const dropdownTabs = [
-    { id: 'evacuation', icon: '🚚', label: 'Evacuation & Boxes' },
-    { id: 'locations', icon: '📍', label: 'Locations' },
-    { id: 'contacts', icon: '👤', label: 'Equipment Contacts' },
-    { id: 'backup', icon: '💾', label: 'Backup & Activity' },
-    { id: 'reports', icon: '📄', label: 'Reports' }
-  ]
-
   const isOfficer = session?.user?.role === 'officer'
+
+  // Set initial tab content visibility
+  useEffect(() => {
+    // Show first tab by default
+    const firstTab = document.getElementById('queue-tab')
+    if (firstTab) {
+      firstTab.classList.add('active')
+    }
+  }, [])
 
   return (
     <div className="app-container">
@@ -237,7 +253,7 @@ export default function DashboardPage() {
         minHeight: '52px',
         gap: '2px'
       }}>
-        {tabs.map(t => (
+        {MAIN_TABS.map(t => (
           <button
             key={t.id}
             className={`tab-button ${activeTab === t.id ? 'active' : ''}`}
@@ -416,7 +432,7 @@ export default function DashboardPage() {
               </Link>
             )}
 
-            {dropdownTabs.map(t => (
+            {DROPDOWN_TABS.map(t => (
               <a 
                 key={t.id}
                 onClick={() => { switchToTab(t.id); setDropdownOpen(false) }} 
@@ -471,7 +487,7 @@ export default function DashboardPage() {
       </div>
 
       {/* TABS CONTENT */}
-      <div className={`tab-content ${activeTab === 'queue' ? 'active' : ''}`} id="queue-tab">
+      <div className="tab-content" id="queue-tab">
         <DailyTally 
           locations={locations} 
           containers={containers} 
@@ -493,7 +509,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className={`tab-content ${activeTab === 'receivals' ? 'active' : ''}`} id="receivals-tab">
+      <div className="tab-content" id="receivals-tab">
         <ReceivalsTab 
           containers={containers}
           isDarkMode={isDarkMode}
@@ -504,7 +520,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className={`tab-content ${activeTab === 'tallies' ? 'active' : ''}`} id="tallies-tab">
+      <div className="tab-content" id="tallies-tab">
         <TalliesTab 
           containers={containers}
           locations={locations}
@@ -519,7 +535,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className={`tab-content ${activeTab === 'devanning' ? 'active' : ''}`} id="devanning-tab">
+      <div className="tab-content" id="devanning-tab">
         <DevanningTab 
           devanningQueue={devanningQueue}
           isDarkMode={isDarkMode}
@@ -532,7 +548,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className={`tab-content ${activeTab === 'unstuffed' ? 'active' : ''}`} id="unstuffed-tab">
+      <div className="tab-content" id="unstuffed-tab">
         <UnstuffedTab 
           unstuffedContainers={unstuffedContainers}
           isDarkMode={isDarkMode}
@@ -546,26 +562,19 @@ export default function DashboardPage() {
           setShowContainerDetailModal={setShowContainerDetailModal}
           setShowLoadoutModal={setShowLoadoutModal}
           setShowScannerModal={setShowScannerModal}
-          setShowClearanceTab={setShowClearanceTab}
-          setClearanceContainer={(container: any) => {
-            setClearanceContainers(prev => [...prev, container])
-            switchToTab('clearance')
-          }}
+          onClearanceProcessed={handleClearanceProcessed}
         />
       </div>
 
-      <div className={`tab-content ${activeTab === 'clearance' ? 'active' : ''}`} id="clearance-tab">
+      <div className="tab-content" id="clearance-tab">
         <ClearanceTab
-          clearanceContainers={clearanceContainers}
-          setClearanceContainers={setClearanceContainers}
           isDarkMode={isDarkMode}
           showToast={showToast}
           fetchAllData={fetchAllData}
-          onBack={() => switchToTab('unstuffed')}
         />
       </div>
 
-      <div className={`tab-content ${activeTab === 'evacuation' ? 'active' : ''}`} id="evacuation-tab">
+      <div className="tab-content" id="evacuation-tab">
         <EvacuationTab 
           evacuationRecords={evacuationRecords}
           isDarkMode={isDarkMode}
@@ -574,7 +583,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className={`tab-content ${activeTab === 'locations' ? 'active' : ''}`} id="locations-tab">
+      <div className="tab-content" id="locations-tab">
         <LocationsTab 
           locations={locations}
           containers={containers}
@@ -585,7 +594,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className={`tab-content ${activeTab === 'contacts' ? 'active' : ''}`} id="contacts-tab">
+      <div className="tab-content" id="contacts-tab">
         <ContactsTab 
           shiftData={shiftData}
           setShiftData={setShiftData}
@@ -595,7 +604,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className={`tab-content ${activeTab === 'backup' ? 'active' : ''}`} id="backup-tab">
+      <div className="tab-content" id="backup-tab">
         <BackupTab 
           containers={containers}
           importQueue={importQueue}
@@ -612,7 +621,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className={`tab-content ${activeTab === 'reports' ? 'active' : ''}`} id="reports-tab">
+      <div className="tab-content" id="reports-tab">
         <ReportsTab 
           loadingRecords={loadingRecords}
           isDarkMode={isDarkMode}

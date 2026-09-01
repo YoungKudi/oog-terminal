@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { getColor, formatDate } from '@/lib/utils'
 import ClearanceModal from './ClearanceModal'
 
@@ -106,8 +106,12 @@ export default function UnstuffedTab({
   const handleClearanceComplete = () => {
     setShowClearanceModal(false)
     setSelectedForClearance(null)
-    onClearanceProcessed()
+    // Call the callback to refresh data and switch tabs
+    if (onClearanceProcessed) {
+      onClearanceProcessed()
+    }
     fetchAllData()
+    showToast('✅ Container cleared successfully')
   }
 
   return (

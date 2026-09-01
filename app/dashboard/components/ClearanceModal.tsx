@@ -1,7 +1,6 @@
 "use client"
 import React, { useState } from 'react'
 import { getColor } from '@/lib/utils'
-import { AUX_CARGO_TYPES } from '@/lib/constants'
 
 interface ClearanceModalProps {
   isOpen: boolean
@@ -26,7 +25,6 @@ export default function ClearanceModal({
 
   if (!isOpen || !container) return null
 
-  // Parse aux cargo
   const auxCargo = container.auxCargo || ''
   const cargoMatch = auxCargo.match(/(\d+)\s*(\w+)/)
   const cargoQty = cargoMatch ? parseInt(cargoMatch[1]) : 0
@@ -83,8 +81,12 @@ export default function ClearanceModal({
         body: JSON.stringify({ containerNumber: container.containerNumber })
       })
 
-      showToast(`✅ Container ${container.containerNumber} cleared successfully`)
-      onComplete()
+      // Call onComplete callback
+      if (onComplete) {
+        onComplete()
+      }
+      
+      showToast('✅ Container cleared successfully')
       onClose()
     } catch (error: any) {
       showToast('❌ ' + error.message)
