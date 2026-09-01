@@ -48,7 +48,7 @@ const MAIN_TABS = [
   { id: 'tallies', icon: '📋', label: 'Tallies' },
   { id: 'devanning', icon: '🔧', label: 'Devanning' },
   { id: 'unstuffed', icon: '✅', label: 'Unstuffed' },
-  { id: 'clearance', icon: '🚚', label: 'Clearance' }
+  { id: 'clearance', icon: '📋', label: 'Clearance' }
 ]
 
 const DROPDOWN_TABS = [
@@ -177,6 +177,12 @@ export default function DashboardPage() {
       case 'evacuation': return tabCounts.evacuation
       default: return 0
     }
+  }
+
+  // Handle clearance processed callback
+  const handleClearanceProcessed = () => {
+    // Refresh all data after clearance
+    fetchAllData()
   }
 
   if (loading || status === 'loading') {
@@ -535,10 +541,7 @@ export default function DashboardPage() {
           setShowContainerDetailModal={setShowContainerDetailModal}
           setShowLoadoutModal={setShowLoadoutModal}
           setShowScannerModal={setShowScannerModal}
-          setClearanceContainer={(container: any) => {
-            setClearanceContainers(prev => [...prev, container])
-            switchToTab('clearance')
-          }}
+          onClearanceProcessed={handleClearanceProcessed}
         />
       </div>
 
