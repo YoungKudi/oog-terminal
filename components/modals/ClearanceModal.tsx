@@ -26,7 +26,6 @@ export default function ClearanceModal({
   const [cargoQty, setCargoQty] = useState(0)
   const [cargoType, setCargoType] = useState('units')
 
-  // Auto-populate cargo from container
   useEffect(() => {
     if (container) {
       const auxCargo = container.auxCargo || ''
@@ -41,7 +40,7 @@ export default function ClearanceModal({
     }
   }, [container])
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!truckPlate) {
       showToast('❌ Please enter truck plate number')
       return
@@ -63,18 +62,17 @@ export default function ClearanceModal({
       truckPlate: truckPlate.toUpperCase(),
       agentContact: container?.agency || '',
       boxesLoaded: cargoQty,
-      auxCargoType: cargoType,
       devanningType: container?.devanningType || 'unstuffing',
       remarks: remarks || '',
       isDouble: container?.isDouble || false
     }
 
-    onClear(clearanceData)
+    await onClear(clearanceData)
     setLoading(false)
     onClose()
   }
 
-  if (!isOpen) return null
+  if (!isOpen || !container) return null
 
   const textColor = getColor(isDarkMode, '#1e293b', '#e2e8f0')
   const mutedColor = getColor(isDarkMode, '#4b5563', '#94a3b8')
@@ -117,7 +115,6 @@ export default function ClearanceModal({
           {container?.isDouble && ' | 2X'}
         </p>
 
-        {/* Truck Plate */}
         <div className="form-group" style={{ marginBottom: '12px' }}>
           <label style={{
             color: mutedColor,
@@ -146,7 +143,6 @@ export default function ClearanceModal({
           />
         </div>
 
-        {/* Cargo Quantity and Type */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
           <div className="form-group">
             <label style={{
@@ -206,7 +202,6 @@ export default function ClearanceModal({
           </div>
         </div>
 
-        {/* Remarks */}
         <div className="form-group" style={{ marginBottom: '12px' }}>
           <label style={{
             color: mutedColor,
@@ -235,7 +230,6 @@ export default function ClearanceModal({
           />
         </div>
 
-        {/* Summary */}
         <div style={{
           padding: '10px 12px',
           background: getColor(isDarkMode, '#f1f5f9', '#0f172a'),
@@ -264,7 +258,6 @@ export default function ClearanceModal({
           )}
         </div>
 
-        {/* Actions */}
         <div style={{ display: 'flex', gap: '8px' }}>
           <button
             onClick={handleSubmit}
