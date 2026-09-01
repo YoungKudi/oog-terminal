@@ -39,13 +39,6 @@ export const authOptions = {
 
           if (!users || users.length === 0) {
             console.log('❌ No user found with ID:', credentials.workerId)
-            const clientInfo = getClientInfo(req)
-            await logAudit({
-              action: 'LOGIN_FAILED',
-              details: { workerId: credentials.workerId, reason: 'User not found' },
-              ipAddress: clientInfo.ipAddress,
-              userAgent: clientInfo.userAgent
-            })
             return null
           }
 
@@ -67,7 +60,11 @@ export const authOptions = {
             })
             
             // Return specific error message
-            throw new Error(user.rejectionReason ? 'Account denied' : 'Pending approval')
+            if (user.rejectionReason) {
+              throw new Error('Account denied')
+            } else {
+              throw new Error('Pending approval')
+            }
           }
 
           if (!user.password) {

@@ -4,7 +4,6 @@ import { supabase } from '@/lib/db'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { sendEmail, getEmailTemplate, renderTemplate } from '@/lib/email'
 
-// GET - Fetch all users with their approval status
 export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session || session.user?.role !== 'officer') {
@@ -29,7 +28,6 @@ export async function GET() {
   }
 }
 
-// POST - Approve or deny a user
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
   if (!session || session.user?.role !== 'officer') {
@@ -38,7 +36,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json()
-    const { userId, action, reason } = body // action: 'approve' or 'deny'
+    const { userId, action, reason } = body
 
     if (!userId || !action) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -62,7 +60,8 @@ export async function POST(req: Request) {
         .update({
           approved: true,
           approvedAt: new Date().toISOString(),
-          approvedBy: session.user.id
+          approvedBy: session.user.id,
+          rejectionReason: null
         })
         .eq('id', userId)
 

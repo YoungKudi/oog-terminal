@@ -17,6 +17,7 @@ export default function AdminUsersPage() {
   const [selectedUser, setSelectedUser] = useState<any>(null)
   const [showDenyModal, setShowDenyModal] = useState(false)
   const [denyReason, setDenyReason] = useState('')
+  const [processing, setProcessing] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -45,7 +46,8 @@ export default function AdminUsersPage() {
   }
 
   const handleApprove = async (userId: string) => {
-    if (!confirm('Approve this user?')) return
+    if (!confirm('Approve this user? They will be able to login immediately.')) return
+    setProcessing(true)
     
     try {
       const res = await fetch('/api/admin/users', {
@@ -53,16 +55,20 @@ export default function AdminUsersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, action: 'approve' })
       })
+      const data = await res.json()
+      
       if (res.ok) {
         showToast('✅ User approved successfully')
-        fetchUsers()
+        setUsers(prev => prev.map(u => 
+          u.id === userId ? { ...u, approved: true, rejectionReason: null } : u
+        ))
       } else {
-        const data = await res.json()
         showToast('❌ ' + (data.error || 'Failed to approve user'))
       }
     } catch (error) {
       showToast('❌ Network error')
     }
+    setProcessing(false)
   }
 
   const handleDeny = async () => {
@@ -71,6 +77,7 @@ export default function AdminUsersPage() {
       showToast('❌ Please provide a reason')
       return
     }
+    setProcessing(true)
     
     try {
       const res = await fetch('/api/admin/users', {
@@ -82,19 +89,23 @@ export default function AdminUsersPage() {
           reason: denyReason 
         })
       })
+      const data = await res.json()
+      
       if (res.ok) {
         showToast('✅ User denied')
+        setUsers(prev => prev.map(u => 
+          u.id === selectedUser.id ? { ...u, approved: false, rejectionReason: denyReason } : u
+        ))
         setShowDenyModal(false)
         setDenyReason('')
         setSelectedUser(null)
-        fetchUsers()
       } else {
-        const data = await res.json()
         showToast('❌ ' + (data.error || 'Failed to deny user'))
       }
     } catch (error) {
       showToast('❌ Network error')
     }
+    setProcessing(false)
   }
 
   const filteredUsers = users.filter(user => {
@@ -129,7 +140,7 @@ export default function AdminUsersPage() {
         <div>
           <h2 style={{ color: textColor, fontSize: '1.2rem', margin: 0 }}>👑 User Management</h2>
           <p style={{ color: mutedColor, fontSize: '0.7rem', margin: '4px 0 0 0' }}>
-            {pendingCount} pending approvals
+            {pendingCount} pending approvals • {users.filter(u => u.approved).length} approved
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -174,7 +185,8 @@ export default function AdminUsersPage() {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 flexWrap: 'wrap',
-                gap: '8px'
+                gap: '8px',
+                opacity: user.rejectionReason ? 0.6 : 1
               }}
             >
               <div>
@@ -208,6 +220,7 @@ export default function AdminUsersPage() {
                   <>
                     <button
                       onClick={() => handleApprove(user.id)}
+                      disabled={processing}
                       style={{
                         padding: '4px 12px',
                         borderRadius: '20px',
@@ -215,8 +228,9 @@ export default function AdminUsersPage() {
                         background: '#10b981',
                         color: 'white',
                         fontSize: '0.65rem',
-                        cursor: 'pointer',
-                        fontWeight: '600'
+                        cursor: processing ? 'not-allowed' : 'pointer',
+                        fontWeight: '600',
+                        opacity: processing ? 0.6 : 1
                       }}
                     >
                       ✅ Approve
@@ -226,6 +240,7 @@ export default function AdminUsersPage() {
                         setSelectedUser(user)
                         setShowDenyModal(true)
                       }}
+                      disabled={processing}
                       style={{
                         padding: '4px 12px',
                         borderRadius: '20px',
@@ -233,8 +248,9 @@ export default function AdminUsersPage() {
                         background: '#dc2626',
                         color: 'white',
                         fontSize: '0.65rem',
-                        cursor: 'pointer',
-                        fontWeight: '600'
+                        cursor: processing ? 'not-allowed' : 'pointer',
+                        fontWeight: '600',
+                        opacity: processing ? 0.6 : 1
                       }}
                     >
                       ❌ Deny
@@ -244,8 +260,8 @@ export default function AdminUsersPage() {
                 {user.approved && (
                   <button
                     onClick={() => {
-                      // Reset password or other actions
-                      showToast('🔑 Password reset coming soon')
+                      // Reset password functionality
+                      showToast('🔑 Password reset feature coming soon')
                     }}
                     style={{
                       padding: '4px 12px',
@@ -317,6 +333,7 @@ export default function AdminUsersPage() {
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 onClick={handleDeny}
+                disabled={processing}
                 style={{
                   flex: 1,
                   padding: '8px 16px',
@@ -325,11 +342,12 @@ export default function AdminUsersPage() {
                   background: '#dc2626',
                   color: 'white',
                   fontSize: '0.8rem',
-                  cursor: 'pointer',
-                  fontWeight: '600'
+                  cursor: processing ? 'not-allowed' : 'pointer',
+                  fontWeight: '600',
+                  opacity: processing ? 0.6 : 1
                 }}
               >
-                Deny
+                {processing ? 'Processing...' : 'Deny'}
               </button>
               <button
                 onClick={() => {
