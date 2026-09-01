@@ -91,9 +91,6 @@ export default function DashboardPage() {
   const [showWizard, setShowWizard] = useState(false)
   const [wizardContainer, setWizardContainer] = useState(null)
 
-  // Clearance state
-  const [clearanceContainers, setClearanceContainers] = useState<any[]>([])
-
   // Modal states
   const [showReceivalModal, setShowReceivalModal] = useState(false)
   const [showDevanningModal, setShowDevanningModal] = useState(false)
@@ -162,10 +159,6 @@ export default function DashboardPage() {
     setDropdownOpen(false)
   }
 
-  const handleClearanceBack = () => {
-    switchToTab('unstuffed')
-  }
-
   const getTabCount = (tabId: string) => {
     switch(tabId) {
       case 'queue': return tabCounts.queue
@@ -173,16 +166,15 @@ export default function DashboardPage() {
       case 'tallies': return tabCounts.tallies
       case 'devanning': return tabCounts.devanning
       case 'unstuffed': return tabCounts.unstuffed
-      case 'clearance': return clearanceContainers.length
+      case 'clearance': return 0 // Will be fetched from API
       case 'evacuation': return tabCounts.evacuation
       default: return 0
     }
   }
 
-  // Handle clearance processed callback
   const handleClearanceProcessed = () => {
-    // Refresh all data after clearance
     fetchAllData()
+    switchToTab('clearance')
   }
 
   if (loading || status === 'loading') {
@@ -207,8 +199,6 @@ export default function DashboardPage() {
   const dayName = days[now.getDay()]
   const dateStr = `${day}/${month}/${year} ${dayName}`
 
-  const isActive = (tabId: string) => activeTab === tabId
-
   return (
     <div className="app-container">
       {/* HEADER */}
@@ -228,7 +218,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* TAB BAR - 6 Main Tabs + Hamburger Dropdown */}
+      {/* TAB BAR */}
       <div className="tab-bar" style={{ 
         display: 'flex', 
         alignItems: 'center',
@@ -242,7 +232,6 @@ export default function DashboardPage() {
         minHeight: '52px',
         gap: '2px'
       }}>
-        {/* Main Tabs - 6 tabs */}
         {MAIN_TABS.map(t => (
           <button
             key={t.id}
@@ -297,29 +286,11 @@ export default function DashboardPage() {
                   animation: 'pulse-dot 1.5s ease-in-out infinite',
                 }} />
               )}
-              {t.id === 'clearance' && clearanceContainers.length > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: '-4px',
-                  right: '-6px',
-                  background: '#ef4444',
-                  color: 'white',
-                  borderRadius: '50%',
-                  fontSize: '0.5rem',
-                  fontWeight: '700',
-                  padding: '1px 5px',
-                  minWidth: '16px',
-                  textAlign: 'center',
-                  boxShadow: `0 0 0 2px ${isDarkMode ? '#111827' : 'white'}`,
-                }}>
-                  {clearanceContainers.length}
-                </span>
-              )}
             </div>
           </button>
         ))}
 
-        {/* Hamburger Menu (Three Dash Lines) */}
+        {/* Hamburger Menu */}
         <div className="dropdown-container" ref={dropdownRef} style={{ position: 'relative', zIndex: 100 }}>
           <button 
             ref={dropdownButtonRef}
@@ -547,12 +518,9 @@ export default function DashboardPage() {
 
       <div className={`tab-content ${activeTab === 'clearance' ? 'active' : ''}`} id="clearance-tab">
         <ClearanceTab
-          clearanceContainers={clearanceContainers}
-          setClearanceContainers={setClearanceContainers}
           isDarkMode={isDarkMode}
           showToast={showToast}
           fetchAllData={fetchAllData}
-          onBack={() => switchToTab('unstuffed')}
         />
       </div>
 

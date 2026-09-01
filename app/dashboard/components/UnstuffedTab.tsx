@@ -1,7 +1,7 @@
 "use client"
 import React, { useState } from 'react'
 import { getColor, formatDate } from '@/lib/utils'
-import ClearanceModal from '@/components/modals/ClearanceModal'
+import ClearanceModal from './ClearanceModal'
 
 interface UnstuffedTabProps {
   unstuffedContainers: any[]
@@ -35,7 +35,7 @@ export default function UnstuffedTab({
   onClearanceProcessed
 }: UnstuffedTabProps) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [clearanceModalOpen, setClearanceModalOpen] = useState(false)
+  const [showClearanceModal, setShowClearanceModal] = useState(false)
   const [selectedForClearance, setSelectedForClearance] = useState<any>(null)
 
   const totalUnits = unstuffedContainers.reduce((sum, c) => sum + (c.isDouble ? 2 : 1), 0)
@@ -98,37 +98,16 @@ export default function UnstuffedTab({
     else showToast('🔴 Selection mode cancelled')
   }
 
-  const handleOpenClearanceModal = (container: any) => {
+  const handleLoadClick = (container: any) => {
     setSelectedForClearance(container)
-    setClearanceModalOpen(true)
+    setShowClearanceModal(true)
   }
 
-  const handleClearanceComplete = async (data: any) => {
-    try {
-      // Send to loadout API
-      const res = await fetch('/api/loadout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      })
-
-      if (res.ok) {
-        showToast('✅ Container cleared successfully')
-        // Remove from unstuffed
-        await fetch('/api/unstuffed', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ containerNumber: data.containerNumber })
-        })
-        fetchAllData()
-        onClearanceProcessed()
-      } else {
-        const err = await res.json()
-        showToast('❌ ' + (err.error || 'Failed to clear container'))
-      }
-    } catch (err) {
-      showToast('❌ Network error')
-    }
+  const handleClearanceComplete = () => {
+    setShowClearanceModal(false)
+    setSelectedForClearance(null)
+    onClearanceProcessed()
+    fetchAllData()
   }
 
   return (
@@ -237,7 +216,7 @@ export default function UnstuffedTab({
                       <div style={{display:'flex',gap:'4px',flexWrap:'wrap'}}>
                         <button className="btn-primary btn-sm" onClick={(e) => { 
                           e.stopPropagation(); 
-                          handleOpenClearanceModal(u)
+                          handleLoadClick(u)
                         }} style={{background:'#1e6f3f',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>
                           📋 Load
                         </button>
@@ -256,12 +235,15 @@ export default function UnstuffedTab({
 
       {/* Clearance Modal */}
       <ClearanceModal
-        isOpen={clearanceModalOpen}
-        onClose={() => setClearanceModalOpen(false)}
+        isOpen={showClearanceModal}
+        onClose={() => {
+          setShowClearanceModal(false)
+          setSelectedForClearance(null)
+        }}
         container={selectedForClearance}
-        onClear={handleClearanceComplete}
         isDarkMode={isDarkMode}
         showToast={showToast}
+        onComplete={handleClearanceComplete}
       />
     </>
   )
