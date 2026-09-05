@@ -9,6 +9,7 @@ import { useTabCounts } from '@/hooks/useTabCounts'
 import { DEFAULT_LOCATIONS, DEFAULT_SHIFT } from '@/lib/constants'
 import { getColor } from '@/lib/utils'
 import { Icons } from '@/components/icons/Icons'
+import Link from 'next/link'
 
 // Import all tab components
 import QueueTab from './components/QueueTab'
@@ -38,7 +39,6 @@ import { StatsGrid } from '@/components/common/StatsGrid'
 import { DailyTally } from '@/components/common/DailyTally'
 import { FloatingButtons } from '@/components/common/FloatingButtons'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
-import Link from 'next/navigation'
 
 // Tab definitions
 const MAIN_TABS = [
@@ -59,11 +59,6 @@ const DROPDOWN_TABS = [
 ]
 
 export default function DashboardPage() {
-  // ============================================
-  // ALL HOOKS MUST BE CALLED FIRST
-  // ============================================
-  
-  // 1. All hooks first
   const { data: session, status } = useSession()
   const router = useRouter()
   const { showToast } = useToast()
@@ -84,7 +79,6 @@ export default function DashboardPage() {
     fetchAllData
   } = useData()
 
-  // 2. All useState hooks
   const [activeTab, setActiveTab] = useState('queue')
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [locations, setLocations] = useState(DEFAULT_LOCATIONS)
@@ -95,7 +89,8 @@ export default function DashboardPage() {
   const [evacuationSelectionMode, setEvacuationSelectionMode] = useState(false)
   const [showWizard, setShowWizard] = useState(false)
   const [wizardContainer, setWizardContainer] = useState(null)
-  const [clearanceContainers, setClearanceContainers] = useState<any[]>([])
+
+  // Modal states
   const [showReceivalModal, setShowReceivalModal] = useState(false)
   const [showDevanningModal, setShowDevanningModal] = useState(false)
   const [showLoadoutModal, setShowLoadoutModal] = useState(false)
@@ -107,7 +102,7 @@ export default function DashboardPage() {
   const [showScannerModal, setShowScannerModal] = useState(false)
   const [selectedContainer, setSelectedContainer] = useState(null)
 
-  // 3. All useEffect hooks
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -158,7 +153,6 @@ export default function DashboardPage() {
     if (savedShifts) setShiftData(JSON.parse(savedShifts))
   }, [])
 
-  // 4. All helper functions (not hooks)
   const switchToTab = (tabId: string) => {
     setActiveTab(tabId)
     setDropdownOpen(false)
@@ -171,13 +165,17 @@ export default function DashboardPage() {
       case 'tallies': return tabCounts.tallies
       case 'devanning': return tabCounts.devanning
       case 'unstuffed': return tabCounts.unstuffed
-      case 'clearance': return clearanceContainers.length
+      case 'clearance': return 0
       case 'evacuation': return tabCounts.evacuation
       default: return 0
     }
   }
 
-  // 5. Conditional returns (AFTER ALL HOOKS)
+  const handleClearanceProcessed = () => {
+    fetchAllData()
+    switchToTab('clearance')
+  }
+
   if (loading || status === 'loading') {
     return (
       <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',flexDirection:'column',gap:'16px',background:isDarkMode?'#0a0e17':'#f5f7fb'}}>
@@ -190,10 +188,6 @@ export default function DashboardPage() {
 
   if (!session) return null
 
-  // ============================================
-  // RENDER FUNCTIONS
-  // ============================================
-
   const now = new Date()
   const hour = now.getHours()
   const greeting = hour >= 17 ? 'Good Evening' : hour >= 12 ? 'Good Afternoon' : 'Good Morning'
@@ -203,8 +197,6 @@ export default function DashboardPage() {
   const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
   const dayName = days[now.getDay()]
   const dateStr = `${day}/${month}/${year} ${dayName}`
-
-  const isActive = (tabId: string) => activeTab === tabId
 
   return (
     <div className="app-container">
@@ -280,23 +272,18 @@ export default function DashboardPage() {
                 fontSize: window.innerWidth < 480 ? '0.45rem' : '0.55rem',
                 display: window.innerWidth < 480 ? 'none' : 'inline'
               }}>{t.label}</span>
-              {t.id === 'clearance' && clearanceContainers.length > 0 && (
+              {getTabCount(t.id) > 0 && t.id !== 'clearance' && (
                 <span style={{
                   position: 'absolute',
-                  top: '-4px',
-                  right: '-6px',
+                  top: '-2px',
+                  right: '-4px',
+                  width: '10px',
+                  height: '10px',
                   background: '#ef4444',
-                  color: 'white',
                   borderRadius: '50%',
-                  fontSize: '0.5rem',
-                  fontWeight: '700',
-                  padding: '1px 5px',
-                  minWidth: '16px',
-                  textAlign: 'center',
                   boxShadow: `0 0 0 2px ${isDarkMode ? '#111827' : 'white'}`,
-                }}>
-                  {clearanceContainers.length}
-                </span>
+                  animation: 'pulse-dot 1.5s ease-in-out infinite',
+                }} />
               )}
             </div>
           </button>
@@ -324,9 +311,30 @@ export default function DashboardPage() {
               transition: 'all 0.2s'
             }}
           >
-            <span style={{ display: 'block', width: '18px', height: '2px', background: isDarkMode ? '#94a3b8' : '#5b6e8c', borderRadius: '2px' }} />
-            <span style={{ display: 'block', width: '18px', height: '2px', background: isDarkMode ? '#94a3b8' : '#5b6e8c', borderRadius: '2px' }} />
-            <span style={{ display: 'block', width: '18px', height: '2px', background: isDarkMode ? '#94a3b8' : '#5b6e8c', borderRadius: '2px' }} />
+            <span style={{ 
+              display: 'block',
+              width: '18px',
+              height: '2px',
+              background: isDarkMode ? '#94a3b8' : '#5b6e8c',
+              borderRadius: '2px',
+              transition: 'all 0.2s'
+            }} />
+            <span style={{ 
+              display: 'block',
+              width: '18px',
+              height: '2px',
+              background: isDarkMode ? '#94a3b8' : '#5b6e8c',
+              borderRadius: '2px',
+              transition: 'all 0.2s'
+            }} />
+            <span style={{ 
+              display: 'block',
+              width: '18px',
+              height: '2px',
+              background: isDarkMode ? '#94a3b8' : '#5b6e8c',
+              borderRadius: '2px',
+              transition: 'all 0.2s'
+            }} />
           </button>
           
           <div 
@@ -401,7 +409,7 @@ export default function DashboardPage() {
             <div className="dropdown-divider" style={{
               borderTop: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
               margin: '4px 0'
-            }} />
+            }}></div>
             <a 
               onClick={() => { signOut({ callbackUrl: '/login' }) }} 
               style={{
@@ -503,21 +511,15 @@ export default function DashboardPage() {
           setShowContainerDetailModal={setShowContainerDetailModal}
           setShowLoadoutModal={setShowLoadoutModal}
           setShowScannerModal={setShowScannerModal}
-          setClearanceContainer={(container: any) => {
-            setClearanceContainers(prev => [...prev, container])
-            switchToTab('clearance')
-          }}
+          onClearanceProcessed={handleClearanceProcessed}
         />
       </div>
 
       <div className={`tab-content ${activeTab === 'clearance' ? 'active' : ''}`} id="clearance-tab">
         <ClearanceTab
-          clearanceContainers={clearanceContainers}
-          setClearanceContainers={setClearanceContainers}
           isDarkMode={isDarkMode}
           showToast={showToast}
           fetchAllData={fetchAllData}
-          onBack={() => switchToTab('unstuffed')}
         />
       </div>
 
