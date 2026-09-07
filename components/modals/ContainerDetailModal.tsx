@@ -13,7 +13,6 @@ interface ContainerDetailModalProps {
   showToast: (msg: string) => void
   setShowEditModal: (show: boolean) => void
   setShowDevanningModal: (show: boolean) => void
-  setShowLoadoutModal: (show: boolean) => void
   fetchAllData: () => void
 }
 
@@ -28,7 +27,6 @@ export default function ContainerDetailModal({
   showToast,
   setShowEditModal,
   setShowDevanningModal,
-  setShowLoadoutModal,
   fetchAllData
 }: ContainerDetailModalProps) {
   if (!container) return null
@@ -157,10 +155,11 @@ export default function ContainerDetailModal({
             <button onClick={() => { onClose(); setShowDevanningModal(true) }} style={{background:'#1e6f3f',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>🏗️ Devan</button>
           )}
           {inDevanning && (
-            <button onClick={() => { /* unstuff logic */ }} style={{background:'#10b981',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>📦 Unstuff</button>
-          )}
-          {inUnstuffed && (
-            <button onClick={() => { onClose(); setShowLoadoutModal(true) }} style={{background:'#1e6f3f',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>📋 Clearance</button>
+            <button onClick={() => { 
+              // Unstuff logic - moved to DevanningTab
+            }} style={{background:'#10b981',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>
+              📦 Unstuff
+            </button>
           )}
         </div>
 

@@ -14,7 +14,6 @@ interface UnstuffedTabProps {
   setEvacuationSelectionMode: (val: boolean) => void
   setSelectedContainer: (container: any) => void
   setShowContainerDetailModal: (show: boolean) => void
-  setShowLoadoutModal: (show: boolean) => void
   onClearanceProcessed: () => void
 }
 
@@ -29,7 +28,6 @@ export default function UnstuffedTab({
   setEvacuationSelectionMode,
   setSelectedContainer,
   setShowContainerDetailModal,
-  setShowLoadoutModal,
   onClearanceProcessed
 }: UnstuffedTabProps) {
   const [searchTerm, setSearchTerm] = useState('')

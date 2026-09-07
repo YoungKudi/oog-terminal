@@ -27,7 +27,6 @@ import ReportsTab from './components/ReportsTab'
 // Import modals
 import ReceivalModal from '@/components/modals/ReceivalModal'
 import DevanningModal from '@/components/modals/DevanningModal'
-import LoadoutModal from '@/components/modals/LoadoutModal'
 import EditModal from '@/components/modals/EditModal'
 import RepositionModal from '@/components/modals/RepositionModal'
 import SearchModal from '@/components/modals/SearchModal'
@@ -605,8 +604,6 @@ export default function DashboardPage() {
         />
       )}
 
-      {showLoadoutModal && (
-        <LoadoutModal 
           onSave={fetchAllData}
           isDarkMode={isDarkMode}
           container={selectedContainer}
