@@ -1,6 +1,7 @@
-
-import React from 'react'
+"use client"
+import React, { useState } from 'react'
 import { getColor } from '@/lib/utils'
+import { useData } from '@/hooks/useData'
 
 interface ReportsTabProps {
   loadingRecords: any[]
@@ -13,14 +14,15 @@ export default function ReportsTab({
   isDarkMode,
   showToast
 }: ReportsTabProps) {
-  const [reportData, setReportData] = React.useState<any>(null)
-  const [reportType, setReportType] = React.useState<string>('')
+  const { containers, devanningQueue, unstuffedContainers, evacuationRecords } = useData()
+  const [reportData, setReportData] = useState<any>(null)
+  const [reportType, setReportType] = useState<string>('')
 
   const generateReport = (type: string) => {
     setReportType(type)
     let title = '', headers: string[] = [], data: any[][] = []
     const records = loadingRecords
-    
+
     switch(type) {
       case 'excavator':
         title = '🚜 Loaded Excavators Report'
@@ -31,7 +33,7 @@ export default function ReportsTab({
       case 'others':
         title = '📦 Loaded Others Report'
         headers = ['Container Number','Size','Received Date','Delivery Date','Content','Remarks']
-        data = records.filter((r: any) => r.equipment !== 'Excavator' && r.equipment !== '2x Excavator' && r.devanningType !== 'house_house' && r.devanningType !== 'back_to_port')
+        data = records.filter((r: any) => r.equipment !== 'Excavator' && r.equipment !== '2x Excavator')
           .map((r: any) => [r.containerNumber, r.size, r.clearedAt || '-', r.deliveryDate || '-', r.equipment, r.remarks || '-'])
         break
       case 'house_house':
@@ -58,14 +60,32 @@ export default function ReportsTab({
         data = records.filter((r: any) => r.devanningType === 're_export')
           .map((r: any) => [r.containerNumber, r.size, r.clearedAt || '-', r.deliveryDate || '-', r.equipment, r.remarks || '-'])
         break
+      case 'yard_summary':
+        title = '📊 Yard Summary Report'
+        headers = ['Metric', 'Count']
+        const totalContainers = containers.length
+        const totalDevanning = devanningQueue.length
+        const totalUnstuffed = unstuffedContainers.length
+        const totalEvacuated = evacuationRecords.length
+        const totalCleared = records.length
+        const totalExcavators = containers.filter(c => c.equipment === 'Excavator' || c.equipment === '2x Excavator').length
+        data = [
+          ['📊 Total Containers', totalContainers],
+          ['🚜 Excavators', totalExcavators],
+          ['⏳ In Devanning', totalDevanning],
+          ['✅ Unstuffed', totalUnstuffed],
+          ['🚚 Evacuated', totalEvacuated],
+          ['📋 Cleared', totalCleared]
+        ]
+        break
       default: showToast('❌ Unknown report type'); return
     }
-    
+
     if (!data.length) {
       setReportData({ title, headers, data: [] })
       return
     }
-    
+
     setReportData({ title, headers, data })
   }
 
@@ -88,35 +108,43 @@ export default function ReportsTab({
     { id: 'house_house', label: '🏠 House-to-House Report', color: '#f59e0b' },
     { id: 'back_to_port', label: '🚢 Back To Port Report', color: '#dc2626' },
     { id: 'freezone', label: '🏢 Freezone Report', color: '#8b5cf6' },
-    { id: 're_export', label: '🔄 Re-Export Report', color: '#06b6d4' }
+    { id: 're_export', label: '🔄 Re-Export Report', color: '#06b6d4' },
+    { id: 'yard_summary', label: '📊 Yard Summary', color: '#1e6f3f' }
   ]
 
+  const textColor = getColor(isDarkMode, '#1e293b', '#e2e8f0')
+  const mutedColor = getColor(isDarkMode, '#64748b', '#94a3b8')
+  const cardBg = getColor(isDarkMode, 'white', '#111827')
+  const borderColor = getColor(isDarkMode, '#eef2f6', '#1f2937')
+
   return (
-    <div className="card" style={{background: getColor(isDarkMode, 'white', '#111827'), borderRadius:'16px', marginBottom:'14px', border: getColor(isDarkMode, '1px solid #eef2f6', '1px solid #1f2937')}}>
-      <div className="list-header" style={{background: getColor(isDarkMode, '#fefce8', '#0f172a'), borderRadius:'16px 16px 0 0', padding:'8px 14px', borderBottom: getColor(isDarkMode, '2px solid #eab308', '2px solid #8b5cf6'), display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'6px', color: getColor(isDarkMode, '#1e293b', '#f1f5f9')}}>
+    <div className="card" style={{background: cardBg, borderRadius:'16px', marginBottom:'14px', border: `1px solid ${borderColor}`}}>
+      <div className="list-header" style={{background: getColor(isDarkMode, '#fefce8', '#0f172a'), borderRadius:'16px 16px 0 0', padding:'8px 14px', borderBottom: `2px solid ${getColor(isDarkMode, '#eab308', '#8b5cf6')}`, display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'6px', color: getColor(isDarkMode, '#1e293b', '#f1f5f9')}}>
         <span>📊 Reports</span>
       </div>
       <div className="card-body" style={{padding:'10px 14px'}}>
         <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
-          {reportTypes.map(rt => (
-            <button 
-              key={rt.id} 
-              className="btn-primary btn-sm" 
-              onClick={() => generateReport(rt.id)} 
-              style={{background: rt.color, color:'white', border:'none', borderRadius:'40px', padding:'2px 8px', fontWeight:'600', fontSize:'0.6rem', cursor:'pointer'}}
-            >
-              {rt.label}
-            </button>
-          ))}
+          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(160px, 1fr))', gap:'6px'}}>
+            {reportTypes.map(rt => (
+              <button 
+                key={rt.id} 
+                className="btn-primary btn-sm" 
+                onClick={() => generateReport(rt.id)} 
+                style={{background: rt.color, color:'white', border:'none', borderRadius:'40px', padding:'4px 12px', fontWeight:'600', fontSize:'0.6rem', cursor:'pointer'}}
+              >
+                {rt.label}
+              </button>
+            ))}
+          </div>
         </div>
         <div style={{marginTop:'12px',maxHeight:'400px',overflowY:'auto'}}>
           {reportData && (
             <>
               {reportData.data.length === 0 ? (
-                <div style={{padding:'16px',textAlign:'center',color:'#64748b',fontSize:'0.75rem'}}>No data available for this report</div>
+                <div style={{padding:'16px',textAlign:'center',color:mutedColor,fontSize:'0.75rem'}}>No data available for this report</div>
               ) : (
                 <>
-                  <div style={{fontWeight:'700',fontSize:'0.9rem',marginBottom:'8px',color: getColor(isDarkMode, '#1e293b', '#e2e8f0')}}>
+                  <div style={{fontWeight:'700',fontSize:'0.9rem',marginBottom:'8px',color: textColor}}>
                     {reportData.title}
                   </div>
                   <div style={{overflowX:'auto'}}>
@@ -124,7 +152,7 @@ export default function ReportsTab({
                       <thead>
                         <tr>
                           {reportData.headers.map((h: string) => (
-                            <th key={h} style={{padding:'4px 8px',border:`1px solid ${getColor(isDarkMode, '#e2e8f0', '#334155')}`,background: getColor(isDarkMode, '#f1f5f9', '#0f172a'),textAlign:'left',color: getColor(isDarkMode, '#1e293b', '#e2e8f0')}}>{h}</th>
+                            <th key={h} style={{padding:'4px 8px',border:`1px solid ${borderColor}`,background: getColor(isDarkMode, '#f1f5f9', '#0f172a'),textAlign:'left',color: textColor}}>{h}</th>
                           ))}
                         </tr>
                       </thead>
@@ -132,19 +160,21 @@ export default function ReportsTab({
                         {reportData.data.map((row: any[], idx: number) => (
                           <tr key={idx}>
                             {row.map((cell, i) => (
-                              <td key={i} style={{padding:'4px 8px',border:`1px solid ${getColor(isDarkMode, '#e2e8f0', '#334155')}`,color: getColor(isDarkMode, '#1e293b', '#e2e8f0')}}>{cell}</td>
+                              <td key={i} style={{padding:'4px 8px',border:`1px solid ${borderColor}`,color: textColor}}>{cell}</td>
                             ))}
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                  <div style={{marginTop:'8px',fontSize:'0.65rem',color: getColor(isDarkMode, '#64748b', '#94a3b8')}}>
-                    Total: {reportData.data.length} records
+                  <div style={{marginTop:'8px',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'4px'}}>
+                    <span style={{fontSize:'0.65rem',color: mutedColor}}>
+                      Total: {reportData.data.length} records
+                    </span>
+                    <button className="btn-primary btn-sm" onClick={exportReportCSV} style={{background:'#1e6f3f',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>
+                      📤 Export CSV
+                    </button>
                   </div>
-                  <button className="btn-primary btn-sm" onClick={exportReportCSV} style={{marginTop:'8px',background:'#1e6f3f',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>
-                    📤 Export CSV
-                  </button>
                 </>
               )}
             </>
@@ -154,5 +184,3 @@ export default function ReportsTab({
     </div>
   )
 }
-
-

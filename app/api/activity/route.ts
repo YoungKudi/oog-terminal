@@ -9,6 +9,8 @@ export async function GET(req: Request) {
   
   const url = new URL(req.url)
   const search = url.searchParams.get('search') || ''
+  const date = url.searchParams.get('date') || ''
+  const username = url.searchParams.get('username') || ''
   const limit = parseInt(url.searchParams.get('limit') || '100')
   
   let query = supabase
@@ -18,7 +20,20 @@ export async function GET(req: Request) {
     .limit(limit)
   
   if (search) {
-    query = query.or(`containerNumber.ilike.%${search}%,details.ilike.%${search}%`)
+    query = query.or(`containerNumber.ilike.%${search}%,details.ilike.%${search}%,action.ilike.%${search}%`)
+  }
+  
+  if (date) {
+    const startDate = new Date(date)
+    startDate.setHours(0, 0, 0, 0)
+    const endDate = new Date(date)
+    endDate.setHours(23, 59, 59, 999)
+    query = query.gte('createdAt', startDate.toISOString())
+    query = query.lte('createdAt', endDate.toISOString())
+  }
+  
+  if (username) {
+    query = query.ilike('User.name', `%${username}%`)
   }
   
   const { data, error } = await query

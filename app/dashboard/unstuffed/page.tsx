@@ -14,7 +14,6 @@ export default function UnstuffedPage() {
   const [selectedContainer, setSelectedContainer] = useState(null)
   const [showContainerDetailModal, setShowContainerDetailModal] = useState(false)
   const [showLoadoutModal, setShowLoadoutModal] = useState(false)
-  const [showScannerModal, setShowScannerModal] = useState(false)
 
   const handleClearanceProcessed = () => {
     fetchAllData()
@@ -33,7 +32,6 @@ export default function UnstuffedPage() {
       setSelectedContainer={setSelectedContainer}
       setShowContainerDetailModal={setShowContainerDetailModal}
       setShowLoadoutModal={setShowLoadoutModal}
-      setShowScannerModal={setShowScannerModal}
       onClearanceProcessed={handleClearanceProcessed}
     />
   )

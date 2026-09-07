@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { getColor, formatDate } from '@/lib/utils'
 import ClearanceModal from './ClearanceModal'
 
@@ -15,7 +15,6 @@ interface UnstuffedTabProps {
   setSelectedContainer: (container: any) => void
   setShowContainerDetailModal: (show: boolean) => void
   setShowLoadoutModal: (show: boolean) => void
-  setShowScannerModal: (show: boolean) => void
   onClearanceProcessed: () => void
 }
 
@@ -31,7 +30,6 @@ export default function UnstuffedTab({
   setSelectedContainer,
   setShowContainerDetailModal,
   setShowLoadoutModal,
-  setShowScannerModal,
   onClearanceProcessed
 }: UnstuffedTabProps) {
   const [searchTerm, setSearchTerm] = useState('')
@@ -106,12 +104,8 @@ export default function UnstuffedTab({
   const handleClearanceComplete = () => {
     setShowClearanceModal(false)
     setSelectedForClearance(null)
-    // Call the callback to refresh data and switch tabs
-    if (onClearanceProcessed) {
-      onClearanceProcessed()
-    }
+    onClearanceProcessed()
     fetchAllData()
-    showToast('✅ Container cleared successfully')
   }
 
   return (
@@ -188,7 +182,7 @@ export default function UnstuffedTab({
                 const isSelected = u.containerNumber === selectedEvacContainer
                 const isExcavator = u.equipment === 'Excavator' || u.equipment === '2x Excavator'
                 const units = u.isDouble ? 2 : 1
-                
+
                 return (
                   <div 
                     key={u.id} 
@@ -237,7 +231,6 @@ export default function UnstuffedTab({
         </div>
       </div>
 
-      {/* Clearance Modal */}
       <ClearanceModal
         isOpen={showClearanceModal}
         onClose={() => {

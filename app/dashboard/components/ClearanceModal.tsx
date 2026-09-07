@@ -39,7 +39,7 @@ export default function ClearanceModal({
     setLoading(true)
     try {
       const today = new Date().toISOString().slice(0, 10)
-      
+
       const data = {
         containerNumber: container.containerNumber,
         size: container.size,
@@ -62,7 +62,6 @@ export default function ClearanceModal({
         auxCargoQuantity: container.auxCargoQuantity || 0
       }
 
-      // Send to loadout API
       const res = await fetch('/api/loadout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -74,19 +73,14 @@ export default function ClearanceModal({
         throw new Error(errData.error || 'Failed to process clearance')
       }
 
-      // Remove from unstuffed
       await fetch('/api/unstuffed', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ containerNumber: container.containerNumber })
       })
 
-      // Call onComplete callback
-      if (onComplete) {
-        onComplete()
-      }
-      
-      showToast('✅ Container cleared successfully')
+      showToast(`✅ Container ${container.containerNumber} cleared successfully`)
+      onComplete()
       onClose()
     } catch (error: any) {
       showToast('❌ ' + error.message)

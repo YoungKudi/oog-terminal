@@ -14,7 +14,6 @@ interface UnstuffedTabProps {
   setSelectedContainer: (container: any) => void
   setShowContainerDetailModal: (show: boolean) => void
   setShowLoadoutModal: (show: boolean) => void
-  setShowScannerModal: (show: boolean) => void
 }
 
 export default function UnstuffedTab({
@@ -29,7 +28,6 @@ export default function UnstuffedTab({
   setSelectedContainer,
   setShowContainerDetailModal,
   setShowLoadoutModal,
-  setShowScannerModal
 }: UnstuffedTabProps) {
   const [searchTerm, setSearchTerm] = React.useState('')
 
@@ -172,7 +170,6 @@ export default function UnstuffedTab({
                     </div>
                     <div style={{display:'flex',gap:'4px',flexWrap:'wrap'}}>
                       <button className="btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); setSelectedContainer(u); setShowLoadoutModal(true) }} style={{background:'#1e6f3f',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>📋 Clearance</button>
-                      <button className="btn-outline btn-sm" onClick={(e) => { e.stopPropagation(); setSelectedContainer(u); setShowScannerModal(true) }} style={{
                         background: btnBg,
                         border: `1.5px solid ${getColor(isDarkMode, '#cbd5e1', '#475569')}`,
                         borderRadius: '40px',

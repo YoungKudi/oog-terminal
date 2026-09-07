@@ -1,5 +1,5 @@
-
-import React from 'react'
+"use client"
+import React, { useState, useEffect } from 'react'
 import { getColor } from '@/lib/utils'
 
 interface BackupTabProps {
@@ -31,7 +31,70 @@ export default function BackupTab({
   showToast,
   fetchAllData
 }: BackupTabProps) {
-  const [searchTerm, setSearchTerm] = React.useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [dateFilter, setDateFilter] = useState('')
+  const [usernameFilter, setUsernameFilter] = useState('')
+  const [activityLog, setActivityLog] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filteredLogs, setFilteredLogs] = useState<any[]>([])
+
+  useEffect(() => {
+    fetchActivityLog()
+  }, [])
+
+  useEffect(() => {
+    filterLogs()
+  }, [activityLog, searchTerm, dateFilter, usernameFilter])
+
+  const fetchActivityLog = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/activity?limit=500')
+      if (res.ok) {
+        const data = await res.json()
+        setActivityLog(data)
+        setFilteredLogs(data)
+      }
+    } catch (error) {
+      console.error('Error fetching activity log:', error)
+    }
+    setLoading(false)
+  }
+
+  const filterLogs = () => {
+    let filtered = [...activityLog]
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter(log => 
+        log.containerNumber?.toLowerCase().includes(term) ||
+        log.action?.toLowerCase().includes(term) ||
+        log.details?.toLowerCase().includes(term)
+      )
+    }
+
+    if (dateFilter) {
+      filtered = filtered.filter(log => {
+        const logDate = log.createdAt?.split('T')[0]
+        return logDate === dateFilter
+      })
+    }
+
+    if (usernameFilter) {
+      filtered = filtered.filter(log => 
+        log.User?.name?.toLowerCase().includes(usernameFilter.toLowerCase()) ||
+        log.User?.userId?.toLowerCase().includes(usernameFilter.toLowerCase())
+      )
+    }
+
+    setFilteredLogs(filtered)
+  }
+
+  const clearFilters = () => {
+    setSearchTerm('')
+    setDateFilter('')
+    setUsernameFilter('')
+  }
 
   const exportBackup = () => {
     const data = { 
@@ -73,51 +136,111 @@ export default function BackupTab({
   }
 
   const totalScans = Object.values(scannedDocuments).reduce((sum: number, docs: any) => sum + docs.length, 0)
+  const textColor = getColor(isDarkMode, '#1e293b', '#e2e8f0')
+  const mutedColor = getColor(isDarkMode, '#64748b', '#94a3b8')
+  const cardBg = getColor(isDarkMode, 'white', '#111827')
+  const borderColor = getColor(isDarkMode, '#eef2f6', '#1f2937')
+  const inputBg = getColor(isDarkMode, 'white', '#1e293b')
+  const inputText = getColor(isDarkMode, '#1e293b', '#e2e8f0')
 
   return (
     <>
-      <div className="card" style={{background: getColor(isDarkMode, 'white', '#111827'), borderRadius:'16px', marginBottom:'14px', border: getColor(isDarkMode, '1px solid #eef2f6', '1px solid #1f2937')}}>
-        <div className="list-header" style={{background: getColor(isDarkMode, '#fefce8', '#0f172a'), borderRadius:'16px 16px 0 0', padding:'8px 14px', borderBottom: getColor(isDarkMode, '2px solid #eab308', '2px solid #8b5cf6'), display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'6px', color: getColor(isDarkMode, '#1e293b', '#f1f5f9')}}>
+      <div className="card" style={{background: cardBg, borderRadius:'16px', marginBottom:'14px', border: `1px solid ${borderColor}`}}>
+        <div className="list-header" style={{background: getColor(isDarkMode, '#fefce8', '#0f172a'), borderRadius:'16px 16px 0 0', padding:'8px 14px', borderBottom: `2px solid ${getColor(isDarkMode, '#eab308', '#8b5cf6')}`, display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'6px', color: getColor(isDarkMode, '#1e293b', '#f1f5f9')}}>
           <span>💾 Backup</span>
         </div>
         <div className="card-body" style={{padding:'10px 14px'}}>
           <button className="btn-primary btn-sm" onClick={exportBackup} style={{width:'100%',marginBottom:'6px',background:'#1e6f3f',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>📤 Export Backup</button>
           <input type="file" id="importDataFile" accept=".json" style={{display:'none'}} onChange={importBackup} />
           <button className="btn-outline btn-sm" onClick={() => document.getElementById('importDataFile')?.click()} style={{width:'100%',marginBottom:'10px',background:'white',border:'1.5px solid #cbd5e1',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>📥 Restore Backup</button>
-          <div id="storageInfo" style={{padding:'8px',background: getColor(isDarkMode, '#f1f5f9', '#1e293b'), borderRadius:'12px',fontSize:'0.7rem',marginBottom:'10px',color: getColor(isDarkMode, '#1e293b', '#e2e8f0')}}>
+          <div id="storageInfo" style={{padding:'8px',background: getColor(isDarkMode, '#f1f5f9', '#1e293b'), borderRadius:'12px',fontSize:'0.7rem',marginBottom:'10px',color: textColor}}>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(80px,1fr))',gap:'4px',textAlign:'center'}}>
-              <div><strong>{containers.length}</strong><br /><span style={{fontSize:'0.6rem',color: getColor(isDarkMode, '#64748b', '#94a3b8')}}>📊 Stack</span></div>
-              <div><strong>{importQueue.length}</strong><br /><span style={{fontSize:'0.6rem',color: getColor(isDarkMode, '#64748b', '#94a3b8')}}>📥 Queue</span></div>
-              <div><strong>{devanningQueue.length}</strong><br /><span style={{fontSize:'0.6rem',color: getColor(isDarkMode, '#64748b', '#94a3b8')}}>⏳ Devanning</span></div>
-              <div><strong>{unstuffedContainers.length}</strong><br /><span style={{fontSize:'0.6rem',color: getColor(isDarkMode, '#64748b', '#94a3b8')}}>✅ Unstuffed</span></div>
-              <div><strong>{evacuationRecords.length}</strong><br /><span style={{fontSize:'0.6rem',color: getColor(isDarkMode, '#64748b', '#94a3b8')}}>🚚 Evacuated</span></div>
-              <div><strong>{loadingRecords.length}</strong><br /><span style={{fontSize:'0.6rem',color: getColor(isDarkMode, '#64748b', '#94a3b8')}}>📋 Loaded</span></div>
-              <div><strong>{totalScans}</strong><br /><span style={{fontSize:'0.6rem',color: getColor(isDarkMode, '#64748b', '#94a3b8')}}>📷 Scans</span></div>
+              <div><strong>{containers.length}</strong><br /><span style={{fontSize:'0.6rem',color: mutedColor}}>📊 Stack</span></div>
+              <div><strong>{importQueue.length}</strong><br /><span style={{fontSize:'0.6rem',color: mutedColor}}>📥 Queue</span></div>
+              <div><strong>{devanningQueue.length}</strong><br /><span style={{fontSize:'0.6rem',color: mutedColor}}>⏳ Devanning</span></div>
+              <div><strong>{unstuffedContainers.length}</strong><br /><span style={{fontSize:'0.6rem',color: mutedColor}}>✅ Unstuffed</span></div>
+              <div><strong>{evacuationRecords.length}</strong><br /><span style={{fontSize:'0.6rem',color: mutedColor}}>🚚 Evacuated</span></div>
+              <div><strong>{loadingRecords.length}</strong><br /><span style={{fontSize:'0.6rem',color: mutedColor}}>📋 Loaded</span></div>
+              <div><strong>{totalScans}</strong><br /><span style={{fontSize:'0.6rem',color: mutedColor}}>📷 Scans</span></div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="card" style={{background: getColor(isDarkMode, 'white', '#111827'), borderRadius:'16px', marginBottom:'14px', border: getColor(isDarkMode, '1px solid #eef2f6', '1px solid #1f2937')}}>
-        <div className="list-header" style={{background: getColor(isDarkMode, '#fefce8', '#0f172a'), borderRadius:'16px 16px 0 0', padding:'8px 14px', borderBottom: getColor(isDarkMode, '2px solid #eab308', '2px solid #8b5cf6'), display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'6px', color: getColor(isDarkMode, '#1e293b', '#f1f5f9')}}>
-          <span>📋 Activity Log</span>
+      <div className="card" style={{background: cardBg, borderRadius:'16px', marginBottom:'14px', border: `1px solid ${borderColor}`}}>
+        <div className="list-header" style={{background: getColor(isDarkMode, '#fefce8', '#0f172a'), borderRadius:'16px 16px 0 0', padding:'8px 14px', borderBottom: `2px solid ${getColor(isDarkMode, '#eab308', '#8b5cf6')}`, display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'6px', color: getColor(isDarkMode, '#1e293b', '#f1f5f9')}}>
+          <span>📋 Activity Log ({filteredLogs.length} records)</span>
+          <button className="btn-outline btn-sm" onClick={fetchActivityLog} style={{
+            background: getColor(isDarkMode, 'white', '#1e293b'),
+            border: `1.5px solid ${getColor(isDarkMode, '#cbd5e1', '#475569')}`,
+            borderRadius: '40px',
+            padding: '2px 8px',
+            fontWeight: '600',
+            fontSize: '0.6rem',
+            cursor: 'pointer',
+            color: textColor
+          }}>🔄 Refresh</button>
         </div>
         <div className="card-body" style={{padding:'10px 14px'}}>
-          <div className="search-box" style={{display:'flex',gap:'6px',marginBottom:'10px',flexWrap:'wrap',alignItems:'center'}}>
+          <div style={{display:'flex', gap:'6px', marginBottom:'10px', flexWrap:'wrap'}}>
             <input 
               type="text" 
-              placeholder="🔍 Search logs..." 
+              placeholder="🔍 Search container, action, details..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{flex:1,minWidth:'120px',padding:'6px 8px',borderRadius:'10px',border:'1px solid #cfdfed',fontSize:'0.75rem',width:'100%',background: getColor(isDarkMode, 'white', '#1e293b'), color: getColor(isDarkMode, '#1e293b', '#e2e8f0')}} 
+              style={{flex:2,minWidth:'150px',padding:'6px 8px',borderRadius:'8px',border:'1px solid #cfdfed',fontSize:'0.7rem',background: inputBg, color: inputText}} 
             />
+            <input 
+              type="date" 
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              style={{flex:1,minWidth:'130px',padding:'6px 8px',borderRadius:'8px',border:'1px solid #cfdfed',fontSize:'0.7rem',background: inputBg, color: inputText}} 
+            />
+            <input 
+              type="text" 
+              placeholder="👤 Username..." 
+              value={usernameFilter}
+              onChange={(e) => setUsernameFilter(e.target.value)}
+              style={{flex:1,minWidth:'120px',padding:'6px 8px',borderRadius:'8px',border:'1px solid #cfdfed',fontSize:'0.7rem',background: inputBg, color: inputText}} 
+            />
+            <button className="btn-outline btn-sm" onClick={clearFilters} style={{
+              padding:'4px 12px',
+              borderRadius:'8px',
+              border:'1px solid #cfdfed',
+              background: 'transparent',
+              fontSize:'0.6rem',
+              cursor:'pointer',
+              color: mutedColor
+            }}>✕ Clear</button>
           </div>
-          <div id="activityLog" style={{maxHeight:'300px',overflowY:'auto',fontSize:'0.65rem'}}>
-            <div style={{padding:'16px',textAlign:'center',color:'#64748b',fontSize:'0.75rem'}}>📋 Activity logs will appear here</div>
+
+          <div id="activityLog" style={{maxHeight:'400px',overflowY:'auto',fontSize:'0.65rem'}}>
+            {loading ? (
+              <div style={{padding:'20px',textAlign:'center',color:mutedColor}}>Loading...</div>
+            ) : filteredLogs.length === 0 ? (
+              <div style={{padding:'20px',textAlign:'center',color:mutedColor}}>📭 No activity logs found</div>
+            ) : (
+              filteredLogs.map((log: any) => (
+                <div key={log.id} style={{
+                  padding:'6px 10px',
+                  marginBottom:'4px',
+                  background: getColor(isDarkMode, '#f8fafc', '#1a1f2e'),
+                  borderRadius:'6px',
+                  borderLeft: `3px solid ${log.action?.includes('FAILED') ? '#dc2626' : '#10b981'}`,
+                  color: textColor
+                }}>
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'4px'}}>
+                    <span><strong>{log.action}</strong> {log.containerNumber && `📦 ${log.containerNumber}`}</span>
+                    <span style={{fontSize:'0.55rem', color: mutedColor}}>{log.createdAt ? new Date(log.createdAt).toLocaleString() : ''}</span>
+                  </div>
+                  {log.details && <div style={{fontSize:'0.6rem', color: mutedColor}}>{log.details}</div>}
+                  {log.User && <div style={{fontSize:'0.55rem', color: mutedColor}}>👤 {log.User.name || log.User.userId}</div>}
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
     </>
   )
 }
-

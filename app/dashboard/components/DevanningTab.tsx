@@ -7,8 +7,6 @@ interface DevanningTabProps {
   isDarkMode: boolean
   showToast: (msg: string) => void
   fetchAllData: () => void
-  setShowWizard: (show: boolean) => void
-  setWizardContainer: (container: any) => void
   setSelectedContainer: (container: any) => void
   setShowContainerDetailModal: (show: boolean) => void
 }
@@ -18,8 +16,6 @@ export default function DevanningTab({
   isDarkMode,
   showToast,
   fetchAllData,
-  setShowWizard,
-  setWizardContainer,
   setSelectedContainer,
   setShowContainerDetailModal
 }: DevanningTabProps) {
@@ -30,10 +26,7 @@ export default function DevanningTab({
     } catch (err) { showToast('❌ Network error') }
   }
 
-  const openWizard = (container: any, e: React.MouseEvent) => {
     e.stopPropagation()
-    setWizardContainer(container)
-    setShowWizard(true)
   }
 
   const openDetail = (container: any) => {
@@ -117,7 +110,6 @@ export default function DevanningTab({
                       )}
                     </div>
                     <div style={{display:'flex',flexDirection:'column',gap:'4px',marginLeft:'auto'}}>
-                      <button className="btn-primary btn-sm" onClick={(e) => openWizard(d, e)} style={{background:'#1e6f3f',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer',width:'100%'}}>
                         🚀 Wizard
                       </button>
                       <button className="btn-success btn-sm" onClick={(e) => { e.stopPropagation(); unstuffContainer(d.id) }} style={{background:'#10b981',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer',width:'100%'}}>

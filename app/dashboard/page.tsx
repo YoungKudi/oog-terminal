@@ -23,7 +23,6 @@ import LocationsTab from './components/LocationsTab'
 import ContactsTab from './components/ContactsTab'
 import BackupTab from './components/BackupTab'
 import ReportsTab from './components/ReportsTab'
-import DevanningWizard from './components/DevanningWizard'
 
 // Import modals
 import ReceivalModal from '@/components/modals/ReceivalModal'
@@ -34,7 +33,6 @@ import RepositionModal from '@/components/modals/RepositionModal'
 import SearchModal from '@/components/modals/SearchModal'
 import ContainerDetailModal from '@/components/modals/ContainerDetailModal'
 import AddLocationModal from '@/components/modals/AddLocationModal'
-import ScannerModal from '@/components/modals/ScannerModal'
 import { StatsGrid } from '@/components/common/StatsGrid'
 import { DailyTally } from '@/components/common/DailyTally'
 import { FloatingButtons } from '@/components/common/FloatingButtons'
@@ -87,19 +85,15 @@ export default function DashboardPage() {
   const [scannedDocuments, setScannedDocuments] = useState({})
   const [selectedEvacContainer, setSelectedEvacContainer] = useState(null)
   const [evacuationSelectionMode, setEvacuationSelectionMode] = useState(false)
-  const [showWizard, setShowWizard] = useState(false)
-  const [wizardContainer, setWizardContainer] = useState(null)
 
   // Modal states
   const [showReceivalModal, setShowReceivalModal] = useState(false)
   const [showDevanningModal, setShowDevanningModal] = useState(false)
-  const [showLoadoutModal, setShowLoadoutModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showRepositionModal, setShowRepositionModal] = useState(false)
   const [showSearchModal, setShowSearchModal] = useState(false)
   const [showContainerDetailModal, setShowContainerDetailModal] = useState(false)
   const [showAddLocationModal, setShowAddLocationModal] = useState(false)
-  const [showScannerModal, setShowScannerModal] = useState(false)
   const [selectedContainer, setSelectedContainer] = useState(null)
 
   // Close dropdown when clicking outside
@@ -490,8 +484,6 @@ export default function DashboardPage() {
           isDarkMode={isDarkMode}
           showToast={showToast}
           fetchAllData={fetchAllData}
-          setShowWizard={setShowWizard}
-          setWizardContainer={setWizardContainer}
           setSelectedContainer={setSelectedContainer}
           setShowContainerDetailModal={setShowContainerDetailModal}
         />
@@ -509,8 +501,6 @@ export default function DashboardPage() {
           setEvacuationSelectionMode={setEvacuationSelectionMode}
           setSelectedContainer={setSelectedContainer}
           setShowContainerDetailModal={setShowContainerDetailModal}
-          setShowLoadoutModal={setShowLoadoutModal}
-          setShowScannerModal={setShowScannerModal}
           onClearanceProcessed={handleClearanceProcessed}
         />
       </div>
@@ -587,11 +577,7 @@ export default function DashboardPage() {
       />
 
       {/* MODALS */}
-      {showWizard && wizardContainer && (
         <div className="modal" style={{display:'flex', position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)', justifyContent:'center', alignItems:'center', zIndex:1000}}>
-          <DevanningWizard 
-            container={wizardContainer}
-            onClose={() => { setShowWizard(false); setWizardContainer(null) }}
             onComplete={fetchAllData}
             showToast={showToast}
           />
@@ -621,7 +607,6 @@ export default function DashboardPage() {
 
       {showLoadoutModal && (
         <LoadoutModal 
-          onClose={() => setShowLoadoutModal(false)}
           onSave={fetchAllData}
           isDarkMode={isDarkMode}
           container={selectedContainer}
@@ -673,10 +658,8 @@ export default function DashboardPage() {
           unstuffedContainers={unstuffedContainers}
           scannedDocuments={scannedDocuments}
           showToast={showToast}
-          setShowScannerModal={setShowScannerModal}
           setShowEditModal={setShowEditModal}
           setShowDevanningModal={setShowDevanningModal}
-          setShowLoadoutModal={setShowLoadoutModal}
           fetchAllData={fetchAllData}
         />
       )}
@@ -692,9 +675,6 @@ export default function DashboardPage() {
         />
       )}
 
-      {showScannerModal && (
-        <ScannerModal 
-          onClose={() => setShowScannerModal(false)}
           isDarkMode={isDarkMode}
           container={selectedContainer}
           scannedDocuments={scannedDocuments}
