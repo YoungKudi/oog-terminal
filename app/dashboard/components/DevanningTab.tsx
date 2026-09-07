@@ -21,12 +21,20 @@ export default function DevanningTab({
 }: DevanningTabProps) {
   const unstuffContainer = async (id: string) => {
     try {
-      const res = await fetch('/api/devanning/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'unstuff' }) })
-      if (res.ok) { showToast('✅ Unstuffed'); fetchAllData() } else { showToast('❌ Failed') }
-    } catch (err) { showToast('❌ Network error') }
-  }
-
-    e.stopPropagation()
+      const res = await fetch('/api/devanning/' + id, { 
+        method: 'PUT', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ action: 'unstuff' }) 
+      })
+      if (res.ok) { 
+        showToast('✅ Unstuffed'); 
+        fetchAllData() 
+      } else { 
+        showToast('❌ Failed') 
+      }
+    } catch (err) { 
+      showToast('❌ Network error') 
+    }
   }
 
   const openDetail = (container: any) => {
@@ -110,8 +118,6 @@ export default function DevanningTab({
                       )}
                     </div>
                     <div style={{display:'flex',flexDirection:'column',gap:'4px',marginLeft:'auto'}}>
-                        🚀 Wizard
-                      </button>
                       <button className="btn-success btn-sm" onClick={(e) => { e.stopPropagation(); unstuffContainer(d.id) }} style={{background:'#10b981',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer',width:'100%'}}>
                         📦 Unstuff
                       </button>
