@@ -28,47 +28,47 @@ export default function ReportsTab({
         title = '🚜 Loaded Excavators Report'
         headers = ['Container Number','Size','Vessel Name','Arrival Date','Received Date','Unstuffed Date','Content','Delivery Date','Location']
         data = records.filter((r: any) => r.equipment === 'Excavator' || r.equipment === '2x Excavator')
-          .map((r: any) => [r.containerNumber, r.size, r.vessel || '-', r.arrivalDate || '-', r.clearedAt || '-', r.unstuffedDate || '-', r.equipment, r.deliveryDate || '-', r.location || '-'])
+          .map((r: any) => [r.containerNumber || 'N/A', r.size || 'N/A', r.vessel || '-', r.arrivalDate || '-', r.clearedAt || '-', r.unstuffedDate || '-', r.equipment || 'N/A', r.deliveryDate || '-', r.location || '-'])
         break
       case 'others':
         title = '📦 Loaded Others Report'
         headers = ['Container Number','Size','Received Date','Delivery Date','Content','Remarks']
         data = records.filter((r: any) => r.equipment !== 'Excavator' && r.equipment !== '2x Excavator')
-          .map((r: any) => [r.containerNumber, r.size, r.clearedAt || '-', r.deliveryDate || '-', r.equipment, r.remarks || '-'])
+          .map((r: any) => [r.containerNumber || 'N/A', r.size || 'N/A', r.clearedAt || '-', r.deliveryDate || '-', r.equipment || 'N/A', r.remarks || '-'])
         break
       case 'house_house':
         title = '🏠 House-to-House Report'
         headers = ['Container Number','Size','Received Date','Delivery Date','Content','Remarks']
         data = records.filter((r: any) => r.devanningType === 'house_house')
-          .map((r: any) => [r.containerNumber, r.size, r.clearedAt || '-', r.deliveryDate || '-', r.equipment, r.remarks || '-'])
+          .map((r: any) => [r.containerNumber || 'N/A', r.size || 'N/A', r.clearedAt || '-', r.deliveryDate || '-', r.equipment || 'N/A', r.remarks || '-'])
         break
       case 'back_to_port':
         title = '🚢 Back To Port Report'
         headers = ['Container Number','Size','Received Date','Delivery Date','Content','Remarks']
         data = records.filter((r: any) => r.devanningType === 'back_to_port')
-          .map((r: any) => [r.containerNumber, r.size, r.clearedAt || '-', r.deliveryDate || '-', r.equipment, r.remarks || '-'])
+          .map((r: any) => [r.containerNumber || 'N/A', r.size || 'N/A', r.clearedAt || '-', r.deliveryDate || '-', r.equipment || 'N/A', r.remarks || '-'])
         break
       case 'freezone':
         title = '🏢 Freezone Report'
         headers = ['Container Number','Size','Received Date','Delivery Date','Content','Remarks']
         data = records.filter((r: any) => r.devanningType === 'freezone')
-          .map((r: any) => [r.containerNumber, r.size, r.clearedAt || '-', r.deliveryDate || '-', r.equipment, r.remarks || '-'])
+          .map((r: any) => [r.containerNumber || 'N/A', r.size || 'N/A', r.clearedAt || '-', r.deliveryDate || '-', r.equipment || 'N/A', r.remarks || '-'])
         break
       case 're_export':
         title = '🔄 Re-Export Report'
         headers = ['Container Number','Size','Received Date','Delivery Date','Content','Remarks']
         data = records.filter((r: any) => r.devanningType === 're_export')
-          .map((r: any) => [r.containerNumber, r.size, r.clearedAt || '-', r.deliveryDate || '-', r.equipment, r.remarks || '-'])
+          .map((r: any) => [r.containerNumber || 'N/A', r.size || 'N/A', r.clearedAt || '-', r.deliveryDate || '-', r.equipment || 'N/A', r.remarks || '-'])
         break
       case 'yard_summary':
         title = '📊 Yard Summary Report'
         headers = ['Metric', 'Count']
-        const totalContainers = containers.length
-        const totalDevanning = devanningQueue.length
-        const totalUnstuffed = unstuffedContainers.length
-        const totalEvacuated = evacuationRecords.length
-        const totalCleared = records.length
-        const totalExcavators = containers.filter(c => c.equipment === 'Excavator' || c.equipment === '2x Excavator').length
+        const totalContainers = containers.length || 0
+        const totalDevanning = devanningQueue.length || 0
+        const totalUnstuffed = unstuffedContainers.length || 0
+        const totalEvacuated = evacuationRecords.length || 0
+        const totalCleared = records.length || 0
+        const totalExcavators = (containers || []).filter(c => c.equipment === 'Excavator' || c.equipment === '2x Excavator').length
         data = [
           ['📊 Total Containers', totalContainers],
           ['🚜 Excavators', totalExcavators],
@@ -125,14 +125,14 @@ export default function ReportsTab({
       <div className="card-body" style={{padding:'10px 14px'}}>
         <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(160px, 1fr))', gap:'6px'}}>
-            {reportTypes.map(rt => (
+            {reportTypes.map((rt: any) => (
               <button 
                 key={rt.id} 
                 className="btn-primary btn-sm" 
                 onClick={() => generateReport(rt.id)} 
                 style={{background: rt.color, color:'white', border:'none', borderRadius:'40px', padding:'4px 12px', fontWeight:'600', fontSize:'0.6rem', cursor:'pointer'}}
               >
-                {rt.label}
+                {rt.label || 'Unknown'}
               </button>
             ))}
           </div>
@@ -145,7 +145,7 @@ export default function ReportsTab({
               ) : (
                 <>
                   <div style={{fontWeight:'700',fontSize:'0.9rem',marginBottom:'8px',color: textColor}}>
-                    {reportData.title}
+                    {reportData.title || 'Report'}
                   </div>
                   <div style={{overflowX:'auto'}}>
                     <table style={{width:'100%',borderCollapse:'collapse',fontSize:'0.7rem'}}>

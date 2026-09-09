@@ -245,7 +245,7 @@ export default function ClearanceTab({
                       {isToday ? 'Today' : 'Past'}
                     </span>
                     {record.remarks && (
-                      <span style={{ fontSize: '0.5rem', color: mutedColor }}>{record.remarks}</span>
+                      <span style={{ fontSize: '0.5rem', color: mutedColor }}>{record?.remarks || ""}</span>
                     )}
                   </div>
                 </div>

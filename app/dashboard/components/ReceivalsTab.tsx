@@ -99,7 +99,7 @@ export default function ReceivalsTab({
       })
       const data = await res.json()
       if (res.ok) {
-        showToast(`✅ ${data.deleted} containers cleared`)
+        showToast(`✅ ${data?.deleted || 0} containers cleared`)
         setShowClearConfirm(false)
         fetchAllData()
       } else {

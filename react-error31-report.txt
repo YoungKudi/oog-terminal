@@ -1,0 +1,141 @@
+React Error #31 Diagnostic Report - Wed Sep  9 01:20:19 GMT 2026
+=========================================
+
+
+1. POTENTIAL DIRECT OBJECT RENDERING:
+   (Looking for patterns that render objects directly, like {user} or {data})
+
+
+----------------------------------------
+
+
+2. POTENTIAL NULL/UNDEFINED OBJECT ACCESS:
+   (Looking for object properties accessed without safe navigation)
+
+app/dashboard/components/BackupTab.tsx:232:                  <div key={log.id} style={{
+app/dashboard/components/ContactsTab.tsx:93:                      {op.name} | {op.machine} | {op.contact}
+app/dashboard/components/ContactsTab.tsx:129:        isOpen={modalConfig.isOpen}
+app/dashboard/components/ContactsTab.tsx:133:        shiftId={modalConfig.shiftId}
+app/dashboard/components/ContactsTab.tsx:134:        type={modalConfig.type}
+app/dashboard/components/DevanningTab.tsx:91:                  key={d.id} 
+app/dashboard/components/DevanningTab.tsx:106:                      <strong style={{fontSize:'0.8rem',color: textColor}}>{d.containerNumber}</strong>
+app/dashboard/components/DevanningTab.tsx:107:                      <span style={{fontSize:'0.6rem',color: mutedColor}}> | {d.position} | {d.equipment}</span>
+app/dashboard/components/DevanningTab.tsx:148:                    <div style={{fontSize:'0.55rem',color:'#dc2626',marginTop:'2px'}}>💥 Damage: {d.damageRemarks}</div>
+app/dashboard/components/EvacuationTab.tsx:39:                <div key={e.id} className="evacuation-item" style={{background: getColor(isDarkMode, '#fefce8', '#1a1f2e'), border: `1px solid ${getColor(isDarkMode, '#e2e8f0', '#2d3a5e')}`, padding:'8px 12px', borderRadius:'10px', marginBottom:'4px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'4px'}}>
+app/dashboard/components/EvacuationTab.tsx:41:                    <strong>{e.containerNumber}</strong>
+app/dashboard/components/EvacuationTab.tsx:42:                    <span style={{color: getColor(isDarkMode, '#64748b', '#94a3b8')}}>{e.position}</span>
+app/dashboard/components/EvacuationTab.tsx:43:                    <span style={{color: getColor(isDarkMode, '#64748b', '#94a3b8')}}>{e.equipment}</span>
+app/dashboard/components/LocationsTab.tsx:51:              <div key={loc.id} className="location-item" style={{background: getColor(isDarkMode, '#f8fafc', '#1e293b'), border: `1px solid ${getColor(isDarkMode, '#e2e8f0', '#334155')}`, padding:'8px 12px', borderRadius:'10px', marginBottom:'6px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'4px'}}>
+app/dashboard/components/LocationsTab.tsx:53:                  <span className="loc-name" style={{fontWeight:'600',fontSize:'0.85rem',color: getColor(isDarkMode, '#1e293b', '#e2e8f0')}}>📍 {loc.name}</span>
+app/dashboard/components/QueueTab.tsx:160:              <div key={item.id} className="container-item-list import-item" style={{background: getColor(isDarkMode, '#fefce8', '#1e1b2e'), borderLeft:'4px solid #f59e0b', padding:'8px 10px', marginBottom:'4px', borderRadius:'8px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'4px'}}>
+app/dashboard/components/ReceivalsTab.tsx:102:        showToast(`✅ ${data.deleted} containers cleared`)
+app/dashboard/components/ReceivalsTab.tsx:163:                    key={c.id} 
+app/dashboard/components/ReportsTab.tsx:130:                key={rt.id} 
+app/dashboard/components/ReportsTab.tsx:135:                {rt.label}
+app/dashboard/components/ReportsTab.tsx:148:                    {reportData.title}
+app/dashboard/components/TalliesTab.tsx:112:        showToast(`✅ ${data.deleted} containers cleared from stack`)
+app/dashboard/components/TalliesTab.tsx:170:              <div key={loc.id} className="section-card" style={{background: cardBg, borderRadius:'16px', marginBottom:'14px', border: `1px solid ${borderColor}`, overflow:'hidden'}}>
+app/dashboard/components/TalliesTab.tsx:186:                            key={c.id} 
+app/dashboard/components/UnstuffedTab.tsx:195:                    key={u.id} 
+app/dashboard/components/UnstuffedTab.tsx:209:                        {evacuationSelectionMode && <input type="radio" name="evacSelect" value={u.containerNumber} checked={isSelected} onChange={() => setSelectedEvacContainer(u.containerNumber)} style={{width:'auto'}} onClick={(e) => e.stopPropagation()} />}
+app/dashboard/components/UnstuffedTab.tsx:210:                        <strong style={{fontSize:'0.8rem',color: textColor}}>{u.containerNumber}</strong>
+app/dashboard/components/UnstuffedTab.tsx:211:                        <span style={{fontSize:'0.6rem',color: mutedColor}}>{u.position} | {u.equipment}</span>
+app/dashboard/components/ClearanceTab.tsx:205:                  key={record.id}
+app/dashboard/components/ClearanceTab.tsx:219:                      {record.containerNumber}
+app/dashboard/components/ClearanceTab.tsx:222:                      {record.equipment}
+app/dashboard/components/ClearanceTab.tsx:248:                      <span style={{ fontSize: '0.5rem', color: mutedColor }}>{record.remarks}</span>
+app/dashboard/components/ClearanceModal.tsx:82:      showToast(`✅ Container ${container.containerNumber} cleared successfully`)
+app/dashboard/components/DashboardNavigation.tsx:28:            <li key={item.href}>
+app/dashboard/components/DashboardNavigation.tsx:30:                href={item.href}
+app/dashboard/components/DashboardNavigation.tsx:37:                {item.name}
+app/dashboard/admin/page.tsx:200:              key={user.id}
+app/dashboard/admin/page.tsx:216:                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>ID: {user.userId}</span>
+app/dashboard/admin/page.tsx:228:                  {user.email} • Role: {user.role}
+app/dashboard/admin/page.tsx:232:                    Reason: {user.rejectionReason}
+app/dashboard/components/BackupTab.tsx:232:                  <div key={log.id} style={{
+app/dashboard/components/ContactsTab.tsx:93:                      {op.name} | {op.machine} | {op.contact}
+app/dashboard/components/ContactsTab.tsx:129:        isOpen={modalConfig.isOpen}
+app/dashboard/components/ContactsTab.tsx:133:        shiftId={modalConfig.shiftId}
+app/dashboard/components/ContactsTab.tsx:134:        type={modalConfig.type}
+app/dashboard/components/DevanningTab.tsx:91:                  key={d.id} 
+app/dashboard/components/DevanningTab.tsx:106:                      <strong style={{fontSize:'0.8rem',color: textColor}}>{d.containerNumber}</strong>
+app/dashboard/components/DevanningTab.tsx:107:                      <span style={{fontSize:'0.6rem',color: mutedColor}}> | {d.position} | {d.equipment}</span>
+app/dashboard/components/DevanningTab.tsx:148:                    <div style={{fontSize:'0.55rem',color:'#dc2626',marginTop:'2px'}}>💥 Damage: {d.damageRemarks}</div>
+app/dashboard/components/EvacuationTab.tsx:39:                <div key={e.id} className="evacuation-item" style={{background: getColor(isDarkMode, '#fefce8', '#1a1f2e'), border: `1px solid ${getColor(isDarkMode, '#e2e8f0', '#2d3a5e')}`, padding:'8px 12px', borderRadius:'10px', marginBottom:'4px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'4px'}}>
+app/dashboard/components/EvacuationTab.tsx:41:                    <strong>{e.containerNumber}</strong>
+app/dashboard/components/EvacuationTab.tsx:42:                    <span style={{color: getColor(isDarkMode, '#64748b', '#94a3b8')}}>{e.position}</span>
+app/dashboard/components/EvacuationTab.tsx:43:                    <span style={{color: getColor(isDarkMode, '#64748b', '#94a3b8')}}>{e.equipment}</span>
+app/dashboard/components/LocationsTab.tsx:51:              <div key={loc.id} className="location-item" style={{background: getColor(isDarkMode, '#f8fafc', '#1e293b'), border: `1px solid ${getColor(isDarkMode, '#e2e8f0', '#334155')}`, padding:'8px 12px', borderRadius:'10px', marginBottom:'6px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'4px'}}>
+app/dashboard/components/LocationsTab.tsx:53:                  <span className="loc-name" style={{fontWeight:'600',fontSize:'0.85rem',color: getColor(isDarkMode, '#1e293b', '#e2e8f0')}}>📍 {loc.name}</span>
+app/dashboard/components/QueueTab.tsx:160:              <div key={item.id} className="container-item-list import-item" style={{background: getColor(isDarkMode, '#fefce8', '#1e1b2e'), borderLeft:'4px solid #f59e0b', padding:'8px 10px', marginBottom:'4px', borderRadius:'8px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'4px'}}>
+app/dashboard/components/ReceivalsTab.tsx:102:        showToast(`✅ ${data.deleted} containers cleared`)
+app/dashboard/components/ReceivalsTab.tsx:163:                    key={c.id} 
+app/dashboard/components/ReportsTab.tsx:130:                key={rt.id} 
+app/dashboard/components/ReportsTab.tsx:135:                {rt.label}
+app/dashboard/components/ReportsTab.tsx:148:                    {reportData.title}
+app/dashboard/components/TalliesTab.tsx:112:        showToast(`✅ ${data.deleted} containers cleared from stack`)
+app/dashboard/components/TalliesTab.tsx:170:              <div key={loc.id} className="section-card" style={{background: cardBg, borderRadius:'16px', marginBottom:'14px', border: `1px solid ${borderColor}`, overflow:'hidden'}}>
+app/dashboard/components/TalliesTab.tsx:186:                            key={c.id} 
+app/dashboard/components/UnstuffedTab.tsx:195:                    key={u.id} 
+app/dashboard/components/UnstuffedTab.tsx:209:                        {evacuationSelectionMode && <input type="radio" name="evacSelect" value={u.containerNumber} checked={isSelected} onChange={() => setSelectedEvacContainer(u.containerNumber)} style={{width:'auto'}} onClick={(e) => e.stopPropagation()} />}
+app/dashboard/components/UnstuffedTab.tsx:210:                        <strong style={{fontSize:'0.8rem',color: textColor}}>{u.containerNumber}</strong>
+app/dashboard/components/UnstuffedTab.tsx:211:                        <span style={{fontSize:'0.6rem',color: mutedColor}}>{u.position} | {u.equipment}</span>
+app/dashboard/components/ClearanceTab.tsx:205:                  key={record.id}
+app/dashboard/components/ClearanceTab.tsx:219:                      {record.containerNumber}
+app/dashboard/components/ClearanceTab.tsx:222:                      {record.equipment}
+app/dashboard/components/ClearanceTab.tsx:248:                      <span style={{ fontSize: '0.5rem', color: mutedColor }}>{record.remarks}</span>
+app/dashboard/components/ClearanceModal.tsx:82:      showToast(`✅ Container ${container.containerNumber} cleared successfully`)
+app/dashboard/components/DashboardNavigation.tsx:28:            <li key={item.href}>
+app/dashboard/components/DashboardNavigation.tsx:30:                href={item.href}
+app/dashboard/components/DashboardNavigation.tsx:37:                {item.name}
+app/dashboard/profile/page.tsx:196:            <p style={{ color: mutedColor, fontSize: '0.7rem', margin: 0 }}>Worker ID: {userData.userId}</p>
+app/dashboard/profile/page.tsx:205:              <p style={{ color: textColor, fontSize: '0.85rem', margin: '4px 0 0 0' }}>{userData.email}</p>
+app/dashboard/profile/page.tsx:212:                  value={formData.phone}
+app/dashboard/profile/page.tsx:231:              <p style={{ color: textColor, fontSize: '0.85rem', margin: '4px 0 0 0', textTransform: 'capitalize' }}>{userData.role}</p>
+app/dashboard/profile/page.tsx:235:              <p style={{ color: textColor, fontSize: '0.85rem', margin: '4px 0 0 0' }}>{userData.createdAt}</p>
+app/dashboard/profile/page.tsx:244:                value={formData.name}
+app/dashboard/profile/page.tsx:275:                value={passwordData.currentPassword}
+app/dashboard/profile/page.tsx:293:                value={passwordData.newPassword}
+app/dashboard/profile/page.tsx:311:                value={passwordData.confirmPassword}
+app/dashboard/page.tsx:229:            key={t.id}
+app/dashboard/page.tsx:231:            data-tab={t.id}
+app/dashboard/page.tsx:267:              }}>{t.label}</span>
+app/dashboard/page.tsx:379:                key={t.id}
+app/dashboard/page.tsx:397:                <span style={{ fontSize: '1rem' }}>{t.icon}</span>
+app/dashboard/page.tsx:398:                {t.label} {getTabCount(t.id) > 0 && `(${getTabCount(t.id)})`}
+
+----------------------------------------
+
+
+3. DANGEROUSLY SET INNER HTML:
+   (Looking for dangerouslySetInnerHTML with potential object issues)
+
+
+----------------------------------------
+
+
+4. JSON.STRINGIFY IN RENDER:
+   (Looking for JSON.stringify that might be rendering objects)
+
+app/dashboard/components/BackupTab.tsx:105:    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+app/dashboard/components/BackupTab.tsx:105:    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+
+----------------------------------------
+
+
+5. COMPONENT CHILDREN THAT MIGHT BE OBJECTS:
+   (Looking for components that receive data objects as children)
+
+app/dashboard/profile/page.tsx:195:            <p style={{ color: mutedColor, fontSize: '0.8rem', margin: 0 }}>{userData.role?.toUpperCase() || 'User'}</p>
+app/dashboard/profile/page.tsx:205:              <p style={{ color: textColor, fontSize: '0.85rem', margin: '4px 0 0 0' }}>{userData.email}</p>
+app/dashboard/profile/page.tsx:226:                <p style={{ color: textColor, fontSize: '0.85rem', margin: '4px 0 0 0' }}>{userData.phone || 'Not set'}</p>
+app/dashboard/profile/page.tsx:231:              <p style={{ color: textColor, fontSize: '0.85rem', margin: '4px 0 0 0', textTransform: 'capitalize' }}>{userData.role}</p>
+app/dashboard/profile/page.tsx:235:              <p style={{ color: textColor, fontSize: '0.85rem', margin: '4px 0 0 0' }}>{userData.createdAt}</p>
+
+----------------------------------------
+
+📊 6. SUMMARY OF FINDINGS:
+
+Total potential issues found: 98
+
+Check the report file for details: react-error31-report.txt

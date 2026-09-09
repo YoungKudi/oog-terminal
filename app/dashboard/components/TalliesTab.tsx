@@ -109,7 +109,7 @@ export default function TalliesTab({
       })
       const data = await res.json()
       if (res.ok) {
-        showToast(`✅ ${data.deleted} containers cleared from stack`)
+        showToast(`✅ ${data?.deleted || 0} containers cleared from stack`)
         fetchAllData()
       } else {
         showToast('❌ ' + (data.error || 'Failed to clear stack'))
