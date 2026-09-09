@@ -106,7 +106,7 @@ export default function DevanningTab({
                       <strong style={{fontSize:'0.8rem',color: textColor}}>{d.containerNumber}</strong>
                       <span style={{fontSize:'0.6rem',color: mutedColor}}> | {d.position} | {d.equipment}</span>
                       <span className="devanning-type-badge" style={{background: getColor(isDarkMode, '#fef3c7', '#1e293b'), color: getColor(isDarkMode, '#b45309', '#fbbf24'), padding:'2px 10px', borderRadius:'20px', fontSize:'0.6rem', fontWeight:'600', border: getColor(isDarkMode, 'none', '1px solid #8b5cf6')}}>
-                        {d.devanningType?.replace('_',' ').toUpperCase()}
+                        {d.devanningType?.replace('_',' ').toUpperCase() || 'UNSTUFFING'}
                       </span>
                       <span style={{background:statusColor,color:'white',padding:'2px 8px',borderRadius:'12px',fontSize:'0.55rem',fontWeight:'600',display:'inline-block',marginLeft:'4px'}}>
                         {statusLabel}
@@ -124,7 +124,6 @@ export default function DevanningTab({
                     </div>
                   </div>
                   
-                  {/* Progress Bar */}
                   <div style={{marginTop:'4px'}}>
                     <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.55rem',color: mutedColor}}>
                       <span>Devanning Progress</span>
@@ -135,7 +134,6 @@ export default function DevanningTab({
                     </div>
                   </div>
                   
-                  {/* Flags display */}
                   {hasFlags && (
                     <div style={{fontSize:'0.55rem',color:'#f59e0b',marginTop:'2px'}}>
                       ⚠️ {d.fuelNeeded ? '⛽ Fuel needed ' : ''}
@@ -150,7 +148,6 @@ export default function DevanningTab({
                     <div style={{fontSize:'0.55rem',color:'#dc2626',marginTop:'2px'}}>💥 Damage: {d.damageRemarks}</div>
                   )}
                   
-                  {/* Step indicators */}
                   <div style={{display:'flex',gap:'2px',marginTop:'4px',flexWrap:'wrap'}}>
                     {stepOrder.map((step, idx) => {
                       const isCompleted = step === 'in_stack' || d[`step_${step}`] === true

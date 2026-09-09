@@ -27,7 +27,6 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
   const [newEquipment, setNewEquipment] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Load custom equipment from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('oog_custom_equipment')
     if (saved) {
@@ -93,7 +92,6 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
     }
     setLoading(true)
     try {
-      // If double, add "2x" prefix to equipment for display
       const displayEquipment = isDouble ? `2x ${equipment}` : equipment
       const auxCargo = auxCargoQty > 0 ? `${auxCargoQty} ${auxCargoType}` : ''
       
@@ -180,7 +178,6 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
           </div>
         </div>
         
-        {/* Equipment with 2X Button */}
         <div className="form-group" style={{marginBottom:'8px'}}>
           <label style={{color: mutedColor, fontSize:'0.6rem', fontWeight:'600', textTransform:'uppercase', display:'block', marginBottom:'2px'}}>Equipment</label>
           <div style={{display:'flex', gap:'6px', alignItems:'center'}}>
@@ -204,7 +201,6 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
             >
               +
             </button>
-            {/* 2X BUTTON - This is what you're looking for */}
             <button 
               type="button"
               onClick={() => setIsDouble(!isDouble)}
@@ -232,7 +228,6 @@ export default function ReceivalModal({ onClose, onSave, isDarkMode, allPosition
           )}
         </div>
         
-        {/* New Equipment Input */}
         {showNewEquipment && (
           <div style={{marginBottom:'8px', padding:'8px', background: getColor(isDarkMode, '#f1f5f9', '#0f172a'), borderRadius:'8px'}}>
             <div style={{display:'flex', gap:'6px'}}>

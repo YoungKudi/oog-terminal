@@ -126,8 +126,8 @@ export default function ClearanceModal({
 
         <div style={{ marginBottom: '16px', padding: '12px', background: getColor(isDarkMode, '#f1f5f9', '#0f172a'), borderRadius: '8px' }}>
           <div style={{ fontSize: '0.7rem', color: mutedColor }}>
-            <div><strong>Equipment:</strong> {container?.equipment}</div>
-            <div><strong>Position:</strong> {container?.position}</div>
+            <div><strong>Equipment:</strong> {container?.equipment || 'N/A'}</div>
+            <div><strong>Position:</strong> {container?.position || 'N/A'}</div>
             <div><strong>Aux Cargo:</strong> {cargoQty} {cargoType}</div>
             {container?.isDouble && <div><strong>2X:</strong> Yes</div>}
           </div>

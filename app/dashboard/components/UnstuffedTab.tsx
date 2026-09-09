@@ -1,6 +1,6 @@
 "use client"
 import React, { useState } from 'react'
-import { getColor, formatDate } from '@/lib/utils'
+import { getColor } from '@/lib/utils'
 import ClearanceModal from './ClearanceModal'
 
 interface UnstuffedTabProps {
@@ -15,6 +15,15 @@ interface UnstuffedTabProps {
   setSelectedContainer: (container: any) => void
   setShowContainerDetailModal: (show: boolean) => void
   onClearanceProcessed: () => void
+}
+
+const formatDate = (date: string) => {
+  if (!date) return 'N/A'
+  try {
+    return new Date(date).toLocaleDateString()
+  } catch {
+    return 'N/A'
+  }
 }
 
 export default function UnstuffedTab({
@@ -218,8 +227,8 @@ export default function UnstuffedTab({
                         </button>
                       </div>
                     </div>
-                    {u.vessel && <div style={{fontSize:'0.6rem',color: mutedColor}}>🚢 Vessel: {u.vessel} | Arrival: {u.arrivalDate || ''}</div>}
-                    {u.agency && <div style={{fontSize:'0.6rem',color: mutedColor}}>🏢 Agency: {u.agency}</div>}
+                    {u.vessel && <div style={{fontSize:'0.6rem',color: mutedColor}}>🚢 Vessel: {u.vessel || 'N/A'} | Arrival: {u.arrivalDate || 'N/A'}</div>}
+                    {u.agency && <div style={{fontSize:'0.6rem',color: mutedColor}}>🏢 Agency: {u.agency || 'N/A'}</div>}
                     {u.unstuffedAt && <div style={{fontSize:'0.6rem',color: mutedColor}}>✅ Unstuffed: {formatDate(u.unstuffedAt)}</div>}
                   </div>
                 )

@@ -91,13 +91,13 @@ export default function ContainerDetailModal({
         {container.vessel && (
           <div className="detail-row" style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom: `1px solid ${borderColor}`,fontSize:'0.8rem',color: textColor}}>
             <span className="label" style={{fontWeight:'600',color: mutedColor}}>Vessel</span>
-            <span className="value" style={{fontWeight:'500'}}>{container.vessel}</span>
+            <span className="value" style={{fontWeight:'500'}}>{container.vessel || '-'}</span>
           </div>
         )}
         {container.arrivalDate && (
           <div className="detail-row" style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom: `1px solid ${borderColor}`,fontSize:'0.8rem',color: textColor}}>
             <span className="label" style={{fontWeight:'600',color: mutedColor}}>Arrival Date</span>
-            <span className="value" style={{fontWeight:'500'}}>{container.arrivalDate}</span>
+            <span className="value" style={{fontWeight:'500'}}>{container.arrivalDate || '-'}</span>
           </div>
         )}
         {container.receivedDate && (
@@ -109,25 +109,25 @@ export default function ContainerDetailModal({
         {container.unstuffedAt && (
           <div className="detail-row" style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom: `1px solid ${borderColor}`,fontSize:'0.8rem',color: textColor}}>
             <span className="label" style={{fontWeight:'600',color: mutedColor}}>Unstuffed</span>
-            <span className="value" style={{fontWeight:'500'}}>{container.unstuffedAt}</span>
+            <span className="value" style={{fontWeight:'500'}}>{container.unstuffedAt || '-'}</span>
           </div>
         )}
         {container.devanningType && (
           <div className="detail-row" style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom: `1px solid ${borderColor}`,fontSize:'0.8rem',color: textColor}}>
             <span className="label" style={{fontWeight:'600',color: mutedColor}}>Devanning Type</span>
-            <span className="value" style={{fontWeight:'500'}}>{container.devanningType}</span>
+            <span className="value" style={{fontWeight:'500'}}>{container.devanningType || '-'}</span>
           </div>
         )}
         {container.agency && (
           <div className="detail-row" style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom: `1px solid ${borderColor}`,fontSize:'0.8rem',color: textColor}}>
             <span className="label" style={{fontWeight:'600',color: mutedColor}}>Agency</span>
-            <span className="value" style={{fontWeight:'500'}}>{container.agency}</span>
+            <span className="value" style={{fontWeight:'500'}}>{container.agency || '-'}</span>
           </div>
         )}
         {container.remarks && (
           <div className="detail-row" style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom: `1px solid ${borderColor}`,fontSize:'0.8rem',color: textColor}}>
             <span className="label" style={{fontWeight:'600',color: mutedColor}}>Remarks</span>
-            <span className="value" style={{fontWeight:'500'}}>{container.remarks}</span>
+            <span className="value" style={{fontWeight:'500'}}>{container.remarks || '-'}</span>
           </div>
         )}
 
@@ -156,7 +156,7 @@ export default function ContainerDetailModal({
           )}
           {inDevanning && (
             <button onClick={() => { 
-              // Unstuff logic - moved to DevanningTab
+              // Unstuff logic - handled in DevanningTab
             }} style={{background:'#10b981',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>
               📦 Unstuff
             </button>
