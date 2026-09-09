@@ -88,12 +88,10 @@ export default function TalliesTab({
       return
     }
     
-    // Show confirmation dialog with count
     if (!confirm(`⚠️⚠️⚠️ DANGER: This will permanently DELETE ALL ${containers.length} containers in the stack!\n\nThis action CANNOT be undone!\n\nAre you absolutely sure you want to continue?`)) {
       return
     }
     
-    // Second confirmation for safety
     if (!confirm(`⚠️ FINAL WARNING: You are about to delete ${containers.length} containers.\n\nType "CLEAR" to confirm.`)) {
       return
     }
@@ -171,7 +169,7 @@ export default function TalliesTab({
             return (
               <div key={loc.id} className="section-card" style={{background: cardBg, borderRadius:'16px', marginBottom:'14px', border: `1px solid ${borderColor}`, overflow:'hidden'}}>
                 <div className="section-title" style={{background: getColor(isDarkMode, '#f9fafb', '#0f172a'), padding:'8px 14px', fontWeight:'700', borderBottom: `1px solid ${getColor(isDarkMode, '#e9eef3', '#1e293b')}`, display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'4px', fontSize:'0.8rem', color: textColor}}>
-                  <span>📍 {loc.name}</span>
+                  <span>📍 {loc.name || 'Unknown'}</span>
                   <span className="badge" style={{background: getColor(isDarkMode, '#fef3c7', '#312e81'), color: getColor(isDarkMode, '#b45309', '#c7d2fe'), padding:'1px 8px', borderRadius:'30px', fontSize:'0.6rem', fontWeight:'600'}}>{locContainers.length} containers</span>
                 </div>
                 <div style={{padding:'6px 10px'}}>
@@ -190,9 +188,9 @@ export default function TalliesTab({
                             style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'4px',background: getColor(isDarkMode, '#fefce8', '#1a1f2e'), padding:'6px 10px', margin:'3px 0', borderRadius:'14px', borderLeft: `3px solid ${getColor(isDarkMode, '#facc15', '#8b5cf6')}`, transition:'all 0.2s', cursor:'pointer'}} 
                             onClick={() => { setSelectedContainer(c); setShowContainerDetailModal(true) }}
                           >
-                            <span className="container-number" style={{fontFamily:'monospace',fontWeight:'700',background: getColor(isDarkMode, 'white', '#0f172a'), padding:'2px 8px', borderRadius:'40px', minWidth:'100px', border: `1px solid ${getColor(isDarkMode, '#fde047', '#8b5cf6')}`, fontSize:'0.65rem', color: textColor}}>{c.containerNumber}</span>
-                            <span style={{fontSize:'0.6rem',color: mutedColor}}>{c.size}ft {c.type}</span>
-                            <span className="equipment-badge" style={{background: getColor(isDarkMode, '#dbeafe', '#1e3a8a'), color: getColor(isDarkMode, '#1e40af', '#bfdbfe'), padding:'1px 8px', borderRadius:'30px', fontSize:'0.6rem', fontWeight:'600'}}>{c.equipment}</span>
+                            <span className="container-number" style={{fontFamily:'monospace',fontWeight:'700',background: getColor(isDarkMode, 'white', '#0f172a'), padding:'2px 8px', borderRadius:'40px', minWidth:'100px', border: `1px solid ${getColor(isDarkMode, '#fde047', '#8b5cf6')}`, fontSize:'0.65rem', color: textColor}}>{c.containerNumber || 'N/A'}</span>
+                            <span style={{fontSize:'0.6rem',color: mutedColor}}>{c.size || 'N/A'}ft {c.type || 'N/A'}</span>
+                            <span className="equipment-badge" style={{background: getColor(isDarkMode, '#dbeafe', '#1e3a8a'), color: getColor(isDarkMode, '#1e40af', '#bfdbfe'), padding:'1px 8px', borderRadius:'30px', fontSize:'0.6rem', fontWeight:'600'}}>{c.equipment || 'N/A'}</span>
                             <span style={{fontSize:'0.6rem',color: mutedColor}}>📦 {c.auxCargo || '0'}</span>
                             <div className="action-icons" style={{display:'flex',gap:'3px',marginLeft:'auto',flexWrap:'wrap'}} onClick={(e) => e.stopPropagation()}>
                               <button className="icon-btn move" onClick={() => { setSelectedContainer(c); setShowRepositionModal(true) }} style={{background: getColor(isDarkMode, '#eff6ff', '#1e3a8a'), border:'none', borderRadius:'40px', padding:'2px 6px', cursor:'pointer', fontSize:'0.6rem', color:'#2563eb'}}>↕</button>

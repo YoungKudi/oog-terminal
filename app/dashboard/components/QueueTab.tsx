@@ -156,10 +156,11 @@ export default function QueueTab({ importQueue, isDarkMode, showToast, fetchAllD
           {importQueue.length === 0 ? (
             <div style={{padding:'16px',textAlign:'center',color:mutedColor,fontSize:'0.75rem'}}>📭 No pending imports</div>
           ) : (
-            importQueue.map(item => (
+            importQueue.map((item: any) => (
               <div key={item.id} className="container-item-list import-item" style={{background: getColor(isDarkMode, '#fefce8', '#1e1b2e'), borderLeft:'4px solid #f59e0b', padding:'8px 10px', marginBottom:'4px', borderRadius:'8px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'4px'}}>
-                <div><strong style={{fontSize:'0.8rem',color: textColor}}>{item.containerNumber}</strong>
-                  <span style={{fontSize:'0.6rem',color: mutedColor}}> | {item.position} | {item.equipment}</span>
+                <div>
+                  <strong style={{fontSize:'0.8rem',color: textColor}}>{item.containerNumber || 'N/A'}</strong>
+                  <span style={{fontSize:'0.6rem',color: mutedColor}}> | {item.position || 'N/A'} | {item.equipment || 'N/A'}</span>
                 </div>
                 <div style={{display:'flex',gap:'4px',flexWrap:'wrap'}}>
                   <button className="btn-success btn-sm" onClick={() => acceptQueue(item.id)} style={{background:'#10b981',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>✅ Accept</button>

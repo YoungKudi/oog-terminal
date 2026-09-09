@@ -152,7 +152,7 @@ export default function BackupTab({
         <div className="card-body" style={{padding:'10px 14px'}}>
           <button className="btn-primary btn-sm" onClick={exportBackup} style={{width:'100%',marginBottom:'6px',background:'#1e6f3f',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>📤 Export Backup</button>
           <input type="file" id="importDataFile" accept=".json" style={{display:'none'}} onChange={importBackup} />
-          <button className="btn-outline btn-sm" onClick={() => document.getElementById('importDataFile')?.click()} style={{width:'100%',marginBottom:'10px',background:'white',border:'1.5px solid #cbd5e1',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>📥 Restore Backup</button>
+          <button className="btn-outline btn-sm" onClick={() => document.getElementById('importDataFile')?.click()} style={{width:'100%',marginBottom:'10px',background: getColor(isDarkMode, 'white', '#1e293b'), border:`1.5px solid ${getColor(isDarkMode, '#cbd5e1', '#475569')}`, borderRadius:'40px', padding:'2px 8px', fontWeight:'600', fontSize:'0.6rem', cursor:'pointer', color: textColor}}>📥 Restore Backup</button>
           <div id="storageInfo" style={{padding:'8px',background: getColor(isDarkMode, '#f1f5f9', '#1e293b'), borderRadius:'12px',fontSize:'0.7rem',marginBottom:'10px',color: textColor}}>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(80px,1fr))',gap:'4px',textAlign:'center'}}>
               <div><strong>{containers.length}</strong><br /><span style={{fontSize:'0.6rem',color: mutedColor}}>📊 Stack</span></div>
@@ -220,23 +220,32 @@ export default function BackupTab({
             ) : filteredLogs.length === 0 ? (
               <div style={{padding:'20px',textAlign:'center',color:mutedColor}}>📭 No activity logs found</div>
             ) : (
-              filteredLogs.map((log: any) => (
-                <div key={log.id} style={{
-                  padding:'6px 10px',
-                  marginBottom:'4px',
-                  background: getColor(isDarkMode, '#f8fafc', '#1a1f2e'),
-                  borderRadius:'6px',
-                  borderLeft: `3px solid ${log.action?.includes('FAILED') ? '#dc2626' : '#10b981'}`,
-                  color: textColor
-                }}>
-                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'4px'}}>
-                    <span><strong>{log.action}</strong> {log.containerNumber && `📦 ${log.containerNumber}`}</span>
-                    <span style={{fontSize:'0.55rem', color: mutedColor}}>{log.createdAt ? new Date(log.createdAt).toLocaleString() : ''}</span>
+              filteredLogs.map((log: any) => {
+                // SAFE RENDERING: Ensure we don't render objects directly
+                const userName = log.User?.name || log.User?.userId || 'Unknown User'
+                const actionDisplay = log.action || 'Unknown action'
+                const containerDisplay = log.containerNumber ? `📦 ${log.containerNumber}` : ''
+                const detailsDisplay = log.details || ''
+                const timeDisplay = log.createdAt ? new Date(log.createdAt).toLocaleString() : ''
+
+                return (
+                  <div key={log.id} style={{
+                    padding:'6px 10px',
+                    marginBottom:'4px',
+                    background: getColor(isDarkMode, '#f8fafc', '#1a1f2e'),
+                    borderRadius:'6px',
+                    borderLeft: `3px solid ${actionDisplay.includes('FAILED') ? '#dc2626' : '#10b981'}`,
+                    color: textColor
+                  }}>
+                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'4px'}}>
+                      <span><strong>{actionDisplay}</strong> {containerDisplay}</span>
+                      <span style={{fontSize:'0.55rem', color: mutedColor}}>{timeDisplay}</span>
+                    </div>
+                    {detailsDisplay && <div style={{fontSize:'0.6rem', color: mutedColor}}>{detailsDisplay}</div>}
+                    <div style={{fontSize:'0.55rem', color: mutedColor}}>👤 {userName}</div>
                   </div>
-                  {log.details && <div style={{fontSize:'0.6rem', color: mutedColor}}>{log.details}</div>}
-                  {log.User && <div style={{fontSize:'0.55rem', color: mutedColor}}>👤 {log.User.name || log.User.userId}</div>}
-                </div>
-              ))
+                )
+              })
             )}
           </div>
         </div>

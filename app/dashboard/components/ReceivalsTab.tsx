@@ -28,7 +28,6 @@ export default function ReceivalsTab({
   const inputBg = getColor(isDarkMode, 'white', '#1e293b')
   const inputText = getColor(isDarkMode, '#1e293b', '#e2e8f0')
 
-  // Filter containers from last 4 days
   const fourDaysAgo = new Date()
   fourDaysAgo.setDate(fourDaysAgo.getDate() - 4)
   
@@ -89,7 +88,6 @@ export default function ReceivalsTab({
       return
     }
     
-    // Show confirmation dialog
     if (!confirm(`⚠️ This will permanently delete ${totalOlder} containers older than 4 days.\n\nAre you sure you want to continue?`)) {
       return
     }
@@ -167,10 +165,11 @@ export default function ReceivalsTab({
                     style={{background: getColor(isDarkMode, '#ffffff', '#1a1f2e'), border: `1px solid ${getColor(isDarkMode, '#eef2ff', '#2d3a5e')}`, padding:'6px 10px', marginBottom:'4px', borderRadius:'8px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'4px', cursor:'pointer'}} 
                     onClick={() => { setSelectedContainer(c); setShowContainerDetailModal(true) }}
                   >
-                    <div><strong style={{fontSize:'0.75rem',color: textColor}}>{c.containerNumber}</strong>
-                      <span style={{fontSize:'0.6rem',color: mutedColor}}> | {c.position} | {c.equipment}</span>
+                    <div>
+                      <strong style={{fontSize:'0.75rem',color: textColor}}>{c.containerNumber || 'N/A'}</strong>
+                      <span style={{fontSize:'0.6rem',color: mutedColor}}> | {c.position || 'N/A'} | {c.equipment || 'N/A'}</span>
                     </div>
-                    <span className="badge" style={{background: getColor(isDarkMode, '#dbeafe', '#312e81'), color: getColor(isDarkMode, '#1e40af', '#c7d2fe'), padding:'1px 8px', borderRadius:'30px', fontSize:'0.6rem', fontWeight:'600'}}>{c.size}ft</span>
+                    <span className="badge" style={{background: getColor(isDarkMode, '#dbeafe', '#312e81'), color: getColor(isDarkMode, '#1e40af', '#c7d2fe'), padding:'1px 8px', borderRadius:'30px', fontSize:'0.6rem', fontWeight:'600'}}>{c.size || 'N/A'}ft</span>
                   </div>
                 ))}
               </div>
