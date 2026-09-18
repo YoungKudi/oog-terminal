@@ -135,7 +135,7 @@ export default function BackupTab({
     e.target.value = ''
   }
 
-  const totalScans = Object.values(scannedDocuments).reduce((sum: number, docs: any) => sum + docs.length, 0)
+  const totalScans = Object.values(scannedDocuments || {}).reduce((sum: number, docs: any) => sum + (docs?.length || 0), 0)
   const textColor = getColor(isDarkMode, '#1e293b', '#e2e8f0')
   const mutedColor = getColor(isDarkMode, '#64748b', '#94a3b8')
   const cardBg = getColor(isDarkMode, 'white', '#111827')

@@ -6,24 +6,22 @@ interface ContainerDetailModalProps {
   onClose: () => void
   isDarkMode: boolean
   container: any
-  containers: any[]
-  devanningQueue: any[]
-  unstuffedContainers: any[]
-  scannedDocuments: any
-  showToast: (msg: string) => void
-  setShowEditModal: (show: boolean) => void
-  setShowDevanningModal: (show: boolean) => void
-  fetchAllData: () => void
+  containers?: any[]
+  devanningQueue?: any[]
+  unstuffedContainers?: any[]
+  showToast?: (msg: string) => void
+  setShowEditModal?: (show: boolean) => void
+  setShowDevanningModal?: (show: boolean) => void
+  fetchAllData?: () => void
 }
 
 export default function ContainerDetailModal({
   onClose,
   isDarkMode,
   container,
-  containers,
-  devanningQueue,
-  unstuffedContainers,
-  scannedDocuments,
+  containers = [],
+  devanningQueue = [],
+  unstuffedContainers = [],
   showToast,
   setShowEditModal,
   setShowDevanningModal,
@@ -31,9 +29,9 @@ export default function ContainerDetailModal({
 }: ContainerDetailModalProps) {
   if (!container) return null
 
-  const inDevanning = devanningQueue.find(d => d.containerNumber === container.containerNumber)
-  const inUnstuffed = unstuffedContainers.find(u => u.containerNumber === container.containerNumber)
-  const inStack = containers.find(c => c.containerNumber === container.containerNumber)
+  const inDevanning = devanningQueue?.find((d: any) => d.containerNumber === container.containerNumber)
+  const inUnstuffed = unstuffedContainers?.find((u: any) => u.containerNumber === container.containerNumber)
+  const inStack = containers?.find((c: any) => c.containerNumber === container.containerNumber)
 
   let statusText = '📦 In Stack'
   let statusColor = '#10b981'
@@ -46,7 +44,6 @@ export default function ContainerDetailModal({
   }
 
   const isExcavator = container.equipment === 'Excavator' || container.equipment === '2x Excavator'
-  const docs = scannedDocuments[container.containerNumber] || []
 
   const textColor = getColor(isDarkMode, '#1e293b', '#e2e8f0')
   const mutedColor = getColor(isDarkMode, '#64748b', '#94a3b8')
@@ -60,23 +57,23 @@ export default function ContainerDetailModal({
 
         <div className="detail-row" style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom: `1px solid ${borderColor}`,fontSize:'0.8rem',color: textColor}}>
           <span className="label" style={{fontWeight:'600',color: mutedColor}}>Container</span>
-          <span className="value" style={{fontWeight:'500'}}>{container.containerNumber}</span>
+          <span className="value" style={{fontWeight:'500'}}>{container.containerNumber || 'N/A'}</span>
         </div>
         <div className="detail-row" style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom: `1px solid ${borderColor}`,fontSize:'0.8rem',color: textColor}}>
           <span className="label" style={{fontWeight:'600',color: mutedColor}}>Position</span>
-          <span className="value" style={{fontWeight:'500'}}>{container.position}</span>
+          <span className="value" style={{fontWeight:'500'}}>{container.position || 'N/A'}</span>
         </div>
         <div className="detail-row" style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom: `1px solid ${borderColor}`,fontSize:'0.8rem',color: textColor}}>
           <span className="label" style={{fontWeight:'600',color: mutedColor}}>Size</span>
-          <span className="value" style={{fontWeight:'500'}}>{container.size}ft</span>
+          <span className="value" style={{fontWeight:'500'}}>{container.size || 'N/A'}ft</span>
         </div>
         <div className="detail-row" style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom: `1px solid ${borderColor}`,fontSize:'0.8rem',color: textColor}}>
           <span className="label" style={{fontWeight:'600',color: mutedColor}}>Type</span>
-          <span className="value" style={{fontWeight:'500'}}>{container.type}</span>
+          <span className="value" style={{fontWeight:'500'}}>{container.type || 'N/A'}</span>
         </div>
         <div className="detail-row" style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom: `1px solid ${borderColor}`,fontSize:'0.8rem',color: textColor}}>
           <span className="label" style={{fontWeight:'600',color: mutedColor}}>Equipment</span>
-          <span className="value" style={{fontWeight:'500'}}>{container.equipment}</span>
+          <span className="value" style={{fontWeight:'500'}}>{container.equipment || 'N/A'}</span>
         </div>
         <div className="detail-row" style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom: `1px solid ${borderColor}`,fontSize:'0.8rem',color: textColor}}>
           <span className="label" style={{fontWeight:'600',color: mutedColor}}>Aux Cargo</span>
@@ -91,13 +88,13 @@ export default function ContainerDetailModal({
         {container.vessel && (
           <div className="detail-row" style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom: `1px solid ${borderColor}`,fontSize:'0.8rem',color: textColor}}>
             <span className="label" style={{fontWeight:'600',color: mutedColor}}>Vessel</span>
-            <span className="value" style={{fontWeight:'500'}}>{container.vessel || '-'}</span>
+            <span className="value" style={{fontWeight:'500'}}>{container.vessel}</span>
           </div>
         )}
         {container.arrivalDate && (
           <div className="detail-row" style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom: `1px solid ${borderColor}`,fontSize:'0.8rem',color: textColor}}>
             <span className="label" style={{fontWeight:'600',color: mutedColor}}>Arrival Date</span>
-            <span className="value" style={{fontWeight:'500'}}>{container.arrivalDate || '-'}</span>
+            <span className="value" style={{fontWeight:'500'}}>{container.arrivalDate}</span>
           </div>
         )}
         {container.receivedDate && (
@@ -109,25 +106,25 @@ export default function ContainerDetailModal({
         {container.unstuffedAt && (
           <div className="detail-row" style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom: `1px solid ${borderColor}`,fontSize:'0.8rem',color: textColor}}>
             <span className="label" style={{fontWeight:'600',color: mutedColor}}>Unstuffed</span>
-            <span className="value" style={{fontWeight:'500'}}>{container.unstuffedAt || '-'}</span>
+            <span className="value" style={{fontWeight:'500'}}>{container.unstuffedAt}</span>
           </div>
         )}
         {container.devanningType && (
           <div className="detail-row" style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom: `1px solid ${borderColor}`,fontSize:'0.8rem',color: textColor}}>
             <span className="label" style={{fontWeight:'600',color: mutedColor}}>Devanning Type</span>
-            <span className="value" style={{fontWeight:'500'}}>{container.devanningType || '-'}</span>
+            <span className="value" style={{fontWeight:'500'}}>{container.devanningType}</span>
           </div>
         )}
         {container.agency && (
           <div className="detail-row" style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom: `1px solid ${borderColor}`,fontSize:'0.8rem',color: textColor}}>
             <span className="label" style={{fontWeight:'600',color: mutedColor}}>Agency</span>
-            <span className="value" style={{fontWeight:'500'}}>{container.agency || '-'}</span>
+            <span className="value" style={{fontWeight:'500'}}>{container.agency}</span>
           </div>
         )}
         {container.remarks && (
           <div className="detail-row" style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom: `1px solid ${borderColor}`,fontSize:'0.8rem',color: textColor}}>
             <span className="label" style={{fontWeight:'600',color: mutedColor}}>Remarks</span>
-            <span className="value" style={{fontWeight:'500'}}>{container.remarks || '-'}</span>
+            <span className="value" style={{fontWeight:'500'}}>{container.remarks}</span>
           </div>
         )}
 
@@ -141,25 +138,14 @@ export default function ContainerDetailModal({
           </div>
         )}
 
-        {docs.length > 0 && (
-          <div style={{marginTop:'8px',padding:'8px',background:'#dcfce7',borderRadius:'8px',fontSize:'0.75rem',color:'#1e293b'}}>
-            <strong>📎 Attached Documents ({docs.length})</strong><br />
-            {docs.map((d: any, i: number) => `${d.type}: ${d.name}`).join('<br />')}
-          </div>
-        )}
-
+        {/* Action Buttons - ONLY Edit and Devan. NO Scan, NO Clearance */}
         <div style={{marginTop:'10px',display:'flex',gap:'4px',flexWrap:'wrap'}}>
-          <button onClick={() => { onClose(); setShowEditModal(true) }} style={{background: getColor(isDarkMode, 'white', '#1e293b'), border: `1.5px solid ${getColor(isDarkMode, '#cbd5e1', '#475569')}`, borderRadius:'40px', padding:'2px 8px', fontWeight:'600', fontSize:'0.6rem', cursor:'pointer', color: getColor(isDarkMode, '#1e293b', '#e2e8f0')}}>✏️ Edit</button>
-
-          {inStack && !inDevanning && !inUnstuffed && (
-            <button onClick={() => { onClose(); setShowDevanningModal(true) }} style={{background:'#1e6f3f',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>🏗️ Devan</button>
+          {setShowEditModal && (
+            <button onClick={() => { onClose(); setShowEditModal(true) }} style={{background: getColor(isDarkMode, 'white', '#1e293b'), border: `1.5px solid ${getColor(isDarkMode, '#cbd5e1', '#475569')}`, borderRadius:'40px', padding:'2px 8px', fontWeight:'600', fontSize:'0.6rem', cursor:'pointer', color: getColor(isDarkMode, '#1e293b', '#e2e8f0')}}>✏️ Edit</button>
           )}
-          {inDevanning && (
-            <button onClick={() => { 
-              // Unstuff logic - handled in DevanningTab
-            }} style={{background:'#10b981',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>
-              📦 Unstuff
-            </button>
+
+          {inStack && !inDevanning && !inUnstuffed && setShowDevanningModal && (
+            <button onClick={() => { onClose(); setShowDevanningModal(true) }} style={{background:'#1e6f3f',color:'white',border:'none',borderRadius:'40px',padding:'2px 8px',fontWeight:'600',fontSize:'0.6rem',cursor:'pointer'}}>🏗️ Devan</button>
           )}
         </div>
 

@@ -9,7 +9,7 @@ import { useTabCounts } from '@/hooks/useTabCounts'
 import { DEFAULT_LOCATIONS, DEFAULT_SHIFT } from '@/lib/constants'
 import { getColor } from '@/lib/utils'
 import { Icons } from '@/components/icons/Icons'
-import { TabWithCount } from '@/components/common/TabWithCount'
+import Link from 'next/link'
 
 // Import all tab components
 import QueueTab from './components/QueueTab'
@@ -17,27 +17,43 @@ import ReceivalsTab from './components/ReceivalsTab'
 import TalliesTab from './components/TalliesTab'
 import DevanningTab from './components/DevanningTab'
 import UnstuffedTab from './components/UnstuffedTab'
+import ClearanceTab from './components/ClearanceTab'
 import EvacuationTab from './components/EvacuationTab'
 import LocationsTab from './components/LocationsTab'
 import ContactsTab from './components/ContactsTab'
 import BackupTab from './components/BackupTab'
 import ReportsTab from './components/ReportsTab'
-import DevanningWizard from './components/DevanningWizard'
 
 // Import modals
 import ReceivalModal from '@/components/modals/ReceivalModal'
 import DevanningModal from '@/components/modals/DevanningModal'
-import LoadoutModal from '@/components/modals/LoadoutModal'
 import EditModal from '@/components/modals/EditModal'
 import RepositionModal from '@/components/modals/RepositionModal'
 import SearchModal from '@/components/modals/SearchModal'
 import ContainerDetailModal from '@/components/modals/ContainerDetailModal'
 import AddLocationModal from '@/components/modals/AddLocationModal'
-import ScannerModal from '@/components/modals/ScannerModal'
 import { StatsGrid } from '@/components/common/StatsGrid'
 import { DailyTally } from '@/components/common/DailyTally'
 import { FloatingButtons } from '@/components/common/FloatingButtons'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
+
+// Tab definitions
+const MAIN_TABS = [
+  { id: 'queue', icon: '📥', label: 'Queue' },
+  { id: 'receivals', icon: '📦', label: 'Receivals' },
+  { id: 'tallies', icon: '📋', label: 'Tallies' },
+  { id: 'devanning', icon: '🔧', label: 'Devanning' },
+  { id: 'unstuffed', icon: '✅', label: 'Unstuffed' },
+  { id: 'clearance', icon: '📋', label: 'Clearance' }
+]
+
+const DROPDOWN_TABS = [
+  { id: 'evacuation', icon: '🚚', label: 'Evacuation & Boxes' },
+  { id: 'locations', icon: '📍', label: 'Locations' },
+  { id: 'contacts', icon: '👤', label: 'Equipment Contacts' },
+  { id: 'backup', icon: '💾', label: 'Backup & Activity' },
+  { id: 'reports', icon: '📄', label: 'Reports' }
+]
 
 export default function DashboardPage() {
   const { data: session, status } = useSession()
@@ -47,7 +63,7 @@ export default function DashboardPage() {
   const tabCounts = useTabCounts()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const dropdownButtonRef = useRef<HTMLButtonElement>(null)
-  
+
   const {
     containers,
     importQueue,
@@ -68,19 +84,15 @@ export default function DashboardPage() {
   const [scannedDocuments, setScannedDocuments] = useState({})
   const [selectedEvacContainer, setSelectedEvacContainer] = useState(null)
   const [evacuationSelectionMode, setEvacuationSelectionMode] = useState(false)
-  const [showWizard, setShowWizard] = useState(false)
-  const [wizardContainer, setWizardContainer] = useState(null)
 
   // Modal states
   const [showReceivalModal, setShowReceivalModal] = useState(false)
   const [showDevanningModal, setShowDevanningModal] = useState(false)
-  const [showLoadoutModal, setShowLoadoutModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showRepositionModal, setShowRepositionModal] = useState(false)
   const [showSearchModal, setShowSearchModal] = useState(false)
   const [showContainerDetailModal, setShowContainerDetailModal] = useState(false)
   const [showAddLocationModal, setShowAddLocationModal] = useState(false)
-  const [showScannerModal, setShowScannerModal] = useState(false)
   const [selectedContainer, setSelectedContainer] = useState(null)
 
   // Close dropdown when clicking outside
@@ -100,6 +112,26 @@ export default function DashboardPage() {
   }, [])
 
   useEffect(() => {
+    const savedLocs = localStorage.getItem('oog_locations')
+    if (savedLocs) {
+      try {
+        const parsed = JSON.parse(savedLocs)
+        const filtered = parsed.filter((loc: any) => loc.name !== 'Ship Yard')
+        if (filtered.length !== parsed.length) {
+          localStorage.setItem('oog_locations', JSON.stringify(filtered))
+          setLocations(filtered)
+        } else {
+          setLocations(parsed)
+        }
+      } catch (e) {
+        setLocations(DEFAULT_LOCATIONS)
+      }
+    } else {
+      setLocations(DEFAULT_LOCATIONS)
+    }
+  }, [])
+
+  useEffect(() => {
     const allPos = []
     for (const loc of locations) {
       if (loc.positions) allPos.push(...loc.positions)
@@ -114,6 +146,29 @@ export default function DashboardPage() {
     if (savedShifts) setShiftData(JSON.parse(savedShifts))
   }, [])
 
+  const switchToTab = (tabId: string) => {
+    setActiveTab(tabId)
+    setDropdownOpen(false)
+  }
+
+  const getTabCount = (tabId: string) => {
+    switch(tabId) {
+      case 'queue': return tabCounts.queue
+      case 'receivals': return tabCounts.receivals
+      case 'tallies': return tabCounts.tallies
+      case 'devanning': return tabCounts.devanning
+      case 'unstuffed': return tabCounts.unstuffed
+      case 'clearance': return 0
+      case 'evacuation': return tabCounts.evacuation
+      default: return 0
+    }
+  }
+
+  const handleClearanceProcessed = () => {
+    fetchAllData()
+    switchToTab('clearance')
+  }
+
   if (loading || status === 'loading') {
     return (
       <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',flexDirection:'column',gap:'16px',background:isDarkMode?'#0a0e17':'#f5f7fb'}}>
@@ -126,26 +181,6 @@ export default function DashboardPage() {
 
   if (!session) return null
 
-  const switchToTab = (tabId: string) => {
-    setActiveTab(tabId)
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
-    const tabContent = document.getElementById(tabId + '-tab')
-    if (tabContent) tabContent.classList.add('active')
-    document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'))
-    const tabButton = document.querySelector(`.tab-button[data-tab="${tabId}"]`)
-    if (tabButton) tabButton.classList.add('active')
-    setDropdownOpen(false)
-  }
-
-  const handleTabClick = (tab: string) => {
-    switchToTab(tab)
-  }
-
-  const toggleDropdown = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    setDropdownOpen(!dropdownOpen)
-  }
-
   const now = new Date()
   const hour = now.getHours()
   const greeting = hour >= 17 ? 'Good Evening' : hour >= 12 ? 'Good Afternoon' : 'Good Morning'
@@ -155,14 +190,6 @@ export default function DashboardPage() {
   const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
   const dayName = days[now.getDay()]
   const dateStr = `${day}/${month}/${year} ${dayName}`
-
-  const tabs = [
-    { id: 'queue', icon: '📥', label: 'Queue', count: tabCounts.queue },
-    { id: 'receivals', icon: '📦', label: 'Receivals', count: tabCounts.receivals },
-    { id: 'tallies', icon: '📋', label: 'Tallies', count: tabCounts.tallies },
-    { id: 'devanning', icon: '🔧', label: 'Devanning', count: tabCounts.devanning },
-    { id: 'unstuffed', icon: '✅', label: 'Unstuffed', count: tabCounts.unstuffed }
-  ]
 
   return (
     <div className="app-container">
@@ -184,23 +211,83 @@ export default function DashboardPage() {
       </div>
 
       {/* TAB BAR */}
-      <div className="tab-bar" style={{ overflow: 'visible', position: 'relative', zIndex: 10 }}>
-        {tabs.map(t => (
-          <TabWithCount
+      <div className="tab-bar" style={{ 
+        display: 'flex', 
+        alignItems: 'center',
+        background: isDarkMode ? '#111827' : 'white',
+        padding: '6px 8px',
+        borderBottom: `1px solid ${isDarkMode ? '#1f2937' : '#e2e8f0'}`,
+        overflow: 'visible',
+        position: 'relative',
+        zIndex: 10,
+        flexShrink: 0,
+        minHeight: '52px',
+        gap: '2px'
+      }}>
+        {MAIN_TABS.map(t => (
+          <button
             key={t.id}
-            icon={t.icon}
-            label={t.label}
-            count={t.count}
-            isActive={activeTab === t.id}
-            onClick={() => handleTabClick(t.id)}
-            isDarkMode={isDarkMode}
-          />
+            className={`tab-button ${activeTab === t.id ? 'active' : ''}`}
+            data-tab={t.id}
+            onClick={() => switchToTab(t.id)}
+            style={{
+              flex: '1 0 auto',
+              padding: '6px 4px',
+              background: 'transparent',
+              border: 'none',
+              fontWeight: '600',
+              fontSize: window.innerWidth < 480 ? '0.5rem' : '0.6rem',
+              color: activeTab === t.id ? (isDarkMode ? '#8b5cf6' : '#1e6f3f') : (isDarkMode ? '#94a3b8' : '#5b6e8c'),
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '1px',
+              borderRadius: '8px',
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap',
+              minWidth: '36px',
+              position: 'relative',
+              borderBottom: activeTab === t.id ? (isDarkMode ? '2px solid #8b5cf6' : '2px solid #1e6f3f') : '2px solid transparent',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '2px',
+              position: 'relative',
+              flexWrap: 'wrap',
+              justifyContent: 'center'
+            }}>
+              <span style={{ fontSize: window.innerWidth < 480 ? '1rem' : '1.1rem' }}>{t.icon}</span>
+              <span style={{ 
+                fontSize: window.innerWidth < 480 ? '0.45rem' : '0.55rem',
+                display: window.innerWidth < 480 ? 'none' : 'inline'
+              }}>{t.label}</span>
+              {getTabCount(t.id) > 0 && t.id !== 'clearance' && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-2px',
+                  right: '-4px',
+                  width: '10px',
+                  height: '10px',
+                  background: '#ef4444',
+                  borderRadius: '50%',
+                  boxShadow: `0 0 0 2px ${isDarkMode ? '#111827' : 'white'}`,
+                  animation: 'pulse-dot 1.5s ease-in-out infinite',
+                }} />
+              )}
+            </div>
+          </button>
         ))}
+
+        {/* Hamburger Menu */}
         <div className="dropdown-container" ref={dropdownRef} style={{ position: 'relative', zIndex: 100 }}>
           <button 
             ref={dropdownButtonRef}
             className="dropdown-btn" 
-            onClick={toggleDropdown}
+            onClick={() => setDropdownOpen(!dropdownOpen)}
             style={{
               background: dropdownOpen ? 'rgba(0,0,0,0.05)' : 'transparent',
               borderRadius: '8px',
@@ -208,22 +295,41 @@ export default function DashboardPage() {
               border: 'none',
               cursor: 'pointer',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
-              gap: '4px',
-              fontWeight: '600',
-              fontSize: '0.65rem',
-              color: isDarkMode ? '#94a3b8' : '#5b6e8c',
+              justifyContent: 'center',
+              gap: '2px',
+              width: '36px',
+              height: '36px',
               transition: 'all 0.2s'
             }}
           >
-            <span style={{ fontSize: '1.1rem' }}>⚙️</span>
-            <span>More</span>
             <span style={{ 
-              fontSize: '0.7rem', 
-              transform: dropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s'
-            }}>▼</span>
+              display: 'block',
+              width: '18px',
+              height: '2px',
+              background: isDarkMode ? '#94a3b8' : '#5b6e8c',
+              borderRadius: '2px',
+              transition: 'all 0.2s'
+            }} />
+            <span style={{ 
+              display: 'block',
+              width: '18px',
+              height: '2px',
+              background: isDarkMode ? '#94a3b8' : '#5b6e8c',
+              borderRadius: '2px',
+              transition: 'all 0.2s'
+            }} />
+            <span style={{ 
+              display: 'block',
+              width: '18px',
+              height: '2px',
+              background: isDarkMode ? '#94a3b8' : '#5b6e8c',
+              borderRadius: '2px',
+              transition: 'all 0.2s'
+            }} />
           </button>
+          
           <div 
             className={`dropdown-menu ${dropdownOpen ? 'show' : ''}`}
             style={{
@@ -243,8 +349,9 @@ export default function DashboardPage() {
               overflowY: 'auto'
             }}
           >
-            <a 
-              onClick={() => switchToTab('evacuation')} 
+            <Link 
+              href="/dashboard/profile" 
+              onClick={() => setDropdownOpen(false)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -256,98 +363,42 @@ export default function DashboardPage() {
                 fontWeight: '500',
                 cursor: 'pointer',
                 borderRadius: '4px',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ fontSize: '1rem' }}>🚚</span>
-              Evacuation & Boxes ({tabCounts.evacuation})
-            </a>
-            <a 
-              onClick={() => switchToTab('locations')} 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                color: isDarkMode ? '#e2e8f0' : '#1e293b',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ fontSize: '1rem' }}>📍</span>
-              Locations
-            </a>
-            <a 
-              onClick={() => switchToTab('contacts')} 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                color: isDarkMode ? '#e2e8f0' : '#1e293b',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                transition: 'background 0.2s'
+                transition: 'background 0.2s',
+                borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                marginBottom: '4px'
               }}
               onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
               onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
             >
               <span style={{ fontSize: '1rem' }}>👤</span>
-              Equipment Contacts
-            </a>
-            <a 
-              onClick={() => switchToTab('backup')} 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                color: isDarkMode ? '#e2e8f0' : '#1e293b',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ fontSize: '1rem' }}>💾</span>
-              Backup & Activity
-            </a>
-            <a 
-              onClick={() => switchToTab('reports')} 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                color: isDarkMode ? '#e2e8f0' : '#1e293b',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ fontSize: '1rem' }}>📄</span>
-              Reports
-            </a>
+              User Profile
+            </Link>
+
+            {DROPDOWN_TABS.map(t => (
+              <a 
+                key={t.id}
+                onClick={() => { switchToTab(t.id); setDropdownOpen(false) }} 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  textDecoration: 'none',
+                  color: isDarkMode ? '#e2e8f0' : '#1e293b',
+                  fontSize: '0.75rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  borderRadius: '4px',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#2d3a5e' : '#f1f5f9'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <span style={{ fontSize: '1rem' }}>{t.icon}</span>
+                {t.label} {getTabCount(t.id) > 0 && `(${getTabCount(t.id)})`}
+              </a>
+            ))}
+            
             <div className="dropdown-divider" style={{
               borderTop: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
               margin: '4px 0'
@@ -377,8 +428,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* TABS CONTENT - Same as before */}
-      <div className="tab-content active" id="queue-tab">
+      {/* TABS CONTENT */}
+      <div className={`tab-content ${activeTab === 'queue' ? 'active' : ''}`} id="queue-tab">
         <DailyTally 
           locations={locations} 
           containers={containers} 
@@ -400,7 +451,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="tab-content" id="receivals-tab">
+      <div className={`tab-content ${activeTab === 'receivals' ? 'active' : ''}`} id="receivals-tab">
         <ReceivalsTab 
           containers={containers}
           isDarkMode={isDarkMode}
@@ -411,7 +462,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="tab-content" id="tallies-tab">
+      <div className={`tab-content ${activeTab === 'tallies' ? 'active' : ''}`} id="tallies-tab">
         <TalliesTab 
           containers={containers}
           locations={locations}
@@ -426,20 +477,18 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="tab-content" id="devanning-tab">
+      <div className={`tab-content ${activeTab === 'devanning' ? 'active' : ''}`} id="devanning-tab">
         <DevanningTab 
           devanningQueue={devanningQueue}
           isDarkMode={isDarkMode}
           showToast={showToast}
           fetchAllData={fetchAllData}
-          setShowWizard={setShowWizard}
-          setWizardContainer={setWizardContainer}
           setSelectedContainer={setSelectedContainer}
           setShowContainerDetailModal={setShowContainerDetailModal}
         />
       </div>
 
-      <div className="tab-content" id="unstuffed-tab">
+      <div className={`tab-content ${activeTab === 'unstuffed' ? 'active' : ''}`} id="unstuffed-tab">
         <UnstuffedTab 
           unstuffedContainers={unstuffedContainers}
           isDarkMode={isDarkMode}
@@ -451,12 +500,19 @@ export default function DashboardPage() {
           setEvacuationSelectionMode={setEvacuationSelectionMode}
           setSelectedContainer={setSelectedContainer}
           setShowContainerDetailModal={setShowContainerDetailModal}
-          setShowLoadoutModal={setShowLoadoutModal}
-          setShowScannerModal={setShowScannerModal}
+          onClearanceProcessed={handleClearanceProcessed}
         />
       </div>
 
-      <div className="tab-content" id="evacuation-tab">
+      <div className={`tab-content ${activeTab === 'clearance' ? 'active' : ''}`} id="clearance-tab">
+        <ClearanceTab
+          isDarkMode={isDarkMode}
+          showToast={showToast}
+          fetchAllData={fetchAllData}
+        />
+      </div>
+
+      <div className={`tab-content ${activeTab === 'evacuation' ? 'active' : ''}`} id="evacuation-tab">
         <EvacuationTab 
           evacuationRecords={evacuationRecords}
           isDarkMode={isDarkMode}
@@ -465,7 +521,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="tab-content" id="locations-tab">
+      <div className={`tab-content ${activeTab === 'locations' ? 'active' : ''}`} id="locations-tab">
         <LocationsTab 
           locations={locations}
           containers={containers}
@@ -476,7 +532,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="tab-content" id="contacts-tab">
+      <div className={`tab-content ${activeTab === 'contacts' ? 'active' : ''}`} id="contacts-tab">
         <ContactsTab 
           shiftData={shiftData}
           setShiftData={setShiftData}
@@ -486,7 +542,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="tab-content" id="backup-tab">
+      <div className={`tab-content ${activeTab === 'backup' ? 'active' : ''}`} id="backup-tab">
         <BackupTab 
           containers={containers}
           importQueue={importQueue}
@@ -494,7 +550,6 @@ export default function DashboardPage() {
           unstuffedContainers={unstuffedContainers}
           evacuationRecords={evacuationRecords}
           loadingRecords={loadingRecords}
-          scannedDocuments={scannedDocuments}
           locations={locations}
           shiftData={shiftData}
           isDarkMode={isDarkMode}
@@ -503,7 +558,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="tab-content" id="reports-tab">
+      <div className={`tab-content ${activeTab === 'reports' ? 'active' : ''}`} id="reports-tab">
         <ReportsTab 
           loadingRecords={loadingRecords}
           isDarkMode={isDarkMode}
@@ -520,11 +575,7 @@ export default function DashboardPage() {
       />
 
       {/* MODALS */}
-      {showWizard && wizardContainer && (
         <div className="modal" style={{display:'flex', position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)', justifyContent:'center', alignItems:'center', zIndex:1000}}>
-          <DevanningWizard 
-            container={wizardContainer}
-            onClose={() => { setShowWizard(false); setWizardContainer(null) }}
             onComplete={fetchAllData}
             showToast={showToast}
           />
@@ -552,9 +603,6 @@ export default function DashboardPage() {
         />
       )}
 
-      {showLoadoutModal && (
-        <LoadoutModal 
-          onClose={() => setShowLoadoutModal(false)}
           onSave={fetchAllData}
           isDarkMode={isDarkMode}
           container={selectedContainer}
@@ -604,12 +652,9 @@ export default function DashboardPage() {
           containers={containers}
           devanningQueue={devanningQueue}
           unstuffedContainers={unstuffedContainers}
-          scannedDocuments={scannedDocuments}
           showToast={showToast}
-          setShowScannerModal={setShowScannerModal}
           setShowEditModal={setShowEditModal}
           setShowDevanningModal={setShowDevanningModal}
-          setShowLoadoutModal={setShowLoadoutModal}
           fetchAllData={fetchAllData}
         />
       )}
@@ -621,17 +666,6 @@ export default function DashboardPage() {
           isDarkMode={isDarkMode}
           locations={locations}
           setLocations={setLocations}
-          showToast={showToast}
-        />
-      )}
-
-      {showScannerModal && (
-        <ScannerModal 
-          onClose={() => setShowScannerModal(false)}
-          isDarkMode={isDarkMode}
-          container={selectedContainer}
-          scannedDocuments={scannedDocuments}
-          setScannedDocuments={setScannedDocuments}
           showToast={showToast}
         />
       )}
