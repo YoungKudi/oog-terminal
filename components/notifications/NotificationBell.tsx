@@ -1,328 +1,107 @@
-"use client"
-import React, { useState, useEffect, useRef } from 'react'
-import { useNotifications } from '@/hooks/useNotifications'
-import { useRealtime } from '@/hooks/useRealtime'
-import { getColor } from '@/lib/utils'
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  timestamp: Date;
+  read: boolean;
+}
 
 export function NotificationBell() {
-  const {
-    notifications,
-    unreadCount,
-    permission,
-    isPushEnabled,
-    hasBeenAsked,
-    requestPermission,
-    toggleNotifications,
-    addNotification,
-    markAsRead,
-    markAllAsRead,
-    clearAll,
-  } = useNotifications()
-
-  const [isOpen, setIsOpen] = useState(false)
-  const [isDarkMode, setIsDarkMode] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
+  const { data: session } = useSession();
+  const [isOpen, setIsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const dark = localStorage.getItem('oog_dark_mode') === 'true'
-    setIsDarkMode(dark)
-  }, [])
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current && 
-        !dropdownRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false)
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
       }
     }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  // Realtime listeners with user info
-  useRealtime('Container', (event) => {
-    if (event.action === 'INSERT') {
-      addNotification({
-        type: 'container',
-        title: '📦 New Container Added',
-        message: `${event.new.containerNumber} added at ${event.new.position}`,
-        data: event.new,
-        user: event.user,
-      })
-    } else if (event.action === 'DELETE') {
-      addNotification({
-        type: 'container',
-        title: '🗑️ Container Removed',
-        message: `${event.old.containerNumber} was removed from stack`,
-        data: event.old,
-        user: event.user,
-      })
-    }
-  })
-
-  useRealtime('DevanningQueue', (event) => {
-    if (event.action === 'INSERT') {
-      addNotification({
-        type: 'devanning',
-        title: '🏗️ In Devanning',
-        message: `${event.new.containerNumber} moved to devanning`,
-        data: event.new,
-        user: event.user,
-      })
-    } else if (event.action === 'UPDATE' && event.old?.devanningStatus !== event.new?.devanningStatus) {
-      addNotification({
-        type: 'devanning',
-        title: '🔄 Status Updated',
-        message: `${event.new.containerNumber}: ${event.new.devanningStatus}`,
-        data: event.new,
-        user: event.user,
-      })
-    }
-  })
-
-  useRealtime('UnstuffedContainer', (event) => {
-    if (event.action === 'INSERT') {
-      addNotification({
-        type: 'unstuffed',
-        title: '✅ Container Unstuffed',
-        message: `${event.new.containerNumber} has been unstuffed`,
-        data: event.new,
-        user: event.user,
-      })
-    }
-  })
-
-  useRealtime('LoadoutRecord', (event) => {
-    if (event.action === 'INSERT') {
-      addNotification({
-        type: 'loadout',
-        title: '✅ Container Cleared',
-        message: `${event.new.containerNumber} cleared with truck ${event.new.truckPlate}`,
-        data: event.new,
-        user: event.user,
-      })
-    }
-  })
-
-  useRealtime('EvacuationRecord', (event) => {
-    if (event.action === 'INSERT') {
-      addNotification({
-        type: 'evacuation',
-        title: '🚚 Container Evacuated',
-        message: `${event.new.containerNumber} evacuated`,
-        data: event.new,
-        user: event.user,
-      })
-    }
-  })
-
-  const toggleDropdown = () => {
-    setIsOpen(!isOpen)
-  }
-
-  const bgColor = getColor(isDarkMode, 'white', '#1e293b')
-  const textColor = getColor(isDarkMode, '#1e293b', '#e2e8f0')
-  const borderColor = getColor(isDarkMode, '#e2e8f0', '#334155')
-  const hoverBg = getColor(isDarkMode, '#f1f5f9', '#2d3a5e')
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
+    <div className="relative" ref={dropdownRef}>
       <button
-        ref={buttonRef}
-        onClick={toggleDropdown}
-        style={{
-          background: 'rgba(255,255,255,0.15)',
-          border: 'none',
-          borderRadius: '50%',
-          width: '36px',
-          height: '36px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-          color: 'white',
-          fontSize: '1.2rem'
-        }}
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        aria-label="Notifications"
+        style={{ fontSize: '1.2rem', background: 'none', border: 'none', cursor: 'pointer' }}
       >
         🔔
         {unreadCount > 0 && (
-          <span
-            style={{
-              position: 'absolute',
-              top: '-4px',
-              right: '-4px',
-              background: '#dc2626',
-              color: 'white',
-              borderRadius: '50%',
-              padding: '2px 6px',
-              fontSize: '0.6rem',
-              fontWeight: 'bold',
-              minWidth: '18px',
-              textAlign: 'center'
-            }}
-          >
-            {unreadCount}
-          </span>
+          <span style={{
+            position: 'absolute',
+            top: '2px',
+            right: '2px',
+            width: '8px',
+            height: '8px',
+            background: '#ef4444',
+            borderRadius: '50%'
+          }}></span>
         )}
       </button>
 
       {isOpen && (
         <div
-          ref={dropdownRef}
+          className="absolute right-0 mt-2 w-96 max-h-[80vh] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden z-50"
           style={{
-            position: 'fixed',
-            top: '60px',
-            right: '16px',
-            width: window.innerWidth < 480 ? 'calc(100vw - 32px)' : '380px',
-            maxWidth: '380px',
-            maxHeight: window.innerHeight < 600 ? 'calc(100vh - 100px)' : '400px',
-            background: bgColor,
-            borderRadius: '12px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+            position: 'absolute',
+            right: 0,
+            top: '100%',
+            width: '320px',
+            maxHeight: '400px',
+            background: 'white',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            border: '1px solid #e5e7eb',
             zIndex: 1000,
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-            border: `1px solid ${borderColor}`,
+            overflow: 'hidden'
           }}
         >
-          <div
-            style={{
-              padding: '12px 16px',
-              borderBottom: `1px solid ${borderColor}`,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '4px',
-              background: getColor(isDarkMode, '#f8fafc', '#0f172a')
-            }}
-          >
-            <span style={{ fontWeight: '600', fontSize: '0.9rem', color: textColor }}>
-              📢 Notifications
-              {isPushEnabled && (
-                <span style={{ fontSize: '0.55rem', color: '#10b981', marginLeft: '8px' }}>
-                  ● Live
-                </span>
-              )}
-            </span>
-            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-              <button
-                onClick={toggleNotifications}
-                style={{
-                  background: isPushEnabled ? '#10b981' : '#64748b',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  padding: '2px 8px',
-                  fontSize: '0.55rem',
-                  cursor: 'pointer'
-                }}
-              >
-                {isPushEnabled ? '🔔 On' : '🔕 Off'}
-              </button>
-              {notifications.length > 0 && (
-                <>
-                  <button
-                    onClick={markAllAsRead}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      fontSize: '0.6rem',
-                      color: getColor(isDarkMode, '#64748b', '#94a3b8'),
-                      cursor: 'pointer',
-                      padding: '2px 6px'
-                    }}
-                  >
-                    ✓ All
-                  </button>
-                  <button
-                    onClick={clearAll}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      fontSize: '0.6rem',
-                      color: '#dc2626',
-                      cursor: 'pointer',
-                      padding: '2px 6px'
-                    }}
-                  >
-                    ✕ Clear
-                  </button>
-                </>
-              )}
-            </div>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb' }}>
+            <h3 style={{ fontSize: '0.85rem', fontWeight: '600', margin: 0 }}>Notifications</h3>
+            <p style={{ fontSize: '0.7rem', color: '#6b7280', margin: '4px 0 0 0' }}>
+              {notifications.length === 0 ? 'No notifications' : `${unreadCount} unread`}
+            </p>
           </div>
-
-          <div style={{ overflowY: 'auto', flex: 1 }}>
+          <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
             {notifications.length === 0 ? (
-              <div
-                style={{
-                  padding: '40px 20px',
-                  textAlign: 'center',
-                  color: getColor(isDarkMode, '#94a3b8', '#64748b'),
-                  fontSize: '0.85rem'
-                }}
-              >
-                🔕 No notifications
+              <div style={{ textAlign: 'center', padding: '24px', color: '#9ca3af', fontSize: '0.75rem' }}>
+                No notifications
               </div>
             ) : (
-              notifications.slice(0, 50).map((notification) => (
+              notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  onClick={() => markAsRead(notification.id)}
-                  style={{
-                    padding: '10px 14px',
-                    borderBottom: `1px solid ${borderColor}`,
-                    cursor: 'pointer',
-                    background: notification.read ? 'transparent' : getColor(isDarkMode, '#f0fdf4', '#0f172a'),
-                    transition: 'background 0.2s',
-                    color: textColor,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = hoverBg
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = notification.read ? 'transparent' : getColor(isDarkMode, '#f0fdf4', '#0f172a')
-                  }}
+                  style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: '600' }}>
-                      {notification.title}
-                    </div>
-                    {notification.user && (
-                      <span style={{ 
-                        fontSize: '0.55rem', 
-                        color: getColor(isDarkMode, '#64748b', '#94a3b8'),
-                        background: getColor(isDarkMode, '#f1f5f9', '#1e293b'),
-                        padding: '1px 8px',
-                        borderRadius: '12px',
-                        marginLeft: '4px',
-                        flexShrink: 0
-                      }}>
-                        👤 {notification.user.name || notification.user.userId}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '0.7rem', color: getColor(isDarkMode, '#475569', '#94a3b8') }}>
-                    {notification.message}
-                  </div>
-                  <div style={{ fontSize: '0.55rem', color: getColor(isDarkMode, '#94a3b8', '#64748b'), marginTop: '4px' }}>
-                    {notification.timestamp.toLocaleTimeString()}
-                  </div>
+                  <p style={{ fontSize: '0.8rem', margin: 0 }}>{notification.title}</p>
+                  <p style={{ fontSize: '0.7rem', color: '#6b7280', margin: '2px 0 0 0' }}>{notification.message}</p>
                 </div>
               ))
             )}
           </div>
+          <div style={{ padding: '10px 16px', borderTop: '1px solid #e5e7eb', background: '#f9fafb' }}>
+            <Link
+              href="/dashboard/profile"
+              style={{ fontSize: '0.7rem', color: '#2563eb', textDecoration: 'none' }}
+              onClick={() => setIsOpen(false)}
+            >
+              View Profile →
+            </Link>
+          </div>
         </div>
       )}
     </div>
-  )
+  );
 }

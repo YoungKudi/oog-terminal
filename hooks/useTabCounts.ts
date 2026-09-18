@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/db'
 
+const isWebSocketAvailable = (): boolean => {
+  if (typeof window === 'undefined') return false
+  return typeof WebSocket !== 'undefined'
+}
+
 export function useTabCounts() {
   const [counts, setCounts] = useState({
     queue: 0,
@@ -10,9 +15,10 @@ export function useTabCounts() {
     unstuffed: 0,
     evacuation: 0,
   })
-  const [previousCounts, setPreviousCounts] = useState(counts)
 
   const fetchCounts = async () => {
+    if (!supabase) return
+
     try {
       const [
         { count: queueCount },
@@ -30,7 +36,6 @@ export function useTabCounts() {
         supabase.from('EvacuationRecord').select('*', { count: 'exact', head: true }),
       ])
 
-      setPreviousCounts(counts)
       setCounts({
         queue: queueCount || 0,
         receivals: receivalsCount || 0,
@@ -47,33 +52,63 @@ export function useTabCounts() {
   useEffect(() => {
     fetchCounts()
 
-    const channels = [
-      supabase.channel('queue-count').on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'ImportQueue' },
-        () => fetchCounts()
-      ),
-      supabase.channel('container-count').on('postgres_changes',
-        { event: '*', schema: 'public', table: 'Container' },
-        () => fetchCounts()
-      ),
-      supabase.channel('devanning-count').on('postgres_changes',
-        { event: '*', schema: 'public', table: 'DevanningQueue' },
-        () => fetchCounts()
-      ),
-      supabase.channel('unstuffed-count').on('postgres_changes',
-        { event: '*', schema: 'public', table: 'UnstuffedContainer' },
-        () => fetchCounts()
-      ),
-      supabase.channel('evacuation-count').on('postgres_changes',
-        { event: '*', schema: 'public', table: 'EvacuationRecord' },
-        () => fetchCounts()
-      ),
-    ]
+    // If WebSocket isn't available, just poll every 30 seconds
+    if (!isWebSocketAvailable()) {
+      console.warn('⚠️ WebSocket not available - using polling for tab counts')
+      const interval = setInterval(fetchCounts, 30000)
+      return () => clearInterval(interval)
+    }
 
-    channels.forEach(ch => ch.subscribe())
+    if (!supabase) return
+
+    // Try to setup realtime channels (may fail on some networks)
+    const channels: any[] = []
+
+    try {
+      channels.push(
+        supabase.channel('queue-count').on('postgres_changes',
+          { event: '*', schema: 'public', table: 'ImportQueue' },
+          () => fetchCounts()
+        ),
+        supabase.channel('container-count').on('postgres_changes',
+          { event: '*', schema: 'public', table: 'Container' },
+          () => fetchCounts()
+        ),
+        supabase.channel('devanning-count').on('postgres_changes',
+          { event: '*', schema: 'public', table: 'DevanningQueue' },
+          () => fetchCounts()
+        ),
+        supabase.channel('unstuffed-count').on('postgres_changes',
+          { event: '*', schema: 'public', table: 'UnstuffedContainer' },
+          () => fetchCounts()
+        ),
+        supabase.channel('evacuation-count').on('postgres_changes',
+          { event: '*', schema: 'public', table: 'EvacuationRecord' },
+          () => fetchCounts()
+        ),
+      )
+
+      channels.forEach(ch => {
+        try {
+          ch.subscribe()
+        } catch (err) {
+          console.warn('Failed to subscribe to channel:', err)
+        }
+      })
+    } catch (error) {
+      console.warn('⚠️ Failed to setup realtime for tab counts:', error)
+    }
+
+    // Always poll as a fallback
+    const interval = setInterval(fetchCounts, 30000)
 
     return () => {
-      channels.forEach(ch => supabase.removeChannel(ch))
+      clearInterval(interval)
+      try {
+        channels.forEach(ch => supabase.removeChannel(ch))
+      } catch (error) {
+        console.warn('⚠️ Failed to cleanup channels:', error)
+      }
     }
   }, [])
 
