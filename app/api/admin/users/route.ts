@@ -2,82 +2,104 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { supabase } from '@/lib/db'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { sendEmail, getEmailTemplate, renderTemplate } from '@/lib/email'
 
+// GET - Fetch all users
 export async function GET() {
-  try {
-    const session = await getServerSession(authOptions)
-    console.log('🔍 Admin GET - Session:', session?.user?.userId, 'Role:', session?.user?.role)
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    }
-    
-    if (session.user?.role !== 'officer') {
-      return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
-    }
+  const session = await getServerSession(authOptions)
+  
+  // Accept both admin AND officer
+  const canAccess = session?.user?.role === 'admin' || session?.user?.role === 'officer'
+  
+  if (!session || !canAccess) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
+  try {
     const { data, error } = await supabase
       .from('User')
-      .select('id, name, email, userId, phone, role, approved, createdAt, rejectionReason')
+      .select('id, name, email, userId, phone, role, approved, createdAt, approvedAt, rejectionReason')
       .order('createdAt', { ascending: false })
 
     if (error) {
-      console.error('❌ Database error:', error)
-      return NextResponse.json({ error: 'Database error' }, { status: 500 })
+      console.error('Error fetching users:', error)
+      return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
     }
 
     return NextResponse.json(data || [])
   } catch (error) {
-    console.error('❌ Error in GET /api/admin/users:', error)
+    console.error('Error in GET /api/admin/users:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
+// POST - Approve or deny a user
 export async function POST(req: Request) {
-  try {
-    const session = await getServerSession(authOptions)
-    console.log('🔍 Admin POST - Session:', session?.user?.userId)
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    }
-    
-    if (session.user?.role !== 'officer') {
-      return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
-    }
+  const session = await getServerSession(authOptions)
+  const canAccess = session?.user?.role === 'admin' || session?.user?.role === 'officer'
+  
+  if (!session || !canAccess) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
+  try {
     const body = await req.json()
-    console.log('📝 POST body:', body)
-    
     const { userId, action, reason } = body
 
     if (!userId || !action) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
+    // Get user details
+    const { data: user, error: userError } = await supabase
+      .from('User')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
+    if (userError || !user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
     if (action === 'approve') {
-      console.log('✅ Approving user:', userId)
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('User')
         .update({
           approved: true,
           approvedAt: new Date().toISOString(),
-          approvedBy: session.user.id,
-          rejectionReason: null
+          approvedBy: session.user.id
         })
         .eq('id', userId)
 
-      if (error) {
-        console.error('❌ Update error:', error)
+      if (updateError) {
         return NextResponse.json({ error: 'Failed to approve user' }, { status: 500 })
       }
 
-      return NextResponse.json({ success: true, action: 'approved' })
-    }
+      // Send approval email
+      try {
+        const template = await getEmailTemplate('approved')
+        if (template) {
+          const loginUrl = process.env.NEXTAUTH_URL || 'https://oog-terminal.vercel.app'
+          const html = renderTemplate(template.html, {
+            name: user.name || user.userId,
+            userId: user.userId,
+            loginUrl: loginUrl
+          })
+          await sendEmail({
+            to: user.email,
+            subject: template.subject,
+            html: html
+          })
+        }
+      } catch (emailError) {
+        console.error('Failed to send approval email:', emailError)
+      }
 
+      return NextResponse.json({ success: true, action: 'approved' })
+    } 
+    
     if (action === 'deny') {
-      console.log('❌ Denying user:', userId, 'Reason:', reason)
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('User')
         .update({
           approved: false,
@@ -86,9 +108,26 @@ export async function POST(req: Request) {
         })
         .eq('id', userId)
 
-      if (error) {
-        console.error('❌ Update error:', error)
+      if (updateError) {
         return NextResponse.json({ error: 'Failed to deny user' }, { status: 500 })
+      }
+
+      // Send denial email
+      try {
+        const template = await getEmailTemplate('denied')
+        if (template) {
+          const html = renderTemplate(template.html, {
+            name: user.name || user.userId,
+            reason: reason || 'No reason provided'
+          })
+          await sendEmail({
+            to: user.email,
+            subject: template.subject,
+            html: html
+          })
+        }
+      } catch (emailError) {
+        console.error('Failed to send denial email:', emailError)
       }
 
       return NextResponse.json({ success: true, action: 'denied' })
@@ -96,7 +135,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   } catch (error) {
-    console.error('❌ Error in POST /api/admin/users:', error)
+    console.error('Error in POST /api/admin/users:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
